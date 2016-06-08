@@ -60,6 +60,16 @@ namespace v8impl {
         return u.l;
     }
 
+    static v8::Local<v8::Function> V8LocalFunctionFromJsValue(value v) {
+        // Likewise awkward
+        union U {
+            value v;
+            v8::Local<v8::Function> f;
+            U(value _v) : v(_v) { }
+        } u(v);
+        return u.f;
+    }
+
     static value JsValueFromV8PersistentValue(v8::Isolate *isolate, v8::Persistent<v8::Value> persistent) {
         return JsValueFromV8LocalValue(
             v8::Local<v8::Value>::New(isolate, persistent));
@@ -129,6 +139,11 @@ value CreateFunction(env e, callback cb) {
     return v8impl::JsValueFromV8LocalValue(retval);
 }
 
+void SetFunctionName(env e, value func, value name) {
+    v8::Local<v8::Function> v8func = v8impl::V8LocalFunctionFromJsValue(func);
+    v8func->SetName(v8impl::V8LocalValueFromJsValue(name).As<v8::String>());
+}
+
 void SetReturnValue(env e, FunctionCallbackInfo cbinfo, value v) {
     const v8::FunctionCallbackInfo<v8::Value> *info = v8impl::V8FunctionCallbackInfoFromJsFunctionCallbackInfo(cbinfo);
     v8::Local<v8::Value> val = v8impl::V8LocalValueFromJsValue(v);
@@ -153,6 +168,11 @@ void SetProperty(env e, value o, propertyname k, value v) {
     // handling on invalid inputs and regarding what happens in the
     // Set operation (error thrown, key is invalid, the bool return
     // value of Set)
+}
+
+value CreateObject(env e) {
+    return v8impl::JsValueFromV8LocalValue(
+        v8::Object::New(v8impl::V8IsolateFromJsEnv(e)));
 }
 
 value CreateString(env e, const char* s) {
@@ -232,6 +252,25 @@ void GetCallbackArgs(FunctionCallbackInfo cbinfo, value* buffer, size_t bufferle
     }
 }
 
+value Call(env e, value scope, value func, int argc, value* argv) {
+    v8::Isolate *isolate = v8impl::V8IsolateFromJsEnv(e);
+    v8::Handle<v8::Value> args[argc];
+
+    v8::Local<v8::Function> v8func = v8impl::V8LocalFunctionFromJsValue(func);
+    v8::Handle<v8::Object> v8scope = v8impl::V8LocalValueFromJsValue(scope)->ToObject();
+    for (int i = 0; i < argc; i++) {
+      args[i] = v8impl::V8LocalValueFromJsValue(argv[i]);
+    }
+    v8::Handle<v8::Value> result = v8func->Call(v8scope, argc, args);
+    return v8impl::JsValueFromV8LocalValue(result);
+}
+
+value GetGlobalScope(env e) {
+    v8::Isolate *isolate = v8impl::V8IsolateFromJsEnv(e);
+    v8::Local<v8::Context> context = v8::Context::New(isolate);
+    return v8impl::JsValueFromV8LocalValue(context->Global());
+}
+
 void ThrowError(env e, value error) {
     v8::Isolate *isolate = v8impl::V8IsolateFromJsEnv(e);
 
@@ -245,10 +284,11 @@ double GetNumberFromValue(value v) {
     return v8impl::V8LocalValueFromJsValue(v)->NumberValue();
 }
 
-void WorkaroundNewModuleInit(v8::Local<v8::Object> exports, workaround_init_callback init) {
+void WorkaroundNewModuleInit(v8::Local<v8::Object> exports, v8::Local<v8::Object> module, workaround_init_callback init) {
     init(
         node::js::v8impl::JsEnvFromV8Isolate(v8::Isolate::GetCurrent()),
-        node::js::v8impl::JsValueFromV8LocalValue(exports));
+        node::js::v8impl::JsValueFromV8LocalValue(exports),
+        node::js::v8impl::JsValueFromV8LocalValue(module));
 }
 
 }  // namespace js
