@@ -18,6 +18,8 @@
  ******************************************************************************/
 #include "node_jsvmapi.h"
 
+#include <vector>
+
 namespace node {
 namespace js { 
 
@@ -254,14 +256,14 @@ void GetCallbackArgs(FunctionCallbackInfo cbinfo, value* buffer, size_t bufferle
 
 value Call(env e, value scope, value func, int argc, value* argv) {
     v8::Isolate *isolate = v8impl::V8IsolateFromJsEnv(e);
-    v8::Handle<v8::Value> args[argc];
+    std::vector<v8::Handle<v8::Value>> args(argc);
 
     v8::Local<v8::Function> v8func = v8impl::V8LocalFunctionFromJsValue(func);
     v8::Handle<v8::Object> v8scope = v8impl::V8LocalValueFromJsValue(scope)->ToObject();
     for (int i = 0; i < argc; i++) {
       args[i] = v8impl::V8LocalValueFromJsValue(argv[i]);
     }
-    v8::Handle<v8::Value> result = v8func->Call(v8scope, argc, args);
+    v8::Handle<v8::Value> result = v8func->Call(v8scope, argc, args.data());
     return v8impl::JsValueFromV8LocalValue(result);
 }
 
