@@ -227,6 +227,26 @@ valuetype GetTypeOfValue(value vv) {
     }
 }
 
+value GetUndefined(env e) {
+    return v8impl::JsValueFromV8LocalValue(
+        v8::Undefined(v8impl::V8IsolateFromJsEnv(e)));
+}
+
+value GetNull(env e) {
+    return v8impl::JsValueFromV8LocalValue(
+        v8::Null(v8impl::V8IsolateFromJsEnv(e)));
+}
+
+value GetFalse(env e) {
+    return v8impl::JsValueFromV8LocalValue(
+        v8::False(v8impl::V8IsolateFromJsEnv(e)));
+}
+
+value GetTrue(env e) {
+    return v8impl::JsValueFromV8LocalValue(
+        v8::True(v8impl::V8IsolateFromJsEnv(e)));
+}
+
 int GetCallbackArgsLength(FunctionCallbackInfo cbinfo) {
     const v8::FunctionCallbackInfo<v8::Value> *info = v8impl::V8FunctionCallbackInfoFromJsFunctionCallbackInfo(cbinfo);
     return info->Length();
@@ -286,6 +306,8 @@ double GetNumberFromValue(value v) {
     return v8impl::V8LocalValueFromJsValue(v)->NumberValue();
 }
 
+namespace legacy {
+
 void WorkaroundNewModuleInit(v8::Local<v8::Object> exports, v8::Local<v8::Object> module, workaround_init_callback init) {
     init(
         node::js::v8impl::JsEnvFromV8Isolate(v8::Isolate::GetCurrent()),
@@ -293,5 +315,14 @@ void WorkaroundNewModuleInit(v8::Local<v8::Object> exports, v8::Local<v8::Object
         node::js::v8impl::JsValueFromV8LocalValue(module));
 }
 
+v8::Local<v8::Value> V8LocalValue(value v) {
+    return node::js::v8impl::V8LocalValueFromJsValue(v);
+}
+
+value JsValue(v8::Local<v8::Value> v) {
+    return node::js::v8impl::JsValueFromV8LocalValue(v);
+}
+
+}  // namespace legacy
 }  // namespace js
 }  // namespace node

@@ -2,7 +2,7 @@
  * Experimental prototype for demonstrating VM agnostic and ABI stable API
  * for native modules to use instead of using Nan and V8 APIs directly.
  *
- * This is an rough proof of concept not intended for real world usage.
+ * This is a rough proof of concept not intended for real world usage.
  * It is currently far from a sufficiently completed work.
  *
  *  - The API is not complete nor agreed upon.
@@ -49,6 +49,11 @@ enum class valuetype {
 
 NODE_EXTERN valuetype GetTypeOfValue(value);
 
+NODE_EXTERN value GetUndefined(env);
+NODE_EXTERN value GetNull(env);
+NODE_EXTERN value GetFalse(env);
+NODE_EXTERN value GetTrue(env);
+
 NODE_EXTERN value CreateObject(env);
 NODE_EXTERN value CreateNumber(env, double);
 NODE_EXTERN value CreateString(env, const char*);
@@ -77,10 +82,15 @@ NODE_EXTERN double GetNumberFromValue(value);
 NODE_EXTERN value GetGlobalScope(env); 
 NODE_EXTERN value Call(env, value, value, int, value*);
 
-typedef void(*workaround_init_callback)(env env, value exports, value module);
-NODE_EXTERN void WorkaroundNewModuleInit(v8::Local<v8::Object> exports,
-                                         v8::Local<v8::Object> module,
-                                         workaround_init_callback init);
+namespace legacy {
+  typedef void(*workaround_init_callback)(env env, value exports, value module);
+  NODE_EXTERN void WorkaroundNewModuleInit(v8::Local<v8::Object> exports,
+                                           v8::Local<v8::Object> module,
+                                           workaround_init_callback init);
+
+  NODE_EXTERN v8::Local<v8::Value> V8LocalValue(value v);
+  NODE_EXTERN value JsValue(v8::Local<v8::Value> v);
+}  // namespace legacy
 }  // namespace js
 }  // namespace node
 
