@@ -28,6 +28,7 @@ namespace js {
 typedef void* env;
 
 typedef void* value;
+typedef void* persistent;
 typedef value propertyname;
 
 // V8 has the concept of a function's holder; should that be part of the
@@ -81,6 +82,12 @@ NODE_EXTERN double GetNumberFromValue(value);
 
 NODE_EXTERN value GetGlobalScope(env); 
 NODE_EXTERN value Call(env, value, value, int, value*);
+
+NODE_EXTERN void Wrap(env, value, void*);
+NODE_EXTERN void* Unwrap(env, value);
+
+NODE_EXTERN persistent CreatePersistent(env, value);
+NODE_EXTERN value GetPersistentValue(env, persistent);
 
 namespace legacy {
   typedef void(*workaround_init_callback)(env env, value exports, value module);

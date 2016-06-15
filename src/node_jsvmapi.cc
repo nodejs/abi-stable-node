@@ -72,10 +72,13 @@ namespace v8impl {
         return u.f;
     }
 
-    static value JsValueFromV8PersistentValue(v8::Isolate *isolate, v8::Persistent<v8::Value> persistent) {
-        return JsValueFromV8LocalValue(
-            v8::Local<v8::Value>::New(isolate, persistent));
+    static persistent JsPersistentFromV8PersistentValue(v8::Persistent<v8::Value> *per) {
+      return (persistent) per;
     };
+
+    static v8::Persistent<v8::Value>* V8PersistentValueFromJsPersistentValue(persistent per) {
+      return (v8::Persistent<v8::Value>*) per;
+    }
 
 //=== Conversion between V8 FunctionCallbackInfo and ===========================
 //=== node::js::FunctionCallbackInfo ===========================================
@@ -305,6 +308,26 @@ void ThrowError(env e, value error) {
 double GetNumberFromValue(value v) {
     return v8impl::V8LocalValueFromJsValue(v)->NumberValue();
 }
+
+void Wrap(env, value, void*) {
+};
+
+void* Unwrap(env, value) {
+};
+
+persistent CreatePersistent(env e, value v) {
+  v8::Isolate *isolate = v8impl::V8IsolateFromJsEnv(e);
+  v8::Persistent<v8::Value> *thePersistent = new v8::Persistent<v8::Value>(isolate, v8impl::V8LocalValueFromJsValue(v));
+  return v8impl::JsPersistentFromV8PersistentValue(thePersistent);
+}
+
+value GetPersistentValue(env e, persistent p) {
+  v8::Isolate *isolate = v8impl::V8IsolateFromJsEnv(e);
+  v8::Persistent<v8::Value> *thePersistent = v8impl::V8PersistentValueFromJsPersistentValue(p);
+  v8::Local<v8::Value> value = v8::Local<v8::Value>::New(isolate, *thePersistent);
+  return v8impl::JsValueFromV8LocalValue(value);
+};
+
 
 namespace legacy {
 
