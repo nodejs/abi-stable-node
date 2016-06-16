@@ -72,10 +72,15 @@ NODE_EXTERN int GetCallbackArgsLength(FunctionCallbackInfo);
 // copy encoded arguments into provided buffer or return direct pointer to
 // encoded arguments array?
 NODE_EXTERN void GetCallbackArgs(FunctionCallbackInfo, value* buffer, size_t bufferlength);
+NODE_EXTERN value GetCallbackObject(env, FunctionCallbackInfo);
 NODE_EXTERN void SetReturnValue(env, FunctionCallbackInfo, value);
 
 NODE_EXTERN propertyname PropertyName(env, const char*);
 NODE_EXTERN void SetProperty(env, value object, propertyname, value);
+NODE_EXTERN value GetProperty(env e, value o, propertyname k);
+
+NODE_EXTERN value GetPrototype(env, value object);
+
 // CONSIDER: SetProperties for bulk set operations
 
 NODE_EXTERN double GetNumberFromValue(value);
