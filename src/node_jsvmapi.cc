@@ -175,6 +175,26 @@ void SetProperty(env e, value o, propertyname k, value v) {
     // value of Set)
 }
 
+value GetProperty(env e, value o, propertyname k) {
+    v8::Isolate *isolate = v8impl::V8IsolateFromJsEnv(e);
+
+    v8::Local<v8::Object> obj = v8impl::V8LocalValueFromJsValue(o)->ToObject();
+    v8::Local<v8::Value> key = v8impl::V8LocalValueFromJsValue(k);
+    v8::Local<v8::Value> val = obj->Get(key);
+    // This implementation is missing a lot of details, notably error
+    // handling on invalid inputs and regarding what happens in the
+    // Set operation (error thrown, key is invalid, the bool return
+    // value of Set)
+   return v8impl::JsValueFromV8LocalValue(val);
+}
+
+value GetPrototype(env e, value o) {
+   v8::Isolate *isolate = v8impl::V8IsolateFromJsEnv(e);
+   v8::Local<v8::Object> obj = v8impl::V8LocalValueFromJsValue(o)->ToObject();
+   v8::Local<v8::Value> val = obj->GetPrototype();
+   return v8impl::JsValueFromV8LocalValue(val);
+}
+
 value CreateObject(env e) {
     return v8impl::JsValueFromV8LocalValue(
         v8::Object::New(v8impl::V8IsolateFromJsEnv(e)));
@@ -275,6 +295,11 @@ void GetCallbackArgs(FunctionCallbackInfo cbinfo, value* buffer, size_t bufferle
             buffer[i] = undefined;
         }
     }
+}
+
+value GetCallbackObject(env e, FunctionCallbackInfo cbinfo) {
+    const v8::FunctionCallbackInfo<v8::Value> *info = v8impl::V8FunctionCallbackInfoFromJsFunctionCallbackInfo(cbinfo);
+    return v8impl::JsValueFromV8LocalValue(info->This());
 }
 
 value Call(env e, value scope, value func, int argc, value* argv) {
