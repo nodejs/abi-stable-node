@@ -98,7 +98,7 @@ namespace v8impl {
     static const int kFunctionIndex =       1;
     static const int kFunctionFieldCount =  2;
 
-    static void FunctionCallbackWrapper(const v8::FunctionCallbackInfo<v8::Value> &info) {
+    static void FunctionCallbackWrapperOld(const v8::FunctionCallbackInfo<v8::Value> &info) {
         v8::Local<v8::Object> obj = info.Data().As<v8::Object>();
         callback cb = reinterpret_cast<callback>(
             reinterpret_cast<intptr_t>(
@@ -109,9 +109,17 @@ namespace v8impl {
             cbinfo);
     }
 
+    static void FunctionCallbackWrapper(const v8::FunctionCallbackInfo<v8::Value> &info) {
+        callback cb = reinterpret_cast<callback>(info.Data().As<v8::External>()->Value()); 
+        FunctionCallbackInfo cbinfo = JsFunctionCallbackInfoFromV8FunctionCallbackInfo(&info);
+        cb(
+            v8impl::JsEnvFromV8Isolate(info.GetIsolate()),
+            cbinfo);
+    }
+
 }  // end of namespace v8impl
 
-value CreateFunction(env e, callback cb) {
+value CreateFunctionOld(env e, callback cb) {
     v8::Isolate *isolate = v8impl::V8IsolateFromJsEnv(e);
 
     // This code is adapted from nan
@@ -138,9 +146,21 @@ value CreateFunction(env e, callback cb) {
     }
 
     retval = scope.Escape(v8::Function::New(isolate
-        , v8impl::FunctionCallbackWrapper
+        , v8impl::FunctionCallbackWrapperOld
         , obj));
 
+    return v8impl::JsValueFromV8LocalValue(retval);
+}
+
+value CreateFunction(env e, callback cb) {
+    v8::Isolate *isolate = v8impl::V8IsolateFromJsEnv(e);
+    v8::Local<v8::Object> retval;
+
+    v8::EscapableHandleScope scope(isolate);
+    v8::Local<v8::FunctionTemplate> ftpl = v8::FunctionTemplate::New(isolate, v8impl::FunctionCallbackWrapper,
+                                                                     v8::External::New(isolate, (void*) cb));
+
+    retval = scope.Escape(ftpl->GetFunction());
     return v8impl::JsValueFromV8LocalValue(retval);
 }
 
@@ -353,6 +373,18 @@ value GetPersistentValue(env e, persistent p) {
   return v8impl::JsValueFromV8LocalValue(value);
 };
 
+
+value NewInstance(env e, value cons, int argc, value *argv){
+  v8::Isolate *isolate = v8impl::V8IsolateFromJsEnv(e);
+  v8::Local<v8::Function> v8cons = v8impl::V8LocalFunctionFromJsValue(cons);
+  std::vector<v8::Handle<v8::Value>> args(argc);
+  for (int i = 0; i < argc; i++) {
+    args[i] = v8impl::V8LocalValueFromJsValue(argv[i]);
+  }
+
+  v8::Handle<v8::Value> result = v8cons->NewInstance(argc, args.data());
+  return v8impl::JsValueFromV8LocalValue(result);
+};
 
 namespace legacy {
 
