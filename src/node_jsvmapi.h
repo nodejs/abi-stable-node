@@ -94,6 +94,8 @@ NODE_EXTERN void* Unwrap(env, value);
 NODE_EXTERN persistent CreatePersistent(env, value);
 NODE_EXTERN value GetPersistentValue(env, persistent);
 
+NODE_EXTERN persistent NewInstance(env, value, int, value*);
+
 namespace legacy {
   typedef void(*workaround_init_callback)(env env, value exports, value module);
   NODE_EXTERN void WorkaroundNewModuleInit(v8::Local<v8::Object> exports,
