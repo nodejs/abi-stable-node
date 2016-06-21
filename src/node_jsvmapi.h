@@ -74,6 +74,7 @@ NODE_EXTERN int GetCallbackArgsLength(FunctionCallbackInfo);
 // encoded arguments array?
 NODE_EXTERN void GetCallbackArgs(FunctionCallbackInfo, value* buffer, size_t bufferlength);
 NODE_EXTERN value GetCallbackObject(env, FunctionCallbackInfo);
+NODE_EXTERN bool IsContructCall(env, FunctionCallbackInfo);
 NODE_EXTERN void SetReturnValue(env, FunctionCallbackInfo, value);
 
 NODE_EXTERN propertyname PropertyName(env, const char*);
@@ -89,7 +90,7 @@ NODE_EXTERN double GetNumberFromValue(value);
 NODE_EXTERN value GetGlobalScope(env); 
 NODE_EXTERN value Call(env, value, value, int, value*);
 
-NODE_EXTERN void Wrap(env, value, void*);
+NODE_EXTERN void Wrap(env e, value jsObject, void* nativeObj, void* destructor);
 NODE_EXTERN void* Unwrap(env, value);
 
 NODE_EXTERN persistent CreatePersistent(env, value);
