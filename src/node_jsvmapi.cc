@@ -157,12 +157,28 @@ value CreateFunction(env e, callback cb) {
     v8::Local<v8::Object> retval;
 
     v8::EscapableHandleScope scope(isolate);
-    v8::Local<v8::FunctionTemplate> ftpl = v8::FunctionTemplate::New(isolate, v8impl::FunctionCallbackWrapper,
-                                                                     v8::External::New(isolate, (void*) cb));
+    v8::Local<v8::FunctionTemplate> tpl = v8::FunctionTemplate::New(isolate, v8impl::FunctionCallbackWrapper,
+                                                                    v8::External::New(isolate, (void*) cb));
 
-    retval = scope.Escape(ftpl->GetFunction());
+    retval = scope.Escape(tpl->GetFunction());
     return v8impl::JsValueFromV8LocalValue(retval);
 }
+
+value CreateConstructorForWrap(env e, callback cb) {
+    v8::Isolate *isolate = v8impl::V8IsolateFromJsEnv(e);
+    v8::Local<v8::Object> retval;
+
+    v8::EscapableHandleScope scope(isolate);
+    v8::Local<v8::FunctionTemplate> tpl = v8::FunctionTemplate::New(isolate, v8impl::FunctionCallbackWrapper,
+                                                                    v8::External::New(isolate, (void*) cb));
+
+    // we need an internal field to stash the wrapped object
+    tpl->InstanceTemplate()->SetInternalFieldCount(1);
+
+    retval = scope.Escape(tpl->GetFunction());
+    return v8impl::JsValueFromV8LocalValue(retval);
+}
+
 
 void SetFunctionName(env e, value func, value name) {
     v8::Local<v8::Function> v8func = v8impl::V8LocalFunctionFromJsValue(func);
@@ -181,8 +197,6 @@ propertyname PropertyName(env e, const char* utf8name) {
 }
 
 void SetProperty(env e, value o, propertyname k, value v) {
-    v8::Isolate *isolate = v8impl::V8IsolateFromJsEnv(e);
-
     v8::Local<v8::Object> obj = v8impl::V8LocalValueFromJsValue(o)->ToObject();
     v8::Local<v8::Value> key = v8impl::V8LocalValueFromJsValue(k);
     v8::Local<v8::Value> val = v8impl::V8LocalValueFromJsValue(v);
@@ -196,8 +210,6 @@ void SetProperty(env e, value o, propertyname k, value v) {
 }
 
 value GetProperty(env e, value o, propertyname k) {
-    v8::Isolate *isolate = v8impl::V8IsolateFromJsEnv(e);
-
     v8::Local<v8::Object> obj = v8impl::V8LocalValueFromJsValue(o)->ToObject();
     v8::Local<v8::Value> key = v8impl::V8LocalValueFromJsValue(k);
     v8::Local<v8::Value> val = obj->Get(key);
@@ -209,7 +221,6 @@ value GetProperty(env e, value o, propertyname k) {
 }
 
 value GetPrototype(env e, value o) {
-   v8::Isolate *isolate = v8impl::V8IsolateFromJsEnv(e);
    v8::Local<v8::Object> obj = v8impl::V8LocalValueFromJsValue(o)->ToObject();
    v8::Local<v8::Value> val = obj->GetPrototype();
    return v8impl::JsValueFromV8LocalValue(val);
@@ -323,7 +334,6 @@ value GetCallbackObject(env e, FunctionCallbackInfo cbinfo) {
 }
 
 value Call(env e, value scope, value func, int argc, value* argv) {
-    v8::Isolate *isolate = v8impl::V8IsolateFromJsEnv(e);
     std::vector<v8::Handle<v8::Value>> args(argc);
 
     v8::Local<v8::Function> v8func = v8impl::V8LocalFunctionFromJsValue(func);
@@ -358,6 +368,7 @@ void Wrap(env, value, void*) {
 };
 
 void* Unwrap(env, value) {
+  return NULL;
 };
 
 persistent CreatePersistent(env e, value v) {
@@ -382,7 +393,7 @@ value NewInstance(env e, value cons, int argc, value *argv){
     args[i] = v8impl::V8LocalValueFromJsValue(argv[i]);
   }
 
-  v8::Handle<v8::Value> result = v8cons->NewInstance(argc, args.data());
+  v8::Handle<v8::Value> result = v8cons->NewInstance(isolate->GetCurrentContext(), argc, args.data()).ToLocalChecked();
   return v8impl::JsValueFromV8LocalValue(result);
 };
 
