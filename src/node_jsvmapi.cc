@@ -122,7 +122,7 @@ namespace v8impl {
 
   class ObjectWrapWrapper: public node::ObjectWrap  {
     public:
-      ObjectWrapWrapper(value jsObject, void* nativeObj, void* destructor) {
+      ObjectWrapWrapper(value jsObject, void* nativeObj, destruct* destructor) {
         _destructor = destructor;
         _nativeObj = nativeObj;
         Wrap(V8LocalValueFromJsValue(jsObject)->ToObject());
@@ -139,12 +139,12 @@ namespace v8impl {
 
       virtual ~ObjectWrapWrapper() {
         if (_destructor != nullptr) {
-          ((destruct*) _destructor)(_nativeObj);
+          _destructor(_nativeObj);
         }
       }
 
     private:
-      void* _destructor;
+      destruct* _destructor;
       void* _nativeObj;
   };
 
@@ -401,7 +401,7 @@ double GetNumberFromValue(value v) {
     return v8impl::V8LocalValueFromJsValue(v)->NumberValue();
 }
 
-void Wrap(env e, value jsObject, void* nativeObj, void* destructor) {
+void Wrap(env e, value jsObject, void* nativeObj, destruct* destructor) {
   new v8impl::ObjectWrapWrapper(jsObject, nativeObj, destructor);
 };
 
