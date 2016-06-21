@@ -59,6 +59,7 @@ NODE_EXTERN value CreateObject(env);
 NODE_EXTERN value CreateNumber(env, double);
 NODE_EXTERN value CreateString(env, const char*);
 NODE_EXTERN value CreateFunction(env, callback);
+NODE_EXTERN value CreateConstructorForWrap(env, callback);
 NODE_EXTERN void  SetFunctionName(env, value, value);
 
 NODE_EXTERN value CreateTypeError(env, value msg);
