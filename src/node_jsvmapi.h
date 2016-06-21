@@ -21,6 +21,8 @@
 
 #include "node.h"
 
+typedef void destruct(void*);
+
 namespace node {
 namespace js {
 
@@ -90,7 +92,7 @@ NODE_EXTERN double GetNumberFromValue(value);
 NODE_EXTERN value GetGlobalScope(env); 
 NODE_EXTERN value Call(env, value, value, int, value*);
 
-NODE_EXTERN void Wrap(env e, value jsObject, void* nativeObj, void* destructor);
+NODE_EXTERN void Wrap(env e, value jsObject, void* nativeObj, destruct* destructor);
 NODE_EXTERN void* Unwrap(env, value);
 
 NODE_EXTERN persistent CreatePersistent(env, value);
