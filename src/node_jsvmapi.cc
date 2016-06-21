@@ -17,8 +17,11 @@
  *
  ******************************************************************************/
 #include "node_jsvmapi.h"
+#include <node_object_wrap.h>
 
 #include <vector>
+
+typedef void destruct(void*);
 
 namespace node {
 namespace js { 
@@ -116,6 +119,35 @@ namespace v8impl {
             v8impl::JsEnvFromV8Isolate(info.GetIsolate()),
             cbinfo);
     }
+
+  class ObjectWrapWrapper: public node::ObjectWrap  {
+    public:
+      ObjectWrapWrapper(value jsObject, void* nativeObj, void* destructor) {
+        _destructor = destructor;
+        _nativeObj = nativeObj;
+        Wrap(V8LocalValueFromJsValue(jsObject)->ToObject());
+      }
+
+      void* getValue() {
+        return _nativeObj;
+      }
+
+      static void* Unwrap(value jsObject) {
+        ObjectWrapWrapper* wrapper = ObjectWrap::Unwrap<ObjectWrapWrapper>(V8LocalValueFromJsValue(jsObject)->ToObject());
+        return wrapper->getValue(); 
+      }
+
+      virtual ~ObjectWrapWrapper() {
+        if (_destructor != nullptr) {
+          ((destruct*) _destructor)(_nativeObj);
+        }
+      }
+
+    private:
+      void* _destructor;
+      void* _nativeObj;
+  };
+
 
 }  // end of namespace v8impl
 
@@ -306,6 +338,11 @@ int GetCallbackArgsLength(FunctionCallbackInfo cbinfo) {
     return info->Length();
 }
 
+bool IsContructCall(env e, FunctionCallbackInfo cbinfo) {
+    const v8::FunctionCallbackInfo<v8::Value> *info = v8impl::V8FunctionCallbackInfoFromJsFunctionCallbackInfo(cbinfo);
+    return info->IsConstructCall();
+}
+
 // copy encoded arguments into provided buffer or return direct pointer to
 // encoded arguments array?
 void GetCallbackArgs(FunctionCallbackInfo cbinfo, value* buffer, size_t bufferlength) {
@@ -364,11 +401,12 @@ double GetNumberFromValue(value v) {
     return v8impl::V8LocalValueFromJsValue(v)->NumberValue();
 }
 
-void Wrap(env, value, void*) {
+void Wrap(env e, value jsObject, void* nativeObj, void* destructor) {
+  new v8impl::ObjectWrapWrapper(jsObject, nativeObj, destructor);
 };
 
-void* Unwrap(env, value) {
-  return NULL;
+void* Unwrap(env e, value jsObject) {
+  return v8impl::ObjectWrapWrapper::Unwrap(jsObject);
 };
 
 persistent CreatePersistent(env e, value v) {
