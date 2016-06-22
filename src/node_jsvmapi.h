@@ -21,22 +21,18 @@
 
 #include "node.h"
 
-typedef void destruct(void*);
 
 namespace node {
 namespace js {
 
 // JSVM API types are all opaque pointers for ABI stability
 typedef void* env;
-
 typedef void* value;
 typedef void* persistent;
 typedef value propertyname;
-
-// V8 has the concept of a function's holder; should that be part of the
-// VM agnostic API?
 typedef const void* FunctionCallbackInfo;
 typedef void (*callback)(env, FunctionCallbackInfo);
+typedef void destruct(void*);
 
 enum class valuetype {
     // ES6 types (corresponds to typeof)
@@ -50,56 +46,66 @@ enum class valuetype {
     Function,
 };
 
-NODE_EXTERN valuetype GetTypeOfValue(env, value);
 
-NODE_EXTERN value GetUndefined(env);
-NODE_EXTERN value GetNull(env);
-NODE_EXTERN value GetFalse(env);
-NODE_EXTERN value GetTrue(env);
+// Getters for defined singletons
+NODE_EXTERN value GetUndefined(env e);
+NODE_EXTERN value GetNull(env e);
+NODE_EXTERN value GetFalse(env e);
+NODE_EXTERN value GetTrue(env e);
+NODE_EXTERN value GetGlobalScope(env e); 
 
-NODE_EXTERN value CreateObject(env);
-NODE_EXTERN value CreateNumber(env, double);
-NODE_EXTERN value CreateString(env, const char*);
-NODE_EXTERN value CreateFunction(env, callback);
-NODE_EXTERN value CreateConstructorForWrap(env, callback);
-NODE_EXTERN void  SetFunctionName(env, value, value);
 
-NODE_EXTERN value CreateTypeError(env, value msg);
+// Methods to create Primitive types/Objects
+NODE_EXTERN value CreateObject(env e);
+NODE_EXTERN value CreateNumber(env e, double val);
+NODE_EXTERN value CreateString(env e, const char*);
+NODE_EXTERN value CreateFunction(env e, callback cbinfo);
+NODE_EXTERN value CreateTypeError(env e, value msg);
 
-NODE_EXTERN void ThrowError(env, value);
 
-// These operations probably will hurt performance if they always have to
-// across the DLL boundary.  FunctionCallbackInfo likely will need to be
-// a defined type rather than an opaque pointer.
-NODE_EXTERN int GetCallbackArgsLength(env, FunctionCallbackInfo);
-// copy encoded arguments into provided buffer or return direct pointer to
-// encoded arguments array?
-NODE_EXTERN void GetCallbackArgs(env, FunctionCallbackInfo, value* buffer, size_t bufferlength);
-NODE_EXTERN value GetCallbackObject(env, FunctionCallbackInfo);
-NODE_EXTERN bool IsContructCall(env, FunctionCallbackInfo);
-NODE_EXTERN void SetReturnValue(env, FunctionCallbackInfo, value);
+// Methods to get the the native value from Primitive type
+NODE_EXTERN valuetype GetTypeOfValue(env e, value v);
+NODE_EXTERN double GetNumberFromValue(env e, value v);
 
-NODE_EXTERN propertyname PropertyName(env, const char*);
-NODE_EXTERN void SetProperty(env, value object, propertyname, value);
-NODE_EXTERN value GetProperty(env e, value o, propertyname k);
 
-NODE_EXTERN value GetPrototype(env, value object);
+// Methods to work with Objects
+NODE_EXTERN value GetPrototype(env e, value object);
+NODE_EXTERN propertyname PropertyName(env e, const char* utf8name);
+NODE_EXTERN void SetProperty(env e, value object, propertyname name, value v);
+NODE_EXTERN value GetProperty(env e, value object, propertyname name);
 
-// CONSIDER: SetProperties for bulk set operations
 
-NODE_EXTERN double GetNumberFromValue(env, value);
+// Methods to work with Functions
+NODE_EXTERN void  SetFunctionName(env e, value func, propertyname value);
+NODE_EXTERN value Call(env e, value scope, value func, int argc, value* argv);
+NODE_EXTERN value NewInstance(env e, value cons, int argc, value *argv);
 
-NODE_EXTERN value GetGlobalScope(env); 
-NODE_EXTERN value Call(env, value, value, int, value*);
 
+// Methods to work with callbacks
+NODE_EXTERN int GetCallbackArgsLength(env e, FunctionCallbackInfo cbinfo);
+NODE_EXTERN void GetCallbackArgs(env e, FunctionCallbackInfo cbinfo, value* buffer, size_t bufferlength);
+NODE_EXTERN value GetCallbackObject(env e, FunctionCallbackInfo cbinfo);
+NODE_EXTERN bool IsContructCall(env e, FunctionCallbackInfo cbinfo);
+NODE_EXTERN void SetReturnValue(env e, FunctionCallbackInfo cbinfo, value v);
+
+
+// Methods to support ObjectWrap
+NODE_EXTERN value CreateConstructorForWrap(env e, callback cb);
 NODE_EXTERN void Wrap(env e, value jsObject, void* nativeObj, destruct* destructor);
-NODE_EXTERN void* Unwrap(env, value);
+NODE_EXTERN void* Unwrap(env e, value jsObject);
 
-NODE_EXTERN persistent CreatePersistent(env, value);
-NODE_EXTERN value GetPersistentValue(env, persistent);
 
-NODE_EXTERN value NewInstance(env, value, int, value*);
+// Methods to control object lifespan
+NODE_EXTERN persistent CreatePersistent(env e, value v);
+NODE_EXTERN value GetPersistentValue(env e, persistent);
 
+
+// Methods to support error handling
+NODE_EXTERN void ThrowError(env e, value error);
+
+///////////////////////////////////////////
+// WILL GO AWAY
+///////////////////////////////////////////
 namespace legacy {
   typedef void(*workaround_init_callback)(env env, value exports, value module);
   NODE_EXTERN void WorkaroundNewModuleInit(v8::Local<v8::Object> exports,
