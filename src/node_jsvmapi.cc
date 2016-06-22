@@ -279,7 +279,7 @@ value CreateTypeError(env, value msg) {
             v8impl::V8LocalValueFromJsValue(msg).As<v8::String>()));
 }
 
-valuetype GetTypeOfValue(value vv) {
+valuetype GetTypeOfValue(env e, value vv) {
     v8::Local<v8::Value> v = v8impl::V8LocalValueFromJsValue(vv);
 
     if (v->IsNumber()) {
@@ -333,7 +333,7 @@ value GetTrue(env e) {
         v8::True(v8impl::V8IsolateFromJsEnv(e)));
 }
 
-int GetCallbackArgsLength(FunctionCallbackInfo cbinfo) {
+int GetCallbackArgsLength(env e, FunctionCallbackInfo cbinfo) {
     const v8::FunctionCallbackInfo<v8::Value> *info = v8impl::V8FunctionCallbackInfoFromJsFunctionCallbackInfo(cbinfo);
     return info->Length();
 }
@@ -345,7 +345,7 @@ bool IsContructCall(env e, FunctionCallbackInfo cbinfo) {
 
 // copy encoded arguments into provided buffer or return direct pointer to
 // encoded arguments array?
-void GetCallbackArgs(FunctionCallbackInfo cbinfo, value* buffer, size_t bufferlength) {
+void GetCallbackArgs(env e, FunctionCallbackInfo cbinfo, value* buffer, size_t bufferlength) {
     const v8::FunctionCallbackInfo<v8::Value> *info = v8impl::V8FunctionCallbackInfoFromJsFunctionCallbackInfo(cbinfo);
 
     int i = 0;
@@ -397,7 +397,7 @@ void ThrowError(env e, value error) {
     // to the javascript invoker will fail
 }
 
-double GetNumberFromValue(value v) {
+double GetNumberFromValue(env e, value v) {
     return v8impl::V8LocalValueFromJsValue(v)->NumberValue();
 }
 

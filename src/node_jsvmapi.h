@@ -50,7 +50,7 @@ enum class valuetype {
     Function,
 };
 
-NODE_EXTERN valuetype GetTypeOfValue(value);
+NODE_EXTERN valuetype GetTypeOfValue(env, value);
 
 NODE_EXTERN value GetUndefined(env);
 NODE_EXTERN value GetNull(env);
@@ -71,10 +71,10 @@ NODE_EXTERN void ThrowError(env, value);
 // These operations probably will hurt performance if they always have to
 // across the DLL boundary.  FunctionCallbackInfo likely will need to be
 // a defined type rather than an opaque pointer.
-NODE_EXTERN int GetCallbackArgsLength(FunctionCallbackInfo);
+NODE_EXTERN int GetCallbackArgsLength(env, FunctionCallbackInfo);
 // copy encoded arguments into provided buffer or return direct pointer to
 // encoded arguments array?
-NODE_EXTERN void GetCallbackArgs(FunctionCallbackInfo, value* buffer, size_t bufferlength);
+NODE_EXTERN void GetCallbackArgs(env, FunctionCallbackInfo, value* buffer, size_t bufferlength);
 NODE_EXTERN value GetCallbackObject(env, FunctionCallbackInfo);
 NODE_EXTERN bool IsContructCall(env, FunctionCallbackInfo);
 NODE_EXTERN void SetReturnValue(env, FunctionCallbackInfo, value);
@@ -87,7 +87,7 @@ NODE_EXTERN value GetPrototype(env, value object);
 
 // CONSIDER: SetProperties for bulk set operations
 
-NODE_EXTERN double GetNumberFromValue(value);
+NODE_EXTERN double GetNumberFromValue(env, value);
 
 NODE_EXTERN value GetGlobalScope(env); 
 NODE_EXTERN value Call(env, value, value, int, value*);
