@@ -22,25 +22,27 @@
 #include "node.h"
 
 
+extern "C" {
+
 // JSVM API types are all opaque pointers for ABI stability
 typedef void* napi_env;
 typedef void* napi_value;
 typedef void* napi_persistent;
-typedef napi_value propertyname;
+typedef napi_value napi_propertyname;
 typedef const void* napi_func_cb_info;
 typedef void (*napi_callback)(napi_env, napi_func_cb_info);
 typedef void napi_destruct(void*);
 
-enum class napi_valuetype {
+enum napi_valuetype {
     // ES6 types (corresponds to typeof)
-    Undefined,
-    Null,
-    Boolean,
-    Number,
-    String,
-    Symbol,
-    Object,
-    Function,
+    napi_undefined,
+    napi_null,
+    napi_boolean,
+    napi_number,
+    napi_string,
+    napi_symbol,
+    napi_object,
+    napi_function,
 };
 
 
@@ -67,13 +69,13 @@ NODE_EXTERN double napi_get_number_from_value(napi_env e, napi_value v);
 
 // Methods to work with Objects
 NODE_EXTERN napi_value napi_get_prototype(napi_env e, napi_value object);
-NODE_EXTERN propertyname napi_proterty_name(napi_env e, const char* utf8name);
-NODE_EXTERN void napi_set_property(napi_env e, napi_value object, propertyname name, napi_value v);
-NODE_EXTERN napi_value napi_get_property(napi_env e, napi_value object, propertyname name);
+NODE_EXTERN napi_propertyname napi_proterty_name(napi_env e, const char* utf8name);
+NODE_EXTERN void napi_set_property(napi_env e, napi_value object, napi_propertyname name, napi_value v);
+NODE_EXTERN napi_value napi_get_property(napi_env e, napi_value object, napi_propertyname name);
 
 
 // Methods to work with Functions
-NODE_EXTERN void napi_set_function_name(napi_env e, napi_value func, propertyname napi_value);
+NODE_EXTERN void napi_set_function_name(napi_env e, napi_value func, napi_propertyname napi_value);
 NODE_EXTERN napi_value napi_call_function(napi_env e, napi_value scope, napi_value func, int argc, napi_value* argv);
 NODE_EXTERN napi_value napi_new_instance(napi_env e, napi_value cons, int argc, napi_value *argv);
 
@@ -110,5 +112,7 @@ NODE_EXTERN void napi_throw_error(napi_env e, napi_value error);
 
   NODE_EXTERN v8::Local<v8::Value> V8LocalValue(napi_value v);
   NODE_EXTERN napi_value JsValue(v8::Local<v8::Value> v);
+
+} // extern "C"
 
 #endif  // SRC_NODE_JSVMAPI_H_

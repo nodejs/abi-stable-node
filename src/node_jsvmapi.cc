@@ -220,12 +220,12 @@ void napi_set_return_value(napi_env e, napi_func_cb_info cbinfo, napi_value v) {
     info->GetReturnValue().Set(val);
 }
 
-propertyname napi_proterty_name(napi_env e, const char* utf8name) {
+napi_propertyname napi_proterty_name(napi_env e, const char* utf8name) {
     v8::Local<v8::String> namestring = v8::String::NewFromUtf8(v8impl::V8IsolateFromJsEnv(e), utf8name, v8::NewStringType::kInternalized).ToLocalChecked();
-    return static_cast<propertyname>(v8impl::JsValueFromV8LocalValue(namestring));
+    return static_cast<napi_propertyname>(v8impl::JsValueFromV8LocalValue(namestring));
 }
 
-void napi_set_property(napi_env e, napi_value o, propertyname k, napi_value v) {
+void napi_set_property(napi_env e, napi_value o, napi_propertyname k, napi_value v) {
     v8::Local<v8::Object> obj = v8impl::V8LocalValueFromJsValue(o)->ToObject();
     v8::Local<v8::Value> key = v8impl::V8LocalValueFromJsValue(k);
     v8::Local<v8::Value> val = v8impl::V8LocalValueFromJsValue(v);
@@ -238,7 +238,7 @@ void napi_set_property(napi_env e, napi_value o, propertyname k, napi_value v) {
     // value of Set)
 }
 
-napi_value napi_get_property(napi_env e, napi_value o, propertyname k) {
+napi_value napi_get_property(napi_env e, napi_value o, napi_propertyname k) {
     v8::Local<v8::Object> obj = v8impl::V8LocalValueFromJsValue(o)->ToObject();
     v8::Local<v8::Value> key = v8impl::V8LocalValueFromJsValue(k);
     v8::Local<v8::Value> val = obj->Get(key);
@@ -280,33 +280,33 @@ napi_valuetype napi_get_type_of_value(napi_env e, napi_value vv) {
     v8::Local<v8::Value> v = v8impl::V8LocalValueFromJsValue(vv);
 
     if (v->IsNumber()) {
-        return napi_valuetype::Number;
+        return napi_number;
     }
     else if (v->IsString()) {
-        return napi_valuetype::String;
+        return napi_string;
     }
     else if (v->IsFunction()) {
         // This test has to come before IsObject because IsFunction
         // implies IsObject
-        return napi_valuetype::Function;
+        return napi_function;
     }
     else if (v->IsObject()) {
-        return napi_valuetype::Object;
+        return napi_object;
     }
     else if (v->IsBoolean()) {
-        return napi_valuetype::Boolean;
+        return napi_boolean;
     }
     else if (v->IsUndefined()) {
-        return napi_valuetype::Undefined;
+        return napi_undefined;
     }
     else if (v->IsSymbol()) {
-        return napi_valuetype::Symbol;
+        return napi_symbol;
     }
     else if (v->IsNull()) {
-        return napi_valuetype::Null;
+        return napi_null;
     }
     else {
-        return napi_valuetype::Object; // Is this correct?
+        return napi_object; // Is this correct?
     }
 }
 
