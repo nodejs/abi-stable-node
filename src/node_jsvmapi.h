@@ -95,13 +95,15 @@ NODE_EXTERN void napi_throw_error(napi_env e, napi_value error);
 ///////////////////////////////////////////
 // WILL GO AWAY
 ///////////////////////////////////////////
-  typedef void(*workaround_init_napi_callback)(napi_env napi_env, napi_value exports, napi_value module);
-  NODE_EXTERN void WorkaroundNewModuleInit(v8::Local<v8::Object> exports,
-                                           v8::Local<v8::Object> module,
-                                           workaround_init_napi_callback init);
+typedef void(*workaround_init_napi_callback)(napi_env napi_env, napi_value exports, napi_value module);
+NODE_EXTERN void WorkaroundNewModuleInit(v8::Local<v8::Object> exports,
+                                         v8::Local<v8::Object> module,
+                                         workaround_init_napi_callback init);
 
-  NODE_EXTERN v8::Local<v8::Value> V8LocalValue(napi_value v);
-  NODE_EXTERN napi_value JsValue(v8::Local<v8::Value> v);
+NODE_EXTERN v8::Local<v8::Value> V8LocalValue(napi_value v);
+NODE_EXTERN napi_value JsValue(v8::Local<v8::Value> v);
+
+NODE_EXTERN v8::Persistent<v8::Value>* V8PersistentValue(napi_persistent p);
 
 } // extern "C"
 
