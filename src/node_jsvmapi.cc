@@ -210,7 +210,7 @@ napi_value napi_create_constructor_for_wrap(napi_env e, napi_callback cb) {
 }
 
 
-void napi_set_function_name(napi_env e, napi_value func, napi_value name) {
+void napi_set_function_name(napi_env e, napi_value func, napi_propertyname name) {
     v8::Local<v8::Function> v8func = v8impl::V8LocalFunctionFromJsValue(func);
     v8func->SetName(v8impl::V8LocalValueFromJsValue(name).As<v8::String>());
 }
@@ -452,3 +452,6 @@ napi_value JsValue(v8::Local<v8::Value> v) {
     return v8impl::JsValueFromV8LocalValue(v);
 }
 
+v8::Persistent<v8::Value>* V8PersistentValue(napi_persistent p) {
+    return v8impl::V8PersistentValueFromJsPersistentValue(p);
+}
