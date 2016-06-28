@@ -16,8 +16,8 @@
  *  - Error handling in general is not included in the API at this time.
  *
  ******************************************************************************/
-#ifndef SRC_NODE_JAVASCRIPT_H_
-#define SRC_NODE_JAVASCRIPT_H_
+#ifndef SRC_NODE_JAVASCRIPT_API_H_
+#define SRC_NODE_JAVASCRIPT_API_H_
 
 #include "node.h"
 
@@ -115,4 +115,4 @@ NODE_EXTERN void napi_throw_error(napi_env e, napi_value error);
 
 } // extern "C"
 
-#endif  // SRC_NODE_JSVMAPI_H_
+#endif  // SRC_NODE_JSVMAPI__API_H_
