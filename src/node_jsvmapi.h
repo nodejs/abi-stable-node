@@ -16,8 +16,8 @@
  *  - Error handling in general is not included in the API at this time.
  *
  ******************************************************************************/
-#ifndef SRC_NODE_JAVASCRIPT_API_H_
-#define SRC_NODE_JAVASCRIPT_API_H_
+#ifndef SRC_NODE_JSVMAPI_H_
+#define SRC_NODE_JSVMAPI_H_
 
 #include "node.h"
 #include "node_jsvmapi_types.h"
@@ -92,9 +92,11 @@ NODE_EXTERN napi_value napi_get_persistent_value(napi_env e, napi_persistent);
 // Methods to support error handling
 NODE_EXTERN void napi_throw_error(napi_env e, napi_value error);
 
-///////////////////////////////////////////
-// WILL GO AWAY
-///////////////////////////////////////////
+} // extern "C"
+
+//////////////////////////////////////////////////////////////////////////////////////
+// WILL GO AWAY (these can't be extern "C" because they work with C++ types)
+//////////////////////////////////////////////////////////////////////////////////////
 typedef void(*workaround_init_napi_callback)(napi_env napi_env, napi_value exports, napi_value module);
 NODE_EXTERN void WorkaroundNewModuleInit(v8::Local<v8::Object> exports,
                                          v8::Local<v8::Object> module,
@@ -105,6 +107,4 @@ NODE_EXTERN napi_value JsValue(v8::Local<v8::Value> v);
 
 NODE_EXTERN v8::Persistent<v8::Value>* V8PersistentValue(napi_persistent p);
 
-} // extern "C"
-
-#endif  // SRC_NODE_JSVMAPI__API_H_
+#endif  // SRC_NODE_JSVMAPI_API_H_
