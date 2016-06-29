@@ -42,6 +42,7 @@
 #include "v8.h"  // NOLINT(build/include_order)
 #include "node_version.h"  // NODE_MODULE_VERSION
 #include "tracing/trace_event.h"
+#include "node_jsvmapi_types.h"
 
 #define NODE_MAKE_VERSION(major, minor, patch)                                \
   ((major) * 0x1000 + (minor) * 0x100 + (patch))
@@ -389,6 +390,12 @@ typedef void (*addon_context_register_func)(
     v8::Local<v8::Context> context,
     void* priv);
 
+typedef void (*addon_abi_register_func)(
+    napi_env env,
+    napi_value exports,
+    napi_value module,
+    void* priv);
+
 #define NM_F_BUILTIN 0x01
 #define NM_F_LINKED  0x02
 
@@ -399,6 +406,7 @@ struct node_module {
   const char* nm_filename;
   node::addon_register_func nm_register_func;
   node::addon_context_register_func nm_context_register_func;
+  node::addon_abi_register_func nm_abi_register_func;
   const char* nm_modname;
   void* nm_priv;
   struct node_module* nm_link;
@@ -444,6 +452,7 @@ extern "C" NODE_EXTERN void node_module_register(void* mod);
       __FILE__,                                                       \
       (node::addon_register_func) (regfunc),                          \
       NULL,                                                           \
+      NULL,                                                           \
       NODE_STRINGIFY(modname),                                        \
       priv,                                                           \
       NULL                                                            \
@@ -463,6 +472,7 @@ extern "C" NODE_EXTERN void node_module_register(void* mod);
       __FILE__,                                                       \
       NULL,                                                           \
       (node::addon_context_register_func) (regfunc),                  \
+      NULL,                                                           \
       NODE_STRINGIFY(modname),                                        \
       priv,                                                           \
       NULL                                                            \
@@ -472,6 +482,27 @@ extern "C" NODE_EXTERN void node_module_register(void* mod);
     }                                                                 \
   }
 
+#define NODE_MODULE_ABI_X(modname, regfunc, priv, flags)              \
+  extern "C" {                                                        \
+    static node::node_module _module =                                \
+    {                                                                 \
+      NODE_MODULE_VERSION,                                            \
+      flags,                                                          \
+      NULL,                                                           \
+      __FILE__,                                                       \
+      NULL,                                                           \
+      NULL,                                                           \
+      (node::addon_abi_register_func) (regfunc),                      \
+      NODE_STRINGIFY(modname),                                        \
+      priv,                                                           \
+      NULL                                                            \
+    };                                                                \
+    NODE_C_CTOR(_register_ ## modname) {                              \
+      node_module_register(&_module);                                 \
+    }                                                                 \
+  }
+
+
 #define NODE_MODULE(modname, regfunc)                                 \
   NODE_MODULE_X(modname, regfunc, NULL, 0)
 
@@ -479,7 +510,10 @@ extern "C" NODE_EXTERN void node_module_register(void* mod);
   NODE_MODULE_CONTEXT_AWARE_X(modname, regfunc, NULL, 0)
 
 #define NODE_MODULE_CONTEXT_AWARE_BUILTIN(modname, regfunc)           \
-  NODE_MODULE_CONTEXT_AWARE_X(modname, regfunc, NULL, NM_F_BUILTIN)   \
+  NODE_MODULE_CONTEXT_AWARE_X(modname, regfunc, NULL, NM_F_BUILTIN)
+
+#define NODE_MODULE_ABI(modname, regfunc)                             \
+  NODE_MODULE_ABI_X(modname, regfunc, NULL, 0)                        \
 
 /*
  * For backward compatibility in add-on modules.

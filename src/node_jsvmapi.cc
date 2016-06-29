@@ -16,7 +16,8 @@
  *  - Error handling in general is not included in the API at this time.
  *
  ******************************************************************************/
-#include "node_jsvmapi.h"
+
+#include "node_jsvmapi_internal.h"
 #include <node_object_wrap.h>
 
 #include <vector>
@@ -27,11 +28,11 @@ namespace v8impl {
 
 //=== Conversion between V8 Isolate and napi_env ==========================
 
-    static napi_env JsEnvFromV8Isolate(v8::Isolate* isolate) {
+    napi_env JsEnvFromV8Isolate(v8::Isolate* isolate) {
         return static_cast<napi_env>(isolate);
     }
 
-    static v8::Isolate* V8IsolateFromJsEnv(napi_env e) {
+    v8::Isolate* V8IsolateFromJsEnv(napi_env e) {
         return static_cast<v8::Isolate*>(e);
     }
 
@@ -42,7 +43,7 @@ namespace v8impl {
     // use intptr_t instead of void*)
     static_assert(sizeof(void*) == sizeof(v8::Local<v8::Value>), "v8::Local<v8::Value> is too large to store in a void*");
 
-    static napi_value JsValueFromV8LocalValue(v8::Local<v8::Value> local) {
+    napi_value JsValueFromV8LocalValue(v8::Local<v8::Value> local) {
         // This is awkward, better way? memcpy but don't want that dependency?
         union U {
             napi_value v;
@@ -52,7 +53,7 @@ namespace v8impl {
         return u.v;
     };
 
-    static v8::Local<v8::Value> V8LocalValueFromJsValue(napi_value v) {
+    v8::Local<v8::Value> V8LocalValueFromJsValue(napi_value v) {
         // Likewise awkward
         union U {
             napi_value v;

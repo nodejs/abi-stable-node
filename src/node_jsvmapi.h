@@ -20,19 +20,9 @@
 #define SRC_NODE_JAVASCRIPT_API_H_
 
 #include "node.h"
-
+#include "node_jsvmapi_types.h"
 
 extern "C" {
-
-// JSVM API types are all opaque pointers for ABI stability
-typedef void* napi_env;
-typedef void* napi_value;
-typedef void* napi_persistent;
-typedef napi_value napi_propertyname;
-typedef const void* napi_func_cb_info;
-typedef void (*napi_callback)(napi_env, napi_func_cb_info);
-typedef void napi_destruct(void*);
-
 enum napi_valuetype {
     // ES6 types (corresponds to typeof)
     napi_undefined,

@@ -48,6 +48,8 @@
 #include "v8-profiler.h"
 #include "zlib.h"
 
+#include "node_jsvmapi_internal.h"
+
 #ifdef NODE_ENABLE_VTUNE_PROFILING
 #include "../deps/v8/src/third_party/vtune/v8-vtune.h"
 #endif
@@ -2452,6 +2454,13 @@ void DLOpen(const FunctionCallbackInfo<Value>& args) {
     mp->nm_context_register_func(exports, module, env->context(), mp->nm_priv);
   } else if (mp->nm_register_func != nullptr) {
     mp->nm_register_func(exports, module, mp->nm_priv);
+  } else if (mp->nm_abi_register_func != nullptr) {
+    mp->nm_abi_register_func(
+      v8impl::JsEnvFromV8Isolate(v8::Isolate::GetCurrent()),
+      v8impl::JsValueFromV8LocalValue(exports),
+      v8impl::JsValueFromV8LocalValue(module),
+      mp->nm_priv
+    );
   } else {
     uv_dlclose(&lib);
     env->ThrowError("Module has no declared entry point.");
@@ -2624,8 +2633,17 @@ static void Binding(const FunctionCallbackInfo<Value>& args) {
     CHECK_EQ(mod->nm_register_func, nullptr);
     CHECK_NE(mod->nm_context_register_func, nullptr);
     Local<Value> unused = Undefined(env->isolate());
-    mod->nm_context_register_func(exports, unused,
-      env->context(), mod->nm_priv);
+    if (mod->nm_context_register_func != nullptr) {
+      mod->nm_context_register_func(exports, unused,
+        env->context(), mod->nm_priv);
+    } else if (mod->nm_abi_register_func != nullptr) {
+      mod->nm_abi_register_func(
+        v8impl::JsEnvFromV8Isolate(v8::Isolate::GetCurrent()),
+        v8impl::JsValueFromV8LocalValue(exports),
+        v8impl::JsValueFromV8LocalValue(module),
+        mod->nm_priv
+      );
+    } 
     cache->Set(module, exports);
   } else if (!strcmp(*module_v, "constants")) {
     exports = Object::New(env->isolate());
@@ -2682,6 +2700,13 @@ static void LinkedBinding(const FunctionCallbackInfo<Value>& args) {
                                   mod->nm_priv);
   } else if (mod->nm_register_func != nullptr) {
     mod->nm_register_func(exports, module, mod->nm_priv);
+  } else if (mod->nm_abi_register_func != nullptr) {
+    mod->nm_abi_register_func(
+      v8impl::JsEnvFromV8Isolate(v8::Isolate::GetCurrent()),
+      v8impl::JsValueFromV8LocalValue(exports),
+      v8impl::JsValueFromV8LocalValue(module),
+      mod->nm_priv
+    );
   } else {
     return env->ThrowError("Linked module has no declared entry point.");
   }
