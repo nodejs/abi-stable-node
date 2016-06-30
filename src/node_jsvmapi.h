@@ -49,6 +49,7 @@ NODE_EXTERN napi_value napi_create_object(napi_env e);
 NODE_EXTERN napi_value napi_create_number(napi_env e, double val);
 NODE_EXTERN napi_value napi_create_string(napi_env e, const char*);
 NODE_EXTERN napi_value napi_create_function(napi_env e, napi_callback cbinfo);
+NODE_EXTERN napi_value napi_create_error(napi_env e, napi_value msg);
 NODE_EXTERN napi_value napi_create_type_error(napi_env e, napi_value msg);
 
 
@@ -97,6 +98,9 @@ NODE_EXTERN napi_value napi_get_persistent_value(napi_env e, napi_persistent);
 NODE_EXTERN void napi_throw_error(napi_env e, napi_value error);
 
 } // extern "C"
+
+#define NAPI_METHOD(name)                                                       \
+    void name(napi_env env, napi_func_cb_info info)
 
 //////////////////////////////////////////////////////////////////////////////////////
 // WILL GO AWAY (these can't be extern "C" because they work with C++ types)
