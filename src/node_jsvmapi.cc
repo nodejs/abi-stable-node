@@ -29,11 +29,11 @@ namespace v8impl {
 //=== Conversion between V8 Isolate and napi_env ==========================
 
     napi_env JsEnvFromV8Isolate(v8::Isolate* isolate) {
-        return static_cast<napi_env>(isolate);
+        return reinterpret_cast<napi_env>(isolate);
     }
 
     v8::Isolate* V8IsolateFromJsEnv(napi_env e) {
-        return static_cast<v8::Isolate*>(e);
+        return reinterpret_cast<v8::Isolate*>(e);
     }
 
 //=== Conversion between V8 Handles and napi_value ========================
@@ -63,6 +63,16 @@ namespace v8impl {
         return u.l;
     }
 
+    v8::Local<v8::Value> V8LocalValueFromJsPropertyName(napi_propertyname pn) {
+        // Likewise awkward
+        union U {
+            napi_propertyname pn;
+            v8::Local<v8::Value> l;
+            U(napi_propertyname _pn) : pn(_pn) { }
+        } u(pn);
+        return u.l;
+    }
+
     static v8::Local<v8::Function> V8LocalFunctionFromJsValue(napi_value v) {
         // Likewise awkward
         union U {
@@ -85,11 +95,11 @@ namespace v8impl {
 //=== napi_func_cb_info ===========================================
 
     static napi_func_cb_info JsFunctionCallbackInfoFromV8FunctionCallbackInfo(const v8::FunctionCallbackInfo<v8::Value>* cbinfo) {
-        return static_cast<napi_func_cb_info>(cbinfo);
+        return reinterpret_cast<napi_func_cb_info>(cbinfo);
     };
 
     static const v8::FunctionCallbackInfo<v8::Value>* V8FunctionCallbackInfoFromJsFunctionCallbackInfo(napi_func_cb_info cbinfo) {
-        return static_cast<const v8::FunctionCallbackInfo<v8::Value>*>(cbinfo);
+        return reinterpret_cast<const v8::FunctionCallbackInfo<v8::Value>*>(cbinfo);
     };
 
 //=== Function napi_callback wrapper ================================================
@@ -212,7 +222,7 @@ napi_value napi_create_constructor_for_wrap(napi_env e, napi_callback cb) {
 
 void napi_set_function_name(napi_env e, napi_value func, napi_propertyname name) {
     v8::Local<v8::Function> v8func = v8impl::V8LocalFunctionFromJsValue(func);
-    v8func->SetName(v8impl::V8LocalValueFromJsValue(name).As<v8::String>());
+    v8func->SetName(v8impl::V8LocalValueFromJsPropertyName(name).As<v8::String>());
 }
 
 void napi_set_return_value(napi_env e, napi_func_cb_info cbinfo, napi_value v) {
@@ -223,12 +233,12 @@ void napi_set_return_value(napi_env e, napi_func_cb_info cbinfo, napi_value v) {
 
 napi_propertyname napi_property_name(napi_env e, const char* utf8name) {
     v8::Local<v8::String> namestring = v8::String::NewFromUtf8(v8impl::V8IsolateFromJsEnv(e), utf8name, v8::NewStringType::kInternalized).ToLocalChecked();
-    return static_cast<napi_propertyname>(v8impl::JsValueFromV8LocalValue(namestring));
+    return reinterpret_cast<napi_propertyname>(v8impl::JsValueFromV8LocalValue(namestring));
 }
 
 void napi_set_property(napi_env e, napi_value o, napi_propertyname k, napi_value v) {
     v8::Local<v8::Object> obj = v8impl::V8LocalValueFromJsValue(o)->ToObject();
-    v8::Local<v8::Value> key = v8impl::V8LocalValueFromJsValue(k);
+    v8::Local<v8::Value> key = v8impl::V8LocalValueFromJsPropertyName(k);
     v8::Local<v8::Value> val = v8impl::V8LocalValueFromJsValue(v);
 
     obj->Set(key, val);
@@ -248,7 +258,7 @@ bool napi_has_property(napi_env e, napi_value o, napi_propertyname k) {
 
 napi_value napi_get_property(napi_env e, napi_value o, napi_propertyname k) {
     v8::Local<v8::Object> obj = v8impl::V8LocalValueFromJsValue(o)->ToObject();
-    v8::Local<v8::Value> key = v8impl::V8LocalValueFromJsValue(k);
+    v8::Local<v8::Value> key = v8impl::V8LocalValueFromJsPropertyName(k);
     v8::Local<v8::Value> val = obj->Get(key);
     // This implementation is missing a lot of details, notably error
     // handling on invalid inputs and regarding what happens in the
