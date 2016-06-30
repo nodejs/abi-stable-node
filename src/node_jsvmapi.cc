@@ -239,6 +239,13 @@ void napi_set_property(napi_env e, napi_value o, napi_propertyname k, napi_value
     // value of Set)
 }
 
+bool napi_has_property(napi_env e, napi_value o, napi_propertyname k) {
+    v8::Local<v8::Object> obj = v8impl::V8LocalValueFromJsValue(o)->ToObject();
+    v8::Local<v8::Value> key = v8impl::V8LocalValueFromJsPropertyName(k);
+
+    return obj->Has(key);
+}
+
 napi_value napi_get_property(napi_env e, napi_value o, napi_propertyname k) {
     v8::Local<v8::Object> obj = v8impl::V8LocalValueFromJsValue(o)->ToObject();
     v8::Local<v8::Value> key = v8impl::V8LocalValueFromJsValue(k);
@@ -405,6 +412,14 @@ void napi_throw_error(napi_env e, napi_value error) {
 
 double napi_get_number_from_value(napi_env e, napi_value v) {
     return v8impl::V8LocalValueFromJsValue(v)->NumberValue();
+}
+
+uint32_t napi_get_value_uint32(napi_env e, napi_value v) {
+    return v8impl::V8LocalValueFromJsValue(v)->Uint32Value();
+}
+
+bool napi_get_value_bool(napi_env e, napi_value v) {
+    return v8impl::V8LocalValueFromJsValue(v)->BooleanValue();
 }
 
 void napi_wrap(napi_env e, napi_value jsObject, void* nativeObj, napi_destruct* destructor, napi_persistent* handle) {
