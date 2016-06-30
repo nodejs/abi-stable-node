@@ -59,7 +59,7 @@ NODE_EXTERN double napi_get_number_from_value(napi_env e, napi_value v);
 
 // Methods to work with Objects
 NODE_EXTERN napi_value napi_get_prototype(napi_env e, napi_value object);
-NODE_EXTERN napi_propertyname napi_proterty_name(napi_env e, const char* utf8name);
+NODE_EXTERN napi_propertyname napi_property_name(napi_env e, const char* utf8name);
 NODE_EXTERN void napi_set_property(napi_env e, napi_value object, napi_propertyname name, napi_value v);
 NODE_EXTERN napi_value napi_get_property(napi_env e, napi_value object, napi_propertyname name);
 

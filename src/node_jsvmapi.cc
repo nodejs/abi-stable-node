@@ -221,7 +221,7 @@ void napi_set_return_value(napi_env e, napi_func_cb_info cbinfo, napi_value v) {
     info->GetReturnValue().Set(val);
 }
 
-napi_propertyname napi_proterty_name(napi_env e, const char* utf8name) {
+napi_propertyname napi_property_name(napi_env e, const char* utf8name) {
     v8::Local<v8::String> namestring = v8::String::NewFromUtf8(v8impl::V8IsolateFromJsEnv(e), utf8name, v8::NewStringType::kInternalized).ToLocalChecked();
     return static_cast<napi_propertyname>(v8impl::JsValueFromV8LocalValue(namestring));
 }
