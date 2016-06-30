@@ -55,12 +55,15 @@ NODE_EXTERN napi_value napi_create_type_error(napi_env e, napi_value msg);
 // Methods to get the the native napi_value from Primitive type
 NODE_EXTERN napi_valuetype napi_get_type_of_value(napi_env e, napi_value v);
 NODE_EXTERN double napi_get_number_from_value(napi_env e, napi_value v);
+NODE_EXTERN uint32_t napi_get_value_uint32(napi_env e, napi_value v);
+NODE_EXTERN bool napi_get_value_bool(napi_env e, napi_value v);
 
 
 // Methods to work with Objects
 NODE_EXTERN napi_value napi_get_prototype(napi_env e, napi_value object);
 NODE_EXTERN napi_propertyname napi_property_name(napi_env e, const char* utf8name);
 NODE_EXTERN void napi_set_property(napi_env e, napi_value object, napi_propertyname name, napi_value v);
+NODE_EXTERN bool napi_has_property(napi_env e, napi_value object, napi_propertyname name);
 NODE_EXTERN napi_value napi_get_property(napi_env e, napi_value object, napi_propertyname name);
 
 
