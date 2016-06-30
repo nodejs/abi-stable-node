@@ -288,6 +288,12 @@ napi_value napi_create_number(napi_env e, double v) {
         v8::Number::New(v8impl::V8IsolateFromJsEnv(e), v));
 }
 
+napi_value napi_create_error(napi_env, napi_value msg) {
+    return v8impl::JsValueFromV8LocalValue(
+        v8::Exception::Error(
+            v8impl::V8LocalValueFromJsValue(msg).As<v8::String>()));
+}
+
 napi_value napi_create_type_error(napi_env, napi_value msg) {
     return v8impl::JsValueFromV8LocalValue(
         v8::Exception::TypeError(
