@@ -437,13 +437,6 @@ napi_value napi_new_instance(napi_env e, napi_value cons, int argc, napi_value *
 ///////////////////////////////////////////
 // WILL GO AWAY
 ///////////////////////////////////////////
-void WorkaroundNewModuleInit(v8::Local<v8::Object> exports, v8::Local<v8::Object> module, workaround_init_napi_callback init) {
-    init(
-        v8impl::JsEnvFromV8Isolate(v8::Isolate::GetCurrent()),
-        v8impl::JsValueFromV8LocalValue(exports),
-        v8impl::JsValueFromV8LocalValue(module));
-}
-
 v8::Local<v8::Value> V8LocalValue(napi_value v) {
     return v8impl::V8LocalValueFromJsValue(v);
 }
