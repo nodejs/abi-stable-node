@@ -97,11 +97,6 @@ NODE_EXTERN void napi_throw_error(napi_env e, napi_value error);
 //////////////////////////////////////////////////////////////////////////////////////
 // WILL GO AWAY (these can't be extern "C" because they work with C++ types)
 //////////////////////////////////////////////////////////////////////////////////////
-typedef void(*workaround_init_napi_callback)(napi_env napi_env, napi_value exports, napi_value module);
-NODE_EXTERN void WorkaroundNewModuleInit(v8::Local<v8::Object> exports,
-                                         v8::Local<v8::Object> module,
-                                         workaround_init_napi_callback init);
-
 NODE_EXTERN v8::Local<v8::Value> V8LocalValue(napi_value v);
 NODE_EXTERN napi_value JsValue(v8::Local<v8::Value> v);
 
