@@ -363,9 +363,17 @@ void napi_get_cb_args(napi_env e, napi_func_cb_info cbinfo, napi_value* buffer, 
     }
 }
 
-napi_value napi_get_cb_object(napi_env e, napi_func_cb_info cbinfo) {
+napi_value napi_get_cb_this(napi_env e, napi_func_cb_info cbinfo) {
     const v8::FunctionCallbackInfo<v8::Value> *info = v8impl::V8FunctionCallbackInfoFromJsFunctionCallbackInfo(cbinfo);
     return v8impl::JsValueFromV8LocalValue(info->This());
+}
+
+// Holder is a V8 concept.  Is not clear if this can be emulated with other VMs
+// AFAIK Holder should be the owner of the JS function, which should be in the
+// prototype chain of This, so maybe it is possible to emulate.
+napi_value napi_get_cb_holder(napi_env e, napi_func_cb_info cbinfo) {
+    const v8::FunctionCallbackInfo<v8::Value> *info = v8impl::V8FunctionCallbackInfoFromJsFunctionCallbackInfo(cbinfo);
+    return v8impl::JsValueFromV8LocalValue(info->Holder());
 }
 
 napi_value napi_call_function(napi_env e, napi_value scope, napi_value func, int argc, napi_value* argv) {
@@ -399,8 +407,13 @@ double napi_get_number_from_value(napi_env e, napi_value v) {
     return v8impl::V8LocalValueFromJsValue(v)->NumberValue();
 }
 
-void napi_wrap(napi_env e, napi_value jsObject, void* nativeObj, napi_destruct* destructor) {
-  new v8impl::ObjectWrapWrapper(jsObject, nativeObj, destructor);
+void napi_wrap(napi_env e, napi_value jsObject, void* nativeObj, napi_destruct* destructor, napi_persistent* handle) {
+  // object wrap api needs more thought
+  // e.g. who deletes this object?
+  v8impl::ObjectWrapWrapper* wrap = new v8impl::ObjectWrapWrapper(jsObject, nativeObj, destructor);
+  if (handle != nullptr) {
+    *handle = napi_create_persistent(e, v8impl::JsValueFromV8LocalValue(wrap->handle()));
+  }
 };
 
 void* napi_unwrap(napi_env e, napi_value jsObject) {

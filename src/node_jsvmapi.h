@@ -73,14 +73,15 @@ NODE_EXTERN napi_value napi_new_instance(napi_env e, napi_value cons, int argc, 
 // Methods to work with napi_callbacks
 NODE_EXTERN int napi_get_cb_args_length(napi_env e, napi_func_cb_info cbinfo);
 NODE_EXTERN void napi_get_cb_args(napi_env e, napi_func_cb_info cbinfo, napi_value* buffer, size_t bufferlength);
-NODE_EXTERN napi_value napi_get_cb_object(napi_env e, napi_func_cb_info cbinfo);
+NODE_EXTERN napi_value napi_get_cb_this(napi_env e, napi_func_cb_info cbinfo);
+NODE_EXTERN napi_value napi_get_cb_holder(napi_env e, napi_func_cb_info cbinfo); // V8 concept; see note in .cc file
 NODE_EXTERN bool napi_is_construct_call(napi_env e, napi_func_cb_info cbinfo);
 NODE_EXTERN void napi_set_return_value(napi_env e, napi_func_cb_info cbinfo, napi_value v);
 
 
 // Methods to support ObjectWrap
 NODE_EXTERN napi_value napi_create_constructor_for_wrap(napi_env e, napi_callback cb);
-NODE_EXTERN void napi_wrap(napi_env e, napi_value jsObject, void* nativeObj, napi_destruct* napi_destructor);
+NODE_EXTERN void napi_wrap(napi_env e, napi_value jsObject, void* nativeObj, napi_destruct* napi_destructor, napi_persistent* handle);
 NODE_EXTERN void* napi_unwrap(napi_env e, napi_value jsObject);
 
 
