@@ -283,6 +283,12 @@ napi_value napi_create_string(napi_env e, const char* s) {
         v8::String::NewFromUtf8(v8impl::V8IsolateFromJsEnv(e), s));
 }
 
+napi_value napi_create_string_with_length(napi_env e, const char* s, size_t length) {
+    return v8impl::JsValueFromV8LocalValue(
+        v8::String::NewFromUtf8(v8impl::V8IsolateFromJsEnv(e), s,
+            v8::NewStringType::kNormal, static_cast<int>(length)).ToLocalChecked());
+}
+
 napi_value napi_create_number(napi_env e, double v) {
     return v8impl::JsValueFromV8LocalValue(
         v8::Number::New(v8impl::V8IsolateFromJsEnv(e), v));
@@ -428,6 +434,10 @@ void napi_throw_error(napi_env e, napi_value error) {
 
 double napi_get_number_from_value(napi_env e, napi_value v) {
     return v8impl::V8LocalValueFromJsValue(v)->NumberValue();
+}
+
+int32_t napi_get_value_int32(napi_env e, napi_value v) {
+    return v8impl::V8LocalValueFromJsValue(v)->Int32Value();
 }
 
 uint32_t napi_get_value_uint32(napi_env e, napi_value v) {
