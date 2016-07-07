@@ -19,6 +19,8 @@
 #ifndef SRC_NODE_JSVMAPI_H_
 #define SRC_NODE_JSVMAPI_H_
 
+#include <limits.h>
+
 #include "node.h"
 #include "node_jsvmapi_types.h"
 
@@ -64,6 +66,14 @@ NODE_EXTERN int32_t napi_get_value_int32(napi_env e, napi_value v);
 NODE_EXTERN uint32_t napi_get_value_uint32(napi_env e, napi_value v);
 NODE_EXTERN int64_t napi_get_value_int64(napi_env e, napi_value v);
 NODE_EXTERN bool napi_get_value_bool(napi_env e, napi_value v);
+
+NODE_EXTERN int napi_get_string_length(napi_env e, napi_value v);
+NODE_EXTERN int napi_get_string_utf8(napi_env e, napi_value v, char* buf, int bufsize);
+
+
+// Methods to coerce values
+// These APIs may execute user script
+NODE_EXTERN napi_value napi_coerce_to_string(napi_env e, napi_value v);
 
 
 // Methods to work with Objects
@@ -111,8 +121,21 @@ NODE_EXTERN void napi_throw_error(napi_env e, napi_value error);
 } // extern "C"
 
 // Helpers -- no symbol exports!
-#define NAPI_METHOD(name)                                                       \
+#define NAPI_METHOD(name)                                                      \
     void name(napi_env env, napi_func_cb_info info)
+
+// This is taken from NAN and is the C++11 version.
+// TODO (ianhall): Support pre-C++11 compilation?
+#define NAPI_DISALLOW_ASSIGN(CLASS) void operator=(const CLASS&) = delete;
+#define NAPI_DISALLOW_COPY(CLASS) CLASS(const CLASS&) = delete;
+#define NAPI_DISALLOW_MOVE(CLASS)                                              \
+    CLASS(CLASS&&) = delete;  /* NOLINT(build/c++11) */                        \
+    void operator=(CLASS&&) = delete;
+
+#define NAPI_DISALLOW_ASSIGN_COPY_MOVE(CLASS)                                  \
+    NAPI_DISALLOW_ASSIGN(CLASS)                                                \
+    NAPI_DISALLOW_COPY(CLASS)                                                  \
+    NAPI_DISALLOW_MOVE(CLASS)
 
 namespace Napi {
   // RAII HandleScope helpers
@@ -156,6 +179,47 @@ namespace Napi {
   private:
     napi_env env;
     napi_escapable_handle_scope scope;
+  };
+
+  class Utf8String {
+  public:
+    inline explicit Utf8String(napi_value from) :
+        length_(0), str_(str_st_) {
+      if (from != nullptr) {
+        napi_env env = napi_get_current_env();
+        napi_value string = napi_coerce_to_string(env, from);
+        if (string != nullptr) {
+          size_t len = 3 * napi_get_string_length(env, string) + 1;
+          assert(len <= INT_MAX);
+          if (len > sizeof (str_st_)) {
+            str_ = new char[len];
+            assert(str_ != 0);
+          }
+          length_ = napi_get_string_utf8(env, string, str_, static_cast<int>(len));
+          str_[length_] = '\0';
+        }
+      }
+    }
+
+    inline int length() const {
+      return length_;
+    }
+
+    inline char* operator*() { return str_; }
+    inline const char* operator*() const { return str_; }
+
+    inline ~Utf8String() {
+      if (str_ != str_st_) {
+        delete [] str_;
+      }
+    }
+
+   private:
+    NAPI_DISALLOW_ASSIGN_COPY_MOVE(Utf8String)
+
+    int length_;
+    char *str_;
+    char str_st_[1024];
   };
 }  // namespace Napi
 
