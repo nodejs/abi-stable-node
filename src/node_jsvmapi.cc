@@ -482,6 +482,10 @@ uint32_t napi_get_value_uint32(napi_env e, napi_value v) {
     return v8impl::V8LocalValueFromJsValue(v)->Uint32Value();
 }
 
+int64_t napi_get_value_int64(napi_env e, napi_value v) {
+    return v8impl::V8LocalValueFromJsValue(v)->IntegerValue();
+}
+
 bool napi_get_value_bool(napi_env e, napi_value v) {
     return v8impl::V8LocalValueFromJsValue(v)->BooleanValue();
 }
