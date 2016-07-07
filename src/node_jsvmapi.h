@@ -35,6 +35,9 @@ enum napi_valuetype {
     napi_function,
 };
 
+// Environment
+NODE_EXTERN napi_env napi_get_current_env();
+
 
 // Getters for defined singletons
 NODE_EXTERN napi_value napi_get_undefined_(napi_env e);
@@ -93,7 +96,12 @@ NODE_EXTERN void* napi_unwrap(napi_env e, napi_value jsObject);
 
 // Methods to control object lifespan
 NODE_EXTERN napi_persistent napi_create_persistent(napi_env e, napi_value v);
-NODE_EXTERN napi_value napi_get_persistent_value(napi_env e, napi_persistent);
+NODE_EXTERN napi_value napi_get_persistent_value(napi_env e, napi_persistent p);
+NODE_EXTERN napi_handle_scope napi_open_handle_scope(napi_env e);
+NODE_EXTERN void napi_close_handle_scope(napi_env e, napi_handle_scope s);
+NODE_EXTERN napi_escapable_handle_scope napi_open_escapable_handle_scope(napi_env e);
+NODE_EXTERN void napi_close_escapable_handle_scope(napi_env e, napi_escapable_handle_scope s);
+NODE_EXTERN napi_value napi_escape_handle(napi_env e, napi_escapable_handle_scope s, napi_value v);
 
 
 // Methods to support error handling
@@ -101,8 +109,54 @@ NODE_EXTERN void napi_throw_error(napi_env e, napi_value error);
 
 } // extern "C"
 
+// Helpers -- no symbol exports!
 #define NAPI_METHOD(name)                                                       \
     void name(napi_env env, napi_func_cb_info info)
+
+namespace Napi {
+  // RAII HandleScope helpers
+  // Mirror Nan versions for easy conversion
+  // Ensure scopes are closed in the correct order on the stack
+  class HandleScope {
+  public:
+    HandleScope() {
+      env = napi_get_current_env();
+      scope = napi_open_handle_scope(env);
+    }
+    HandleScope(napi_env e) : env(e) {
+      scope = napi_open_handle_scope(env);
+    }
+    ~HandleScope() {
+      napi_close_handle_scope(env, scope);
+    }
+
+  private:
+    napi_env env;
+    napi_handle_scope scope;
+  };
+
+  class EscapableHandleScope {
+  public:
+    EscapableHandleScope() {
+      env = napi_get_current_env();
+      scope = napi_open_escapable_handle_scope(env);
+    }
+    EscapableHandleScope(napi_env e) : env(e) {
+      scope = napi_open_escapable_handle_scope(e);
+    }
+    ~EscapableHandleScope() {
+      napi_close_escapable_handle_scope(env, scope);
+    }
+
+    napi_value Escape(napi_value escapee) {
+      return napi_escape_handle(env, scope, escapee);
+    }
+
+  private:
+    napi_env env;
+    napi_escapable_handle_scope scope;
+  };
+}  // namespace Napi
 
 //////////////////////////////////////////////////////////////////////////////////////
 // WILL GO AWAY (these can't be extern "C" because they work with C++ types)
