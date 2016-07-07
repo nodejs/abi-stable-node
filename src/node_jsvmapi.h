@@ -62,6 +62,7 @@ NODE_EXTERN napi_valuetype napi_get_type_of_value(napi_env e, napi_value v);
 NODE_EXTERN double napi_get_number_from_value(napi_env e, napi_value v);
 NODE_EXTERN int32_t napi_get_value_int32(napi_env e, napi_value v);
 NODE_EXTERN uint32_t napi_get_value_uint32(napi_env e, napi_value v);
+NODE_EXTERN int64_t napi_get_value_int64(napi_env e, napi_value v);
 NODE_EXTERN bool napi_get_value_bool(napi_env e, napi_value v);
 
 
