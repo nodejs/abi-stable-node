@@ -36,6 +36,40 @@ namespace v8impl {
         return reinterpret_cast<v8::Isolate*>(e);
     }
 
+    class HandleScopeWrapper {
+    public:
+        HandleScopeWrapper(v8::Isolate* isolate) : scope(isolate) { }
+    private:
+        v8::HandleScope scope;
+    };
+
+    class EscapableHandleScopeWrapper {
+    public:
+        EscapableHandleScopeWrapper(v8::Isolate* isolate) : scope(isolate) { }
+        template <typename T>
+        v8::Local<T> Escape(v8::Local<T> handle) {
+            return scope.Escape(handle);
+        }
+    private:
+        v8::EscapableHandleScope scope;
+    };
+
+    napi_handle_scope JsHandleScopeFromV8HandleScope(HandleScopeWrapper* s) {
+        return reinterpret_cast<napi_handle_scope>(s);
+    }
+
+    HandleScopeWrapper* V8HandleScopeFromJsHandleScope(napi_handle_scope s) {
+        return reinterpret_cast<HandleScopeWrapper*>(s);
+    }
+
+    napi_escapable_handle_scope JsEscapableHandleScopeFromV8EscapableHandleScope(EscapableHandleScopeWrapper* s) {
+        return reinterpret_cast<napi_escapable_handle_scope>(s);
+    }
+
+    EscapableHandleScopeWrapper* V8EscapableHandleScopeFromJsEscapableHandleScope(napi_escapable_handle_scope s) {
+        return reinterpret_cast<EscapableHandleScopeWrapper*>(s);
+    }
+
 //=== Conversion between V8 Handles and napi_value ========================
 
     // This is assuming v8::Local<> will always be implemented with a single
@@ -158,6 +192,10 @@ namespace v8impl {
 
 
 }  // end of namespace v8impl
+
+napi_env napi_get_current_env() {
+  return v8impl::JsEnvFromV8Isolate(v8::Isolate::GetCurrent());
+}
 
 napi_value napi_create_functionOld(napi_env e, napi_callback cb) {
     v8::Isolate *isolate = v8impl::V8IsolateFromJsEnv(e);
@@ -474,6 +512,29 @@ napi_value napi_get_persistent_value(napi_env e, napi_persistent p) {
   return v8impl::JsValueFromV8LocalValue(napi_value);
 };
 
+napi_handle_scope napi_open_handle_scope(napi_env e) {
+  return v8impl::JsHandleScopeFromV8HandleScope(
+    new v8impl::HandleScopeWrapper(v8impl::V8IsolateFromJsEnv(e)));
+}
+
+void napi_close_handle_scope(napi_env e, napi_handle_scope scope) {
+  delete v8impl::V8HandleScopeFromJsHandleScope(scope);
+}
+
+napi_escapable_handle_scope napi_open_escapable_handle_scope(napi_env e) {
+  return v8impl::JsEscapableHandleScopeFromV8EscapableHandleScope(
+    new v8impl::EscapableHandleScopeWrapper(v8impl::V8IsolateFromJsEnv(e)));
+}
+
+void napi_close_escapable_handle_scope(napi_env e, napi_escapable_handle_scope scope) {
+  delete v8impl::V8EscapableHandleScopeFromJsEscapableHandleScope(scope);
+}
+
+napi_value napi_escape_handle(napi_env e, napi_escapable_handle_scope scope, napi_value escapee) {
+  v8impl::EscapableHandleScopeWrapper* s = v8impl::V8EscapableHandleScopeFromJsEscapableHandleScope(scope);
+  return v8impl::JsValueFromV8LocalValue(
+    s->Escape(v8impl::V8LocalValueFromJsValue(escapee)));
+}
 
 napi_value napi_new_instance(napi_env e, napi_value cons, int argc, napi_value *argv){
   v8::Isolate *isolate = v8impl::V8IsolateFromJsEnv(e);
