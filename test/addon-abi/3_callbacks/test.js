@@ -1,6 +1,8 @@
 'use strict';
-require('../../common');
+require('../../common.js');
 var assert = require('assert');
 var addon = require('./build/Release/binding');
 
-assert.equal(addon.hello(), 'world');
+addon(function(msg){
+ assert.equal(msg, 'hello world');
+});

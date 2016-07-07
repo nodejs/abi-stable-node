@@ -2482,8 +2482,7 @@ void DLOpen(const FunctionCallbackInfo<Value>& args) {
       v8impl::JsEnvFromV8Isolate(v8::Isolate::GetCurrent()),
       v8impl::JsValueFromV8LocalValue(exports),
       v8impl::JsValueFromV8LocalValue(module),
-      mp->nm_priv
-    );
+      mp->nm_priv);
   } else {
     uv_dlclose(&lib);
     env->ThrowError("Module has no declared entry point.");
@@ -2664,9 +2663,8 @@ static void Binding(const FunctionCallbackInfo<Value>& args) {
         v8impl::JsEnvFromV8Isolate(v8::Isolate::GetCurrent()),
         v8impl::JsValueFromV8LocalValue(exports),
         v8impl::JsValueFromV8LocalValue(module),
-        mod->nm_priv
-      );
-    } 
+        mod->nm_priv);
+    }
     cache->Set(module, exports);
   } else if (!strcmp(*module_v, "constants")) {
     exports = Object::New(env->isolate());
@@ -2728,8 +2726,7 @@ static void LinkedBinding(const FunctionCallbackInfo<Value>& args) {
       v8impl::JsEnvFromV8Isolate(v8::Isolate::GetCurrent()),
       v8impl::JsValueFromV8LocalValue(exports),
       v8impl::JsValueFromV8LocalValue(module),
-      mod->nm_priv
-    );
+      mod->nm_priv);
   } else {
     return env->ThrowError("Linked module has no declared entry point.");
   }
