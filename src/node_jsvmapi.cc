@@ -572,6 +572,18 @@ napi_value napi_new_instance(napi_env e, napi_value cons, int argc, napi_value *
   return v8impl::JsValueFromV8LocalValue(result);
 };
 
+napi_value napi_make_callback(napi_env e, napi_value recv, napi_value func, int argc, napi_value* argv) {
+  v8::Isolate *isolate = v8impl::V8IsolateFromJsEnv(e);
+  v8::Local<v8::Object> v8recv = v8impl::V8LocalValueFromJsValue(recv).As<v8::Object>();
+  v8::Local<v8::Function> v8func = v8impl::V8LocalValueFromJsValue(func).As<v8::Function>();
+  std::vector<v8::Handle<v8::Value>> args(argc);
+  for (int i = 0; i < argc; i++) {
+    args[i] = v8impl::V8LocalValueFromJsValue(argv[i]);
+  }
+
+  v8::Handle<v8::Value> result = node::MakeCallback(isolate, v8recv, v8func, argc, args.data());
+  return v8impl::JsValueFromV8LocalValue(result);
+}
 
 ///////////////////////////////////////////
 // WILL GO AWAY

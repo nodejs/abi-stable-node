@@ -87,7 +87,10 @@ NODE_EXTERN napi_value napi_get_property(napi_env e, napi_value object, napi_pro
 // Methods to work with Functions
 NODE_EXTERN void napi_set_function_name(napi_env e, napi_value func, napi_propertyname napi_value);
 NODE_EXTERN napi_value napi_call_function(napi_env e, napi_value scope, napi_value func, int argc, napi_value* argv);
-NODE_EXTERN napi_value napi_new_instance(napi_env e, napi_value cons, int argc, napi_value *argv);
+NODE_EXTERN napi_value napi_new_instance(napi_env e, napi_value cons, int argc, napi_value* argv);
+
+// Napi version of node::MakeCallback(...)
+NODE_EXTERN napi_value napi_make_callback(napi_env e, napi_value recv, napi_value func, int argc, napi_value* argv);
 
 
 // Methods to work with napi_callbacks
