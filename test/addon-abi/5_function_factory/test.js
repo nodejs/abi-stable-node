@@ -3,4 +3,5 @@ require('../../common');
 var assert = require('assert');
 var addon = require('./build/Release/binding');
 
-assert.equal(addon.hello(), 'world');
+var fn = addon();
+assert.equal(fn(), 'hello world'); // 'hello world'
