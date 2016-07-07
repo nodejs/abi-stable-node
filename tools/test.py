@@ -1433,6 +1433,7 @@ BUILT_IN_TESTS = [
   'message',
   'internet',
   'addons',
+  'addon-abi',
   'gc',
   'debugger',
   'doctool',
@@ -1599,6 +1600,7 @@ def Main():
                      in xrange(options.run[0],
                                len(cases_to_run),
                                options.run[1]) ]
+
   if len(cases_to_run) == 0:
     print "No tests to run."
     return 1

@@ -118,7 +118,7 @@ test: all
 	$(MAKE) build-addons
 	$(MAKE) cctest
 	$(PYTHON) tools/test.py --mode=release -J \
-		addon doctool known_issues message parallel sequential
+		addons addon-abi doctool known_issues message parallel sequential
 	$(MAKE) lint
 
 test-parallel: all
@@ -166,6 +166,33 @@ test/addons/.buildstamp: $(ADDONS_BINDING_GYPS) \
 # TODO(bnoordhuis) Force rebuild after gyp or node-gyp update.
 build-addons: $(NODE_EXE) test/addons/.buildstamp
 
+ADDONS_ABI_BINDING_GYPS := \
+	$(filter-out test/addon-abi/??_*/binding.gyp, \
+		$(wildcard test/addons-abi/*/binding.gyp))
+
+# Implicitly depends on $(NODE_EXE), see the build-addons rule for rationale.
+test/addon-abi/.buildstamp: $(ADDON_ABI_BINDING_GYPS) \
+	deps/uv/include/*.h deps/v8/include/*.h \
+	src/node.h src/node_buffer.h src/node_object_wrap.h
+	# Cannot use $(wildcard test/addons/*/) here, it's evaluated before
+	# embedded addons have been generated from the documentation.
+	for dirname in test/addon-abi/*/; do \
+		$(NODE) deps/npm/node_modules/node-gyp/bin/node-gyp rebuild \
+			--python="$(PYTHON)" \
+			--directory="$$PWD/$$dirname" \
+			--nodedir="$$PWD" || exit 1 ; \
+	done
+	touch $@
+
+# .buildstamp and .docbuildstamp need $(NODE_EXE) but cannot depend on it
+# directly because it calls make recursively.  The parent make cannot know
+# if the subprocess touched anything so it pessimistically assumes that
+# .buildstamp and .docbuildstamp are out of date and need a rebuild.
+# Just goes to show that recursive make really is harmful...
+# TODO(bnoordhuis) Force rebuild after gyp or node-gyp update.
+build-addon-abi: $(NODE_EXE) test/addon-abi/.buildstamp
+
+
 test-gc: all test/gc/node_modules/weak/build/Release/weakref.node
 	$(PYTHON) tools/test.py --mode=release gc
 
@@ -180,7 +207,7 @@ test-all-valgrind: test-build
 test-ci: | build-addons
 	$(PYTHON) tools/test.py $(PARALLEL_ARGS) -p tap --logfile test.tap \
 		--mode=release --flaky-tests=$(FLAKY_TESTS) \
-		$(TEST_CI_ARGS) addons doctool known_issues message parallel sequential
+		$(TEST_CI_ARGS) addons addon-abi doctool known_issues message parallel sequential
 
 test-release: test-build
 	$(PYTHON) tools/test.py --mode=release
@@ -214,6 +241,9 @@ test-npm-publish: $(NODE_EXE)
 
 test-addons: test-build
 	$(PYTHON) tools/test.py --mode=release addons
+
+test-addon-abi: test-build
+	$(PYTHON) tools/test.py --mode=release addon-abi
 
 test-timers:
 	$(MAKE) --directory=tools faketime
