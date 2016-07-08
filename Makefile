@@ -122,9 +122,10 @@ v8:
 
 test: all
 	$(MAKE) build-addons
+	$(MAKE) build-addons-abi
 	$(MAKE) cctest
 	$(PYTHON) tools/test.py --mode=release -J \
-		addons addons-abi doctool inspector known_issues message pseudo-tty parallel sequential
+		addon abi doctool inspector known_issues message pseudo-tty parallel sequential
 	$(MAKE) lint
 
 test-parallel: all
@@ -192,11 +193,11 @@ ADDONS_ABI_BINDING_GYPS := \
 	$(filter-out test/addons-abi/??_*/binding.gyp, \
 		$(wildcard test/addons-abi/*/binding.gyp))
 
-# Implicitly depends on $(NODE_EXE), see the build-addons rule for rationale.
-test/addons-abi/.buildstamp: $(ADDON_ABI_BINDING_GYPS) \
+# Implicitly depends on $(NODE_EXE), see the build-addons-abi rule for rationale.
+test/addons-abi/.buildstamp: $(ADDONS_ABI_BINDING_GYPS) \
 	deps/uv/include/*.h deps/v8/include/*.h \
 	src/node.h src/node_buffer.h src/node_object_wrap.h
-	# Cannot use $(wildcard test/addons/*/) here, it's evaluated before
+	# Cannot use $(wildcard test/addons-abi/*/) here, it's evaluated before
 	# embedded addons have been generated from the documentation.
 	for dirname in test/addons-abi/*/; do \
 		$(NODE) deps/npm/node_modules/node-gyp/bin/node-gyp rebuild \
@@ -218,7 +219,7 @@ build-addons-abi: $(NODE_EXE) test/addons-abi/.buildstamp
 test-gc: all test/gc/node_modules/weak/build/Release/weakref.node
 	$(PYTHON) tools/test.py --mode=release gc
 
-test-build: | all build-addons
+test-build: | all build-addons build-addons-abi
 
 test-all: test-build test/gc/node_modules/weak/build/Release/weakref.node
 	$(PYTHON) tools/test.py --mode=debug,release
@@ -226,7 +227,7 @@ test-all: test-build test/gc/node_modules/weak/build/Release/weakref.node
 test-all-valgrind: test-build
 	$(PYTHON) tools/test.py --mode=debug,release --valgrind
 
-CI_NATIVE_SUITES := addons
+CI_NATIVE_SUITES := addons addons-abi
 CI_JS_SUITES := doctool inspector known_issues message parallel pseudo-tty sequential
 
 # Build and test addons without building anything else
@@ -243,11 +244,10 @@ test-ci-js:
 		$(TEST_CI_ARGS) $(CI_JS_SUITES)
 
 test-ci: LOGLEVEL := info
-test-ci: | build-addons
-	out/Release/cctest --gtest_output=tap:cctest.tap
+test-ci: | build-addons build-addons-abi
 	$(PYTHON) tools/test.py $(PARALLEL_ARGS) -p tap --logfile test.tap \
 		--mode=release --flaky-tests=$(FLAKY_TESTS) \
-		$(TEST_CI_ARGS) addons-abi $(CI_NATIVE_SUITES) addon-abi $(CI_JS_SUITES)
+		$(TEST_CI_ARGS) $(CI_NATIVE_SUITES) addon-abi $(CI_JS_SUITES)
 
 test-release: test-build
 	$(PYTHON) tools/test.py --mode=release
@@ -749,6 +749,7 @@ CPPLINT_EXCLUDE += src/node_root_certs.h
 CPPLINT_EXCLUDE += src/queue.h
 CPPLINT_EXCLUDE += src/tree.h
 CPPLINT_EXCLUDE += $(wildcard test/addons/??_*/*.cc test/addons/??_*/*.h)
+CPPLINT_EXCLUDE += $(wildcard test/addons-abi/??_*/*.cc test/addons-abi/??_*/*.h)
 
 CPPLINT_FILES = $(filter-out $(CPPLINT_EXCLUDE), $(wildcard \
 	src/*.c \
@@ -758,6 +759,8 @@ CPPLINT_FILES = $(filter-out $(CPPLINT_EXCLUDE), $(wildcard \
 	test/addons/*/*.h \
 	test/cctest/*.cc \
 	test/cctest/*.h \
+	test/addons-abi/*/*.cc \
+	test/addons-abi/*/*.h \
 	tools/icu/*.cc \
 	tools/icu/*.h \
 	))
@@ -789,7 +792,8 @@ endif
 
 .PHONY: lint cpplint jslint bench clean docopen docclean doc dist distclean \
 	check uninstall install install-includes install-bin all staticlib \
-	dynamiclib test test-all test-addons build-addons website-upload pkg \
+	dynamiclib test test-all test-addons build-addons \
+	test-addons-abi	build-addons-abi website-upload pkg \
 	blog blogclean tar binary release-only bench-http-simple bench-idle \
 	bench-all bench bench-misc bench-array bench-buffer bench-net \
 	bench-http bench-fs bench-tls cctest run-ci test-v8 test-v8-intl \
