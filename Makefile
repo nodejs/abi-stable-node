@@ -124,7 +124,7 @@ test: all
 	$(MAKE) build-addons
 	$(MAKE) cctest
 	$(PYTHON) tools/test.py --mode=release -J \
-		addons addon-abi doctool inspector known_issues message pseudo-tty parallel sequential
+		addons addons-abi doctool inspector known_issues message pseudo-tty parallel sequential
 	$(MAKE) lint
 
 test-parallel: all
@@ -189,16 +189,16 @@ test/addons/.buildstamp: config.gypi \
 build-addons: $(NODE_EXE) test/addons/.buildstamp
 
 ADDONS_ABI_BINDING_GYPS := \
-	$(filter-out test/addon-abi/??_*/binding.gyp, \
+	$(filter-out test/addons-abi/??_*/binding.gyp, \
 		$(wildcard test/addons-abi/*/binding.gyp))
 
 # Implicitly depends on $(NODE_EXE), see the build-addons rule for rationale.
-test/addon-abi/.buildstamp: $(ADDON_ABI_BINDING_GYPS) \
+test/addons-abi/.buildstamp: $(ADDON_ABI_BINDING_GYPS) \
 	deps/uv/include/*.h deps/v8/include/*.h \
 	src/node.h src/node_buffer.h src/node_object_wrap.h
 	# Cannot use $(wildcard test/addons/*/) here, it's evaluated before
 	# embedded addons have been generated from the documentation.
-	for dirname in test/addon-abi/*/; do \
+	for dirname in test/addons-abi/*/; do \
 		$(NODE) deps/npm/node_modules/node-gyp/bin/node-gyp rebuild \
 			--python="$(PYTHON)" \
 			--directory="$$PWD/$$dirname" \
@@ -212,7 +212,7 @@ test/addon-abi/.buildstamp: $(ADDON_ABI_BINDING_GYPS) \
 # .buildstamp and .docbuildstamp are out of date and need a rebuild.
 # Just goes to show that recursive make really is harmful...
 # TODO(bnoordhuis) Force rebuild after gyp or node-gyp update.
-build-addon-abi: $(NODE_EXE) test/addon-abi/.buildstamp
+build-addons-abi: $(NODE_EXE) test/addons-abi/.buildstamp
 
 
 test-gc: all test/gc/node_modules/weak/build/Release/weakref.node
@@ -247,7 +247,7 @@ test-ci: | build-addons
 	out/Release/cctest --gtest_output=tap:cctest.tap
 	$(PYTHON) tools/test.py $(PARALLEL_ARGS) -p tap --logfile test.tap \
 		--mode=release --flaky-tests=$(FLAKY_TESTS) \
-		$(TEST_CI_ARGS) addon-abi $(CI_NATIVE_SUITES) $(CI_JS_SUITES)
+		$(TEST_CI_ARGS) addons-abi $(CI_NATIVE_SUITES) $(CI_JS_SUITES)
 
 test-release: test-build
 	$(PYTHON) tools/test.py --mode=release
@@ -288,8 +288,8 @@ test-npm-publish: $(NODE_EXE)
 test-addons: test-build
 	$(PYTHON) tools/test.py --mode=release addons
 
-test-addon-abi: test-build
-	$(PYTHON) tools/test.py --mode=release addon-abi
+test-addons-abi: test-build
+	$(PYTHON) tools/test.py --mode=release addons-abi
 
 test-timers:
 	$(MAKE) --directory=tools faketime
