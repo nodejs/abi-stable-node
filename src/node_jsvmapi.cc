@@ -457,7 +457,9 @@ napi_value napi_call_function(napi_env e, napi_value scope, napi_value func, int
 
 napi_value napi_get_global_scope(napi_env e) {
     v8::Isolate *isolate = v8impl::V8IsolateFromJsEnv(e);
-    v8::Local<v8::Context> context = v8::Context::New(isolate);
+    // TODO (ianhall): what if we need the global object from a different context in the same isolate?
+    //                 Should napi_env be the current context rather than the current isolate?
+    v8::Local<v8::Context> context = isolate->GetCurrentContext();
     return v8impl::JsValueFromV8LocalValue(context->Global());
 }
 
