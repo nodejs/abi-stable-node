@@ -305,6 +305,40 @@ napi_value napi_get_property(napi_env e, napi_value o, napi_propertyname k) {
    return v8impl::JsValueFromV8LocalValue(val);
 }
 
+void napi_set_element(napi_env e, napi_value o, uint32_t i, napi_value v) {
+    v8::Local<v8::Object> obj = v8impl::V8LocalValueFromJsValue(o)->ToObject();
+    v8::Local<v8::Value> val = v8impl::V8LocalValueFromJsValue(v);
+
+    obj->Set(i, val);
+
+    // This implementation is missing a lot of details, notably error
+    // handling on invalid inputs and regarding what happens in the
+    // Set operation (error thrown, key is invalid, the bool return
+    // value of Set)
+}
+
+bool napi_has_element(napi_env e, napi_value o, uint32_t i) {
+    v8::Local<v8::Object> obj = v8impl::V8LocalValueFromJsValue(o)->ToObject();
+
+    return obj->Has(i);
+}
+
+napi_value napi_get_element(napi_env e, napi_value o, uint32_t i) {
+    v8::Local<v8::Object> obj = v8impl::V8LocalValueFromJsValue(o)->ToObject();
+    v8::Local<v8::Value> val = obj->Get(i);
+    // This implementation is missing a lot of details, notably error
+    // handling on invalid inputs and regarding what happens in the
+    // Set operation (error thrown, key is invalid, the bool return
+    // value of Set)
+   return v8impl::JsValueFromV8LocalValue(val);
+}
+
+bool napi_strict_equals(napi_env e, napi_value lhs, napi_value rhs) {
+    v8::Local<v8::Value> a = v8impl::V8LocalValueFromJsValue(lhs);
+    v8::Local<v8::Value> b = v8impl::V8LocalValueFromJsValue(rhs);
+    return a->StrictEquals(b);
+}
+
 napi_value napi_get_prototype(napi_env e, napi_value o) {
    v8::Local<v8::Object> obj = v8impl::V8LocalValueFromJsValue(o)->ToObject();
    v8::Local<v8::Value> val = obj->GetPrototype();
@@ -529,6 +563,11 @@ napi_persistent napi_create_persistent(napi_env e, napi_value v) {
   v8::Isolate *isolate = v8impl::V8IsolateFromJsEnv(e);
   v8::Persistent<v8::Value> *thePersistent = new v8::Persistent<v8::Value>(isolate, v8impl::V8LocalValueFromJsValue(v));
   return v8impl::JsPersistentFromV8PersistentValue(thePersistent);
+}
+
+void napi_release_persistent(napi_env e, napi_persistent p) {
+  v8::Persistent<v8::Value> *thePersistent = v8impl::V8PersistentValueFromJsPersistentValue(p);
+  delete thePersistent;
 }
 
 napi_value napi_get_persistent_value(napi_env e, napi_persistent p) {
