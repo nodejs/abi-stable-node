@@ -128,6 +128,12 @@ NODE_EXTERN napi_value napi_escape_handle(napi_env e, napi_escapable_handle_scop
 // Methods to support error handling
 NODE_EXTERN void napi_throw_error(napi_env e, napi_value error);
 
+
+// Methods to provide node::Buffer functionality with napi types
+NODE_EXTERN bool napi_buffer_has_instance(napi_env e, napi_value v);
+NODE_EXTERN char* napi_buffer_data(napi_env e, napi_value v);
+NODE_EXTERN size_t napi_buffer_length(napi_env e, napi_value v);
+
 } // extern "C"
 
 //////////////////////////////////////////////////////////////////////////////////////

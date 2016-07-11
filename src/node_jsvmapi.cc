@@ -18,6 +18,7 @@
  ******************************************************************************/
 
 #include "node_jsvmapi_internal.h"
+#include <node_buffer.h>
 #include <node_object_wrap.h>
 
 #include <vector>
@@ -635,6 +636,19 @@ napi_value napi_make_callback(napi_env e, napi_value recv, napi_value func, int 
   v8::Handle<v8::Value> result = node::MakeCallback(isolate, v8recv, v8func, argc, args.data());
   return v8impl::JsValueFromV8LocalValue(result);
 }
+
+bool napi_buffer_has_instance(napi_env e, napi_value v) {
+  return node::Buffer::HasInstance(v8impl::V8LocalValueFromJsValue(v));
+}
+
+char* napi_buffer_data(napi_env e, napi_value v) {
+  return node::Buffer::Data(v8impl::V8LocalValueFromJsValue(v));
+}
+
+size_t napi_buffer_length(napi_env e, napi_value v) {
+  return node::Buffer::Length(v8impl::V8LocalValueFromJsValue(v));
+}
+
 
 ///////////////////////////////////////////
 // WILL GO AWAY
