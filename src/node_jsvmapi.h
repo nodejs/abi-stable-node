@@ -22,6 +22,8 @@
 #include "node.h"
 #include "node_jsvmapi_types.h"
 
+// TODO (ianhall): We're using C linkage for the API but we're also using the
+// bool type in these exports.  Is that safe and stable?
 extern "C" {
 enum napi_valuetype {
     // ES6 types (corresponds to typeof)
@@ -49,9 +51,12 @@ NODE_EXTERN napi_value napi_get_global_scope(napi_env e);
 
 // Methods to create Primitive types/Objects
 NODE_EXTERN napi_value napi_create_object(napi_env e);
+NODE_EXTERN napi_value napi_create_array(napi_env e);
+NODE_EXTERN napi_value napi_create_array_with_length(napi_env e, int length);
 NODE_EXTERN napi_value napi_create_number(napi_env e, double val);
 NODE_EXTERN napi_value napi_create_string(napi_env e, const char*);
 NODE_EXTERN napi_value napi_create_string_with_length(napi_env e, const char*, size_t length);
+NODE_EXTERN napi_value napi_create_boolean(napi_env e, bool b);
 NODE_EXTERN napi_value napi_create_function(napi_env e, napi_callback cbinfo);
 NODE_EXTERN napi_value napi_create_error(napi_env e, napi_value msg);
 NODE_EXTERN napi_value napi_create_type_error(napi_env e, napi_value msg);
@@ -85,6 +90,11 @@ NODE_EXTERN napi_value napi_get_property(napi_env e, napi_value object, napi_pro
 NODE_EXTERN void napi_set_element(napi_env e, napi_value object, uint32_t i, napi_value v);
 NODE_EXTERN bool napi_has_element(napi_env e, napi_value object, uint32_t i);
 NODE_EXTERN napi_value napi_get_element(napi_env e, napi_value object, uint32_t i);
+
+
+// Methods to work with Arrays
+NODE_EXTERN bool napi_is_array(napi_env e, napi_value v);
+NODE_EXTERN uint32_t napi_get_array_length(napi_env e, napi_value v);
 
 // Methods to compare values
 NODE_EXTERN bool napi_strict_equals(napi_env e, napi_value lhs, napi_value rhs);
