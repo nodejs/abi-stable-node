@@ -66,11 +66,13 @@ NODE_EXTERN int64_t napi_get_value_int64(napi_env e, napi_value v);
 NODE_EXTERN bool napi_get_value_bool(napi_env e, napi_value v);
 
 NODE_EXTERN int napi_get_string_length(napi_env e, napi_value v);
+NODE_EXTERN int napi_get_string_utf8_length(napi_env e, napi_value v);
 NODE_EXTERN int napi_get_string_utf8(napi_env e, napi_value v, char* buf, int bufsize);
 
 
 // Methods to coerce values
 // These APIs may execute user script
+NODE_EXTERN napi_value napi_coerce_to_object(napi_env e, napi_value v);
 NODE_EXTERN napi_value napi_coerce_to_string(napi_env e, napi_value v);
 
 
