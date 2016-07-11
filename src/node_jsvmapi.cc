@@ -331,7 +331,17 @@ napi_value napi_get_element(napi_env e, napi_value o, uint32_t i) {
     // handling on invalid inputs and regarding what happens in the
     // Set operation (error thrown, key is invalid, the bool return
     // value of Set)
-   return v8impl::JsValueFromV8LocalValue(val);
+    return v8impl::JsValueFromV8LocalValue(val);
+}
+
+bool napi_is_array(napi_env e, napi_value v) {
+    v8::Local<v8::Value> val = v8impl::V8LocalValueFromJsValue(v);
+    return val->IsArray();
+}
+
+uint32_t napi_get_array_length(napi_env e, napi_value v) {
+    v8::Local<v8::Array> arr = v8impl::V8LocalValueFromJsValue(v).As<v8::Array>();
+    return arr->Length();
 }
 
 bool napi_strict_equals(napi_env e, napi_value lhs, napi_value rhs) {
@@ -351,6 +361,16 @@ napi_value napi_create_object(napi_env e) {
         v8::Object::New(v8impl::V8IsolateFromJsEnv(e)));
 }
 
+napi_value napi_create_array(napi_env e) {
+    return v8impl::JsValueFromV8LocalValue(
+        v8::Array::New(v8impl::V8IsolateFromJsEnv(e)));
+}
+
+napi_value napi_create_array_with_length(napi_env e, int length) {
+    return v8impl::JsValueFromV8LocalValue(
+        v8::Array::New(v8impl::V8IsolateFromJsEnv(e), length));
+}
+
 napi_value napi_create_string(napi_env e, const char* s) {
     return v8impl::JsValueFromV8LocalValue(
         v8::String::NewFromUtf8(v8impl::V8IsolateFromJsEnv(e), s));
@@ -365,6 +385,11 @@ napi_value napi_create_string_with_length(napi_env e, const char* s, size_t leng
 napi_value napi_create_number(napi_env e, double v) {
     return v8impl::JsValueFromV8LocalValue(
         v8::Number::New(v8impl::V8IsolateFromJsEnv(e), v));
+}
+
+napi_value napi_create_boolean(napi_env e, bool b) {
+    return v8impl::JsValueFromV8LocalValue(
+        v8::Boolean::New(v8impl::V8IsolateFromJsEnv(e), b));
 }
 
 napi_value napi_create_error(napi_env, napi_value msg) {
