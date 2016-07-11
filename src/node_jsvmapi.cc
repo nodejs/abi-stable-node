@@ -530,6 +530,10 @@ int napi_get_string_length(napi_env e, napi_value v) {
   return v8impl::V8LocalValueFromJsValue(v).As<v8::String>()->Length();
 }
 
+int napi_get_string_utf8_length(napi_env e, napi_value v) {
+  return v8impl::V8LocalValueFromJsValue(v).As<v8::String>()->Utf8Length();
+}
+
 int napi_get_string_utf8(napi_env e, napi_value v, char* buf, int bufsize) {
   return v8impl::V8LocalValueFromJsValue(v).As<v8::String>()
     ->WriteUtf8(
@@ -537,6 +541,12 @@ int napi_get_string_utf8(napi_env e, napi_value v, char* buf, int bufsize) {
       bufsize,
       0,
       v8::String::NO_NULL_TERMINATION | v8::String::REPLACE_INVALID_UTF8);
+}
+
+napi_value napi_coerce_to_object(napi_env e, napi_value v) {
+  return v8impl::JsValueFromV8LocalValue(
+    v8impl::V8LocalValueFromJsValue(v)->ToObject(
+      v8impl::V8IsolateFromJsEnv(e)));
 }
 
 napi_value napi_coerce_to_string(napi_env e, napi_value v) {
