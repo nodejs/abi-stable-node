@@ -662,6 +662,11 @@ napi_value napi_make_callback(napi_env e, napi_value recv, napi_value func, int 
   return v8impl::JsValueFromV8LocalValue(result);
 }
 
+napi_value napi_buffer_copy(napi_env e, const char* data, uint32_t size) {
+  return v8impl::JsValueFromV8LocalValue(
+    node::Buffer::Copy(v8impl::V8IsolateFromJsEnv(e), data, size).ToLocalChecked());
+}
+
 bool napi_buffer_has_instance(napi_env e, napi_value v) {
   return node::Buffer::HasInstance(v8impl::V8LocalValueFromJsValue(v));
 }
