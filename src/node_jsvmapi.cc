@@ -536,11 +536,18 @@ double napi_get_number_from_value(napi_env e, napi_value v) {
     return v8impl::V8LocalValueFromJsValue(v)->NumberValue();
 }
 
-char* napi_get_string_from_value(napi_env e, napi_value v) { 
+bool napi_get_string_from_value(napi_env e, napi_value v, 
+                                char* buf, const int buf_size) { 
     v8::String::Utf8Value stringObj(v8impl::V8LocalValueFromJsValue(v)->ToString());
-    char* str = (char*) malloc(stringObj.length() * sizeof(char));
-    strcpy(str, *stringObj);
-    return str;
+    if (stringObj.length() <= buf_size)
+    { 
+        strcpy(buf, *stringObj);
+        return true;
+    }
+    else
+    {
+        return false;
+    }
 }
 
 int32_t napi_get_value_int32(napi_env e, napi_value v) {
