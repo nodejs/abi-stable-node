@@ -54,12 +54,3 @@ functions.forEach(function(element, index) {
   var output = test_function.Test(element);
   assert.equal(output, expected);
 });
-// return;
-// without second iteration, make test report free() error at an invalid pointer
-functions.forEach(function(element, index) {
-  var expected = element();
-  var output = test_function.Test(element);
-  assert.equal(output, expected);
-});
-
-
