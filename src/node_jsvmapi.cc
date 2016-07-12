@@ -19,7 +19,7 @@
 
 #include "node_jsvmapi_internal.h"
 #include <node_object_wrap.h>
-
+#include <string.h>
 #include <vector>
 
 typedef void napi_destruct(void*);
@@ -264,13 +264,13 @@ napi_value napi_get_property(napi_env e, napi_value o, napi_propertyname k) {
     // handling on invalid inputs and regarding what happens in the
     // Set operation (error thrown, key is invalid, the bool return
     // value of Set)
-   return v8impl::JsValueFromV8LocalValue(val);
+    return v8impl::JsValueFromV8LocalValue(val);
 }
 
 napi_value napi_get_prototype(napi_env e, napi_value o) {
-   v8::Local<v8::Object> obj = v8impl::V8LocalValueFromJsValue(o)->ToObject();
-   v8::Local<v8::Value> val = obj->GetPrototype();
-   return v8impl::JsValueFromV8LocalValue(val);
+    v8::Local<v8::Object> obj = v8impl::V8LocalValueFromJsValue(o)->ToObject();
+    v8::Local<v8::Value> val = obj->GetPrototype();
+    return v8impl::JsValueFromV8LocalValue(val);
 }
 
 napi_value napi_create_object(napi_env e) {
@@ -434,6 +434,13 @@ void napi_throw_error(napi_env e, napi_value error) {
 
 double napi_get_number_from_value(napi_env e, napi_value v) {
     return v8impl::V8LocalValueFromJsValue(v)->NumberValue();
+}
+
+char* napi_get_string_from_value(napi_env e, napi_value v) { 
+    v8::String::Utf8Value stringObj(v8impl::V8LocalValueFromJsValue(v)->ToString());
+    char* str = (char*) malloc(stringObj.length() * sizeof(char));
+    strcpy(str, *stringObj);
+    return str;
 }
 
 int32_t napi_get_value_int32(napi_env e, napi_value v) {
