@@ -46,7 +46,7 @@ NODE_EXTERN napi_value napi_get_undefined_(napi_env e);
 NODE_EXTERN napi_value napi_get_null(napi_env e);
 NODE_EXTERN napi_value napi_get_false(napi_env e);
 NODE_EXTERN napi_value napi_get_true(napi_env e);
-NODE_EXTERN napi_value napi_get_global_scope(napi_env e); 
+NODE_EXTERN napi_value napi_get_global_scope(napi_env e);
 
 
 // Methods to create Primitive types/Objects
@@ -65,6 +65,7 @@ NODE_EXTERN napi_value napi_create_type_error(napi_env e, napi_value msg);
 // Methods to get the the native napi_value from Primitive type
 NODE_EXTERN napi_valuetype napi_get_type_of_value(napi_env e, napi_value v);
 NODE_EXTERN double napi_get_number_from_value(napi_env e, napi_value v);
+NODE_EXTERN char* napi_get_string_from_value(napi_env e, napi_value v);
 NODE_EXTERN int32_t napi_get_value_int32(napi_env e, napi_value v);
 NODE_EXTERN uint32_t napi_get_value_uint32(napi_env e, napi_value v);
 NODE_EXTERN int64_t napi_get_value_int64(napi_env e, napi_value v);
