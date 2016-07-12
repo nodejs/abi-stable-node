@@ -22,15 +22,14 @@ void Test(napi_env napi_env, napi_func_cb_info info) {
     return;
   }
 
-  // v8::Isolate *isolate = v8impl::V8IsolateFromJsEnv(napi_env);
-  // v8::EscapableHandleScope v8_scope(isolate);
-  // napi_value scope = v8impl::JsValueFromV8LocalValue(v8_scope);
-  napi_value scope = napi_get_global_scope(napi_env);
-
   napi_value function = args[0];
   int argc = napi_get_cb_args_length(napi_env, info) - 1;
   napi_value* argv = args + 1;
-  napi_value output = napi_call_function(napi_env, scope, function, argc, argv);
+
+  napi_escapable_handle_scope scope = napi_open_escapable_handle_scope(napi_env);
+  napi_value scope_val = reinterpret_cast<napi_value> (scope);
+  napi_value output = napi_call_function(napi_env, scope_val, function, argc, argv);
+  napi_close_escapable_handle_scope(napi_env, scope);
   napi_set_return_value(napi_env, info, output);
 }
 

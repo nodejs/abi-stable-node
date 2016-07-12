@@ -18,6 +18,7 @@
  ******************************************************************************/
 
 #include "node_jsvmapi_internal.h"
+#include <node_buffer.h>
 #include <node_object_wrap.h>
 #include <string.h>
 #include <vector>
@@ -34,6 +35,40 @@ namespace v8impl {
 
     v8::Isolate* V8IsolateFromJsEnv(napi_env e) {
         return reinterpret_cast<v8::Isolate*>(e);
+    }
+
+    class HandleScopeWrapper {
+    public:
+        HandleScopeWrapper(v8::Isolate* isolate) : scope(isolate) { }
+    private:
+        v8::HandleScope scope;
+    };
+
+    class EscapableHandleScopeWrapper {
+    public:
+        EscapableHandleScopeWrapper(v8::Isolate* isolate) : scope(isolate) { }
+        template <typename T>
+        v8::Local<T> Escape(v8::Local<T> handle) {
+            return scope.Escape(handle);
+        }
+    private:
+        v8::EscapableHandleScope scope;
+    };
+
+    napi_handle_scope JsHandleScopeFromV8HandleScope(HandleScopeWrapper* s) {
+        return reinterpret_cast<napi_handle_scope>(s);
+    }
+
+    HandleScopeWrapper* V8HandleScopeFromJsHandleScope(napi_handle_scope s) {
+        return reinterpret_cast<HandleScopeWrapper*>(s);
+    }
+
+    napi_escapable_handle_scope JsEscapableHandleScopeFromV8EscapableHandleScope(EscapableHandleScopeWrapper* s) {
+        return reinterpret_cast<napi_escapable_handle_scope>(s);
+    }
+
+    EscapableHandleScopeWrapper* V8EscapableHandleScopeFromJsEscapableHandleScope(napi_escapable_handle_scope s) {
+        return reinterpret_cast<EscapableHandleScopeWrapper*>(s);
     }
 
 //=== Conversion between V8 Handles and napi_value ========================
@@ -159,6 +194,10 @@ namespace v8impl {
 
 }  // end of namespace v8impl
 
+napi_env napi_get_current_env() {
+  return v8impl::JsEnvFromV8Isolate(v8::Isolate::GetCurrent());
+}
+
 napi_value napi_create_functionOld(napi_env e, napi_callback cb) {
     v8::Isolate *isolate = v8impl::V8IsolateFromJsEnv(e);
 
@@ -267,6 +306,50 @@ napi_value napi_get_property(napi_env e, napi_value o, napi_propertyname k) {
     return v8impl::JsValueFromV8LocalValue(val);
 }
 
+void napi_set_element(napi_env e, napi_value o, uint32_t i, napi_value v) {
+    v8::Local<v8::Object> obj = v8impl::V8LocalValueFromJsValue(o)->ToObject();
+    v8::Local<v8::Value> val = v8impl::V8LocalValueFromJsValue(v);
+
+    obj->Set(i, val);
+
+    // This implementation is missing a lot of details, notably error
+    // handling on invalid inputs and regarding what happens in the
+    // Set operation (error thrown, key is invalid, the bool return
+    // value of Set)
+}
+
+bool napi_has_element(napi_env e, napi_value o, uint32_t i) {
+    v8::Local<v8::Object> obj = v8impl::V8LocalValueFromJsValue(o)->ToObject();
+
+    return obj->Has(i);
+}
+
+napi_value napi_get_element(napi_env e, napi_value o, uint32_t i) {
+    v8::Local<v8::Object> obj = v8impl::V8LocalValueFromJsValue(o)->ToObject();
+    v8::Local<v8::Value> val = obj->Get(i);
+    // This implementation is missing a lot of details, notably error
+    // handling on invalid inputs and regarding what happens in the
+    // Set operation (error thrown, key is invalid, the bool return
+    // value of Set)
+    return v8impl::JsValueFromV8LocalValue(val);
+}
+
+bool napi_is_array(napi_env e, napi_value v) {
+    v8::Local<v8::Value> val = v8impl::V8LocalValueFromJsValue(v);
+    return val->IsArray();
+}
+
+uint32_t napi_get_array_length(napi_env e, napi_value v) {
+    v8::Local<v8::Array> arr = v8impl::V8LocalValueFromJsValue(v).As<v8::Array>();
+    return arr->Length();
+}
+
+bool napi_strict_equals(napi_env e, napi_value lhs, napi_value rhs) {
+    v8::Local<v8::Value> a = v8impl::V8LocalValueFromJsValue(lhs);
+    v8::Local<v8::Value> b = v8impl::V8LocalValueFromJsValue(rhs);
+    return a->StrictEquals(b);
+}
+
 napi_value napi_get_prototype(napi_env e, napi_value o) {
     v8::Local<v8::Object> obj = v8impl::V8LocalValueFromJsValue(o)->ToObject();
     v8::Local<v8::Value> val = obj->GetPrototype();
@@ -276,6 +359,16 @@ napi_value napi_get_prototype(napi_env e, napi_value o) {
 napi_value napi_create_object(napi_env e) {
     return v8impl::JsValueFromV8LocalValue(
         v8::Object::New(v8impl::V8IsolateFromJsEnv(e)));
+}
+
+napi_value napi_create_array(napi_env e) {
+    return v8impl::JsValueFromV8LocalValue(
+        v8::Array::New(v8impl::V8IsolateFromJsEnv(e)));
+}
+
+napi_value napi_create_array_with_length(napi_env e, int length) {
+    return v8impl::JsValueFromV8LocalValue(
+        v8::Array::New(v8impl::V8IsolateFromJsEnv(e), length));
 }
 
 napi_value napi_create_string(napi_env e, const char* s) {
@@ -292,6 +385,11 @@ napi_value napi_create_string_with_length(napi_env e, const char* s, size_t leng
 napi_value napi_create_number(napi_env e, double v) {
     return v8impl::JsValueFromV8LocalValue(
         v8::Number::New(v8impl::V8IsolateFromJsEnv(e), v));
+}
+
+napi_value napi_create_boolean(napi_env e, bool b) {
+    return v8impl::JsValueFromV8LocalValue(
+        v8::Boolean::New(v8impl::V8IsolateFromJsEnv(e), b));
 }
 
 napi_value napi_create_error(napi_env, napi_value msg) {
@@ -419,7 +517,9 @@ napi_value napi_call_function(napi_env e, napi_value scope, napi_value func, int
 
 napi_value napi_get_global_scope(napi_env e) {
     v8::Isolate *isolate = v8impl::V8IsolateFromJsEnv(e);
-    v8::Local<v8::Context> context = v8::Context::New(isolate);
+    // TODO (ianhall): what if we need the global object from a different context in the same isolate?
+    //                 Should napi_env be the current context rather than the current isolate?
+    v8::Local<v8::Context> context = isolate->GetCurrentContext();
     return v8impl::JsValueFromV8LocalValue(context->Global());
 }
 
@@ -451,9 +551,43 @@ uint32_t napi_get_value_uint32(napi_env e, napi_value v) {
     return v8impl::V8LocalValueFromJsValue(v)->Uint32Value();
 }
 
+int64_t napi_get_value_int64(napi_env e, napi_value v) {
+    return v8impl::V8LocalValueFromJsValue(v)->IntegerValue();
+}
+
 bool napi_get_value_bool(napi_env e, napi_value v) {
     return v8impl::V8LocalValueFromJsValue(v)->BooleanValue();
 }
+
+int napi_get_string_length(napi_env e, napi_value v) {
+  return v8impl::V8LocalValueFromJsValue(v).As<v8::String>()->Length();
+}
+
+int napi_get_string_utf8_length(napi_env e, napi_value v) {
+  return v8impl::V8LocalValueFromJsValue(v).As<v8::String>()->Utf8Length();
+}
+
+int napi_get_string_utf8(napi_env e, napi_value v, char* buf, int bufsize) {
+  return v8impl::V8LocalValueFromJsValue(v).As<v8::String>()
+    ->WriteUtf8(
+      buf,
+      bufsize,
+      0,
+      v8::String::NO_NULL_TERMINATION | v8::String::REPLACE_INVALID_UTF8);
+}
+
+napi_value napi_coerce_to_object(napi_env e, napi_value v) {
+  return v8impl::JsValueFromV8LocalValue(
+    v8impl::V8LocalValueFromJsValue(v)->ToObject(
+      v8impl::V8IsolateFromJsEnv(e)));
+}
+
+napi_value napi_coerce_to_string(napi_env e, napi_value v) {
+  return v8impl::JsValueFromV8LocalValue(
+    v8impl::V8LocalValueFromJsValue(v)->ToString(
+      v8impl::V8IsolateFromJsEnv(e)));
+}
+
 
 void napi_wrap(napi_env e, napi_value jsObject, void* nativeObj, napi_destruct* destructor, napi_persistent* handle) {
   // object wrap api needs more thought
@@ -474,6 +608,11 @@ napi_persistent napi_create_persistent(napi_env e, napi_value v) {
   return v8impl::JsPersistentFromV8PersistentValue(thePersistent);
 }
 
+void napi_release_persistent(napi_env e, napi_persistent p) {
+  v8::Persistent<v8::Value> *thePersistent = v8impl::V8PersistentValueFromJsPersistentValue(p);
+  delete thePersistent;
+}
+
 napi_value napi_get_persistent_value(napi_env e, napi_persistent p) {
   v8::Isolate *isolate = v8impl::V8IsolateFromJsEnv(e);
   v8::Persistent<v8::Value> *thePersistent = v8impl::V8PersistentValueFromJsPersistentValue(p);
@@ -481,6 +620,29 @@ napi_value napi_get_persistent_value(napi_env e, napi_persistent p) {
   return v8impl::JsValueFromV8LocalValue(napi_value);
 };
 
+napi_handle_scope napi_open_handle_scope(napi_env e) {
+  return v8impl::JsHandleScopeFromV8HandleScope(
+    new v8impl::HandleScopeWrapper(v8impl::V8IsolateFromJsEnv(e)));
+}
+
+void napi_close_handle_scope(napi_env e, napi_handle_scope scope) {
+  delete v8impl::V8HandleScopeFromJsHandleScope(scope);
+}
+
+napi_escapable_handle_scope napi_open_escapable_handle_scope(napi_env e) {
+  return v8impl::JsEscapableHandleScopeFromV8EscapableHandleScope(
+    new v8impl::EscapableHandleScopeWrapper(v8impl::V8IsolateFromJsEnv(e)));
+}
+
+void napi_close_escapable_handle_scope(napi_env e, napi_escapable_handle_scope scope) {
+  delete v8impl::V8EscapableHandleScopeFromJsEscapableHandleScope(scope);
+}
+
+napi_value napi_escape_handle(napi_env e, napi_escapable_handle_scope scope, napi_value escapee) {
+  v8impl::EscapableHandleScopeWrapper* s = v8impl::V8EscapableHandleScopeFromJsEscapableHandleScope(scope);
+  return v8impl::JsValueFromV8LocalValue(
+    s->Escape(v8impl::V8LocalValueFromJsValue(escapee)));
+}
 
 napi_value napi_new_instance(napi_env e, napi_value cons, int argc, napi_value *argv){
   v8::Isolate *isolate = v8impl::V8IsolateFromJsEnv(e);
@@ -493,6 +655,36 @@ napi_value napi_new_instance(napi_env e, napi_value cons, int argc, napi_value *
   v8::Handle<v8::Value> result = v8cons->NewInstance(isolate->GetCurrentContext(), argc, args.data()).ToLocalChecked();
   return v8impl::JsValueFromV8LocalValue(result);
 };
+
+napi_value napi_make_callback(napi_env e, napi_value recv, napi_value func, int argc, napi_value* argv) {
+  v8::Isolate *isolate = v8impl::V8IsolateFromJsEnv(e);
+  v8::Local<v8::Object> v8recv = v8impl::V8LocalValueFromJsValue(recv).As<v8::Object>();
+  v8::Local<v8::Function> v8func = v8impl::V8LocalValueFromJsValue(func).As<v8::Function>();
+  std::vector<v8::Handle<v8::Value>> args(argc);
+  for (int i = 0; i < argc; i++) {
+    args[i] = v8impl::V8LocalValueFromJsValue(argv[i]);
+  }
+
+  v8::Handle<v8::Value> result = node::MakeCallback(isolate, v8recv, v8func, argc, args.data());
+  return v8impl::JsValueFromV8LocalValue(result);
+}
+
+napi_value napi_buffer_copy(napi_env e, const char* data, uint32_t size) {
+  return v8impl::JsValueFromV8LocalValue(
+    node::Buffer::Copy(v8impl::V8IsolateFromJsEnv(e), data, size).ToLocalChecked());
+}
+
+bool napi_buffer_has_instance(napi_env e, napi_value v) {
+  return node::Buffer::HasInstance(v8impl::V8LocalValueFromJsValue(v));
+}
+
+char* napi_buffer_data(napi_env e, napi_value v) {
+  return node::Buffer::Data(v8impl::V8LocalValueFromJsValue(v));
+}
+
+size_t napi_buffer_length(napi_env e, napi_value v) {
+  return node::Buffer::Length(v8impl::V8LocalValueFromJsValue(v));
+}
 
 
 ///////////////////////////////////////////
