@@ -20,7 +20,6 @@
 #include "node_jsvmapi_internal.h"
 #include <node_buffer.h>
 #include <node_object_wrap.h>
-#include <string.h>
 #include <vector>
 
 typedef void napi_destruct(void*);
@@ -536,18 +535,17 @@ double napi_get_number_from_value(napi_env e, napi_value v) {
     return v8impl::V8LocalValueFromJsValue(v)->NumberValue();
 }
 
-bool napi_get_string_from_value(napi_env e, napi_value v, 
+int napi_get_string_from_value(napi_env e, napi_value v, 
                                 char* buf, const int buf_size) { 
-    v8::String::Utf8Value stringObj(v8impl::V8LocalValueFromJsValue(v)->ToString());
-    if (stringObj.length() <= buf_size)
-    { 
-        strcpy(buf, *stringObj);
-        return true;
-    }
-    else
-    {
-        return false;
-    }
+    int len = napi_get_string_utf8_length(e, v);
+    int copied = v8impl::V8LocalValueFromJsValue(v).As<v8::String>()
+      ->WriteUtf8(
+        buf,
+        buf_size,
+        0,
+        v8::String::REPLACE_INVALID_UTF8 | v8::String::PRESERVE_ONE_BYTE_NULL);
+    // add one for null ending
+    return len - copied + 1;
 }
 
 int32_t napi_get_value_int32(napi_env e, napi_value v) {
