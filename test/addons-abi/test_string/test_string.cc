@@ -24,8 +24,9 @@ void Test(napi_env napi_env, napi_func_cb_info info) {
 
   char buffer[128];
   int buffer_size = 128;
-  bool success = napi_get_string_from_value(napi_env, args[0], buffer, buffer_size);
-  if (success) {
+  int remain = napi_get_string_from_value(napi_env, args[0], buffer, buffer_size);
+
+  if (remain == 0) {
     napi_value output = napi_create_string(napi_env, buffer);
     napi_set_return_value(napi_env, info, output);
   }
