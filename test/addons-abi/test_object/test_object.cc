@@ -33,8 +33,8 @@ void Test(napi_env napi_env, napi_func_cb_info info) {
   napi_value object = args[0];
   char buffer [128];
   int buffer_size = 128;
-  bool success = napi_get_string_from_value(napi_env, args[1], buffer, buffer_size);
-  if (success) {
+  int remain = napi_get_string_from_value(napi_env, args[1], buffer, buffer_size);
+  if (remain == 0) {
     napi_propertyname property_name = napi_property_name(napi_env, buffer);
     napi_value output = napi_get_property(napi_env, object, property_name);
     napi_set_return_value(napi_env, info, output);
