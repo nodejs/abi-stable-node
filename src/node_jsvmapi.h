@@ -139,6 +139,13 @@ NODE_EXTERN napi_value napi_escape_handle(napi_env e, napi_escapable_handle_scop
 // Methods to support error handling
 NODE_EXTERN void napi_throw_error(napi_env e, napi_value error);
 
+// TODO (ianhall): APIs for handling try catch semantics need serious design analysis, this is just a quick hack
+// One thing to note is that v8::TryCatch relies on the current stack pointer position, so it cannot be used
+// with a wrapper class hack like we're doing for handle scopes.
+typedef void (*napi_try_callback)(napi_env e, void* data);
+typedef void (*napi_catch_callback)(napi_env e, void* data);
+NODE_EXTERN bool napi_try_catch(napi_env e, napi_try_callback t, napi_catch_callback c, void* data);
+
 
 // Methods to provide node::Buffer functionality with napi types
 NODE_EXTERN napi_value napi_buffer_copy(napi_env e, const char* data, uint32_t size);
