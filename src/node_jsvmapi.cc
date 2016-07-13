@@ -676,6 +676,16 @@ napi_value napi_make_callback(napi_env e, napi_value recv, napi_value func, int 
   return v8impl::JsValueFromV8LocalValue(result);
 }
 
+bool napi_try_catch(napi_env e, napi_try_callback cbtry, napi_catch_callback cbcatch, void* data) {
+  v8::TryCatch try_catch;
+  cbtry(e, data);
+  if (try_catch.HasCaught()) {
+    cbcatch;
+    return true;
+  }
+  return false;
+}
+
 napi_value napi_buffer_copy(napi_env e, const char* data, uint32_t size) {
   return v8impl::JsValueFromV8LocalValue(
     node::Buffer::Copy(v8impl::V8IsolateFromJsEnv(e), data, size).ToLocalChecked());
