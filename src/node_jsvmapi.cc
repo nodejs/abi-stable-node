@@ -532,7 +532,7 @@ napi_value napi_get_global_scope(napi_env e) {
     return v8impl::JsValueFromV8LocalValue(context->Global());
 }
 
-void napi_throw_error(napi_env e, napi_value error) {
+void napi_throw(napi_env e, napi_value error) {
     v8::Isolate *isolate = v8impl::V8IsolateFromJsEnv(e);
 
     isolate->ThrowException(
@@ -682,6 +682,16 @@ napi_value napi_make_callback(napi_env e, napi_value recv, napi_value func, int 
 
   v8::Handle<v8::Value> result = node::MakeCallback(isolate, v8recv, v8func, argc, args.data());
   return v8impl::JsValueFromV8LocalValue(result);
+}
+
+bool napi_try_catch(napi_env e, napi_try_callback cbtry, napi_catch_callback cbcatch, void* data) {
+  v8::TryCatch try_catch;
+  cbtry(e, data);
+  if (try_catch.HasCaught()) {
+    cbcatch;
+    return true;
+  }
+  return false;
 }
 
 napi_value napi_buffer_copy(napi_env e, const char* data, uint32_t size) {
