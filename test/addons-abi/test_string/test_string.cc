@@ -24,6 +24,7 @@ void Test(napi_env env, napi_func_cb_info info) {
 
   char buffer[128];
   int buffer_size = 128;
+
   int remain = napi_get_string_from_value(napi_env, args[0], buffer, buffer_size);
 
   if (remain == 0) {

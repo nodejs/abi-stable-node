@@ -3,7 +3,7 @@
 
 void Test(napi_env napi_env, napi_func_cb_info info) {
   if (napi_get_cb_args_length(napi_env, info) < 2) {
-    napi_throw_error(
+    napi_throw(
           napi_env,
           napi_create_type_error(
               napi_env,
@@ -15,7 +15,7 @@ void Test(napi_env napi_env, napi_func_cb_info info) {
   napi_get_cb_args(napi_env, info, args, 2);
 
   if (napi_get_type_of_value(napi_env, args[0]) != napi_object) {
-    napi_throw_error(
+    napi_throw(
         napi_env,
         napi_create_type_error(
              napi_env,
@@ -23,7 +23,7 @@ void Test(napi_env napi_env, napi_func_cb_info info) {
     return;
   }
   if (napi_get_type_of_value(napi_env, args[1]) != napi_number) {
-    napi_throw_error(
+    napi_throw(
         napi_env,
         napi_create_type_error(
              napi_env,
@@ -40,7 +40,7 @@ void Test(napi_env napi_env, napi_func_cb_info info) {
           napi_create_string(napi_env, "Index out of bound!"));
     }
     else if (index < 0) {
-      napi_throw_error(
+      napi_throw(
           napi_env,
           napi_create_error(
               napi_env,
@@ -55,7 +55,7 @@ void Test(napi_env napi_env, napi_func_cb_info info) {
 
 void New(napi_env napi_env, napi_func_cb_info info) {
   if (napi_get_cb_args_length(napi_env, info) < 1) {
-    napi_throw_error(
+    napi_throw(
           napi_env,
           napi_create_type_error(
               napi_env,
@@ -67,7 +67,7 @@ void New(napi_env napi_env, napi_func_cb_info info) {
   napi_get_cb_args(napi_env, info, args, 1);
 
   if (napi_get_type_of_value(napi_env, args[0]) != napi_object) {
-    napi_throw_error(
+    napi_throw(
         napi_env,
         napi_create_type_error(
              napi_env,
