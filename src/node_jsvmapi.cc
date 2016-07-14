@@ -343,6 +343,16 @@ uint32_t napi_get_array_length(napi_env e, napi_value v) {
     return arr->Length();
 }
 
+napi_value napi_get_array_element(napi_env e, napi_value a, int i) {
+    v8::Local<v8::Array> arr = v8impl::V8LocalValueFromJsValue(a).As<v8::Array>();
+    return v8impl::JsValueFromV8LocalValue(arr->Get(i));
+}
+
+void napi_set_array_element(napi_env e, napi_value a, int i, napi_value v) {
+    v8::Local<v8::Array> arr = v8impl::V8LocalValueFromJsValue(a).As<v8::Array>();
+    arr->Set(i, v8impl::V8LocalValueFromJsValue(v));
+}
+
 bool napi_strict_equals(napi_env e, napi_value lhs, napi_value rhs) {
     v8::Local<v8::Value> a = v8impl::V8LocalValueFromJsValue(lhs);
     v8::Local<v8::Value> b = v8impl::V8LocalValueFromJsValue(rhs);
