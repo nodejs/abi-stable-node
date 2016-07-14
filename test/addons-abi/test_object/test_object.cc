@@ -34,11 +34,11 @@ void Test(napi_env env, napi_func_cb_info info) {
   char buffer [128];
   int buffer_size = 128;
 
-  int remain = napi_get_string_from_value(napi_env, args[1], buffer, buffer_size);
+  int remain = napi_get_string_from_value(env, args[1], buffer, buffer_size);
   if (remain == 0) {
-    napi_propertyname property_name = napi_property_name(napi_env, buffer);
-    napi_value output = napi_get_property(napi_env, object, property_name);
-    napi_set_return_value(napi_env, info, output);
+    napi_propertyname property_name = napi_property_name(env, buffer);
+    napi_value output = napi_get_property(env, object, property_name);
+    napi_set_return_value(env, info, output);
   }
 }
 
