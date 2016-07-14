@@ -96,6 +96,8 @@ NODE_EXTERN napi_value napi_get_element(napi_env e, napi_value object, uint32_t 
 // Methods to work with Arrays
 NODE_EXTERN bool napi_is_array(napi_env e, napi_value v);
 NODE_EXTERN uint32_t napi_get_array_length(napi_env e, napi_value v);
+NODE_EXTERN napi_value napi_get_array_element(napi_env e, napi_value a, int i);
+NODE_EXTERN void napi_set_array_element(napi_env e, napi_value a, int i, napi_value v);
 
 // Methods to compare values
 NODE_EXTERN bool napi_strict_equals(napi_env e, napi_value lhs, napi_value rhs);
