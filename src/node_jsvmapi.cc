@@ -522,7 +522,7 @@ napi_value napi_get_global_scope(napi_env e) {
     return v8impl::JsValueFromV8LocalValue(context->Global());
 }
 
-void napi_throw_error(napi_env e, napi_value error) {
+void napi_throw(napi_env e, napi_value error) {
     v8::Isolate *isolate = v8impl::V8IsolateFromJsEnv(e);
 
     isolate->ThrowException(
