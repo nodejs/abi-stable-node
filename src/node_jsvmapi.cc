@@ -625,6 +625,7 @@ napi_persistent napi_create_persistent(napi_env e, napi_value v) {
 
 void napi_release_persistent(napi_env e, napi_persistent p) {
   v8::Persistent<v8::Value> *thePersistent = v8impl::V8PersistentValueFromJsPersistentValue(p);
+  thePersistent->Reset();
   delete thePersistent;
 }
 
