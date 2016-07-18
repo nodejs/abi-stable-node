@@ -257,6 +257,37 @@ napi_value napi_create_constructor_for_wrap(napi_env e, napi_callback cb) {
     return v8impl::JsValueFromV8LocalValue(retval);
 }
 
+napi_value napi_create_constructor_for_wrap_with_methods(
+    napi_env e,
+    napi_callback cb,
+    char* utf8name,
+    int methodcount,
+    napi_method_descriptor* methods) {
+  v8::Isolate *isolate = v8impl::V8IsolateFromJsEnv(e);
+  v8::Local<v8::Object> retval;
+
+  v8::EscapableHandleScope scope(isolate);
+  v8::Local<v8::FunctionTemplate> tpl = v8::FunctionTemplate::New(isolate, v8impl::FunctionCallbackWrapper,
+                                                                  v8::External::New(isolate, (void*) cb));
+
+  // we need an internal field to stash the wrapped object
+  tpl->InstanceTemplate()->SetInternalFieldCount(1);
+
+  v8::Local<v8::String> namestring = v8::String::NewFromUtf8(isolate, utf8name, v8::NewStringType::kInternalized).ToLocalChecked();
+  tpl->SetClassName(namestring);
+
+  for (int i = 0; i < methodcount; i++) {
+    v8::Local<v8::FunctionTemplate> t = v8::FunctionTemplate::New(isolate, v8impl::FunctionCallbackWrapper,
+                                                                  v8::External::New(isolate, (void*) methods[i].callback),
+                                                                  v8::Signature::New(isolate, tpl));
+    v8::Local<v8::String> fn_name = v8::String::NewFromUtf8(isolate, methods[i].utf8name, v8::NewStringType::kInternalized).ToLocalChecked();
+    tpl->PrototypeTemplate()->Set(fn_name, t);
+    t->SetClassName(fn_name);
+  }
+
+  retval = scope.Escape(tpl->GetFunction());
+  return v8impl::JsValueFromV8LocalValue(retval);
+}
 
 void napi_set_function_name(napi_env e, napi_value func, napi_propertyname name) {
     v8::Local<v8::Function> v8func = v8impl::V8LocalFunctionFromJsValue(func);
