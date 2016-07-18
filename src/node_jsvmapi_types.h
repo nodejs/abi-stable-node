@@ -14,5 +14,11 @@ typedef void (*napi_callback)(napi_env, napi_func_cb_info);
 typedef void napi_destruct(void*);
 
 
+struct napi_method_descriptor {
+  napi_callback callback;
+  char* utf8name;
+};
+
+
 
 #endif

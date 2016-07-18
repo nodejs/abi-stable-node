@@ -126,6 +126,12 @@ NODE_EXTERN napi_value napi_create_constructor_for_wrap(napi_env e, napi_callbac
 NODE_EXTERN void napi_wrap(napi_env e, napi_value jsObject, void* nativeObj, napi_destruct* napi_destructor, napi_persistent* handle);
 NODE_EXTERN void* napi_unwrap(napi_env e, napi_value jsObject);
 
+NODE_EXTERN napi_value napi_create_constructor_for_wrap_with_methods(
+  napi_env e,
+  napi_callback cb,
+  char* utf8name,
+  int methodcount,
+  napi_method_descriptor* methods);
 
 // Methods to control object lifespan
 NODE_EXTERN napi_persistent napi_create_persistent(napi_env e, napi_value v);
