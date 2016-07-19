@@ -57,7 +57,7 @@ NODE_EXTERN napi_value napi_create_number(napi_env e, double val);
 NODE_EXTERN napi_value napi_create_string(napi_env e, const char*);
 NODE_EXTERN napi_value napi_create_string_with_length(napi_env e, const char*, size_t length);
 NODE_EXTERN napi_value napi_create_boolean(napi_env e, bool b);
-NODE_EXTERN napi_value napi_create_symbol(napi_env e, const char* s);
+NODE_EXTERN napi_value napi_create_symbol(napi_env e, const char* s = NULL);
 NODE_EXTERN napi_value napi_create_function(napi_env e, napi_callback cbinfo);
 NODE_EXTERN napi_value napi_create_error(napi_env e, napi_value msg);
 NODE_EXTERN napi_value napi_create_type_error(napi_env e, napi_value msg);
