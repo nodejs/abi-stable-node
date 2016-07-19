@@ -2,11 +2,7 @@
 
 void Test(napi_env env, napi_func_cb_info info) {
   if (napi_get_cb_args_length(env, info) < 2) {
-    napi_throw(
-          env,
-          napi_create_type_error(
-              env,
-              napi_create_string(env, "Wrong number of arguments")));
+    napi_throw_type_error(env, "Wrong number of arguments");
     return;
   }
 
@@ -14,19 +10,11 @@ void Test(napi_env env, napi_func_cb_info info) {
   napi_get_cb_args(env, info, args, 2);
 
   if (napi_get_type_of_value(env, args[0]) != napi_object) {
-    napi_throw(
-        env,
-        napi_create_type_error(
-             env,
-             napi_create_string(env, "Wrong type of argments. Expects an object as first argument.")));
+    napi_throw_type_error(env, "Wrong type of argments. Expects an object as first argument.");
     return;
   }
   if (napi_get_type_of_value(env, args[1]) != napi_string) {
-    napi_throw(
-        env,
-        napi_create_type_error(
-             env,
-             napi_create_string(env, "Wrong type of argments. Expects a string as second argument.")));
+    napi_throw_type_error(env, "Wrong type of argments. Expects a string as second argument.");
     return;
   }
 

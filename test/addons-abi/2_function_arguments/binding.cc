@@ -2,11 +2,7 @@
 
 void Add(napi_env env, napi_func_cb_info info) {
   if (napi_get_cb_args_length(env, info) < 2) {
-    napi_throw(
-          env,
-          napi_create_type_error(
-              env,
-              napi_create_string(env, "Wrong number of arguments")));
+    napi_throw_type_error(env, "Wrong number of arguments");
     return;
   }
 
@@ -15,11 +11,7 @@ void Add(napi_env env, napi_func_cb_info info) {
 
   if (napi_get_type_of_value(env, args[0]) != napi_number ||
     napi_get_type_of_value(env, args[1]) != napi_number) {
-    napi_throw(
-        env,
-        napi_create_type_error(
-             env,
-             napi_create_string(env, "Wrong arguments")));
+    napi_throw_type_error(env, "Wrong arguments");
     return;
   }
 
