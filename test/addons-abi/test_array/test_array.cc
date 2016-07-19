@@ -3,11 +3,7 @@
 
 void Test(napi_env env, napi_func_cb_info info) {
   if (napi_get_cb_args_length(env, info) < 2) {
-    napi_throw(
-          env,
-          napi_create_type_error(
-              env,
-              napi_create_string(env, "Wrong number of arguments")));
+    napi_throw_type_error(env, "Wrong number of arguments");
     return;
   }
 
@@ -15,19 +11,11 @@ void Test(napi_env env, napi_func_cb_info info) {
   napi_get_cb_args(env, info, args, 2);
 
   if (napi_get_type_of_value(env, args[0]) != napi_object) {
-    napi_throw(
-        env,
-        napi_create_type_error(
-             env,
-             napi_create_string(env, "Wrong type of argments. Expects an array as first argument.")));
+    napi_throw_type_error(env, "Wrong type of argments. Expects an array as first argument.");
     return;
   }
   if (napi_get_type_of_value(env, args[1]) != napi_number) {
-    napi_throw(
-        env,
-        napi_create_type_error(
-             env,
-             napi_create_string(env, "Wrong type of argments. Expects an integer as second argument.")));
+    napi_throw_type_error(env, "Wrong type of argments. Expects an integer as second argument.");
     return;
   }
 
@@ -40,11 +28,7 @@ void Test(napi_env env, napi_func_cb_info info) {
           napi_create_string(env, "Index out of bound!"));
     }
     else if (index < 0) {
-      napi_throw(
-          env,
-          napi_create_error(
-              env,
-              napi_create_string(env, "Invalid index. Expects a positive integer.")));
+      napi_throw_type_error(env, "Invalid index. Expects a positive integer.");
     }
     else {
       napi_value ret = napi_get_array_element(env, array, index);
@@ -55,11 +39,7 @@ void Test(napi_env env, napi_func_cb_info info) {
 
 void New(napi_env env, napi_func_cb_info info) {
   if (napi_get_cb_args_length(env, info) < 1) {
-    napi_throw(
-          env,
-          napi_create_type_error(
-              env,
-              napi_create_string(env, "Wrong number of arguments")));
+    napi_throw_type_error(env, "Wrong number of arguments");
     return;
   }
 
@@ -67,11 +47,7 @@ void New(napi_env env, napi_func_cb_info info) {
   napi_get_cb_args(env, info, args, 1);
 
   if (napi_get_type_of_value(env, args[0]) != napi_object) {
-    napi_throw(
-        env,
-        napi_create_type_error(
-             env,
-             napi_create_string(env, "Wrong type of argments. Expects an array as first argument.")));
+    napi_throw_type_error(env, "Wrong type of argments. Expects an array as first argument.");
     return;
   }
 
