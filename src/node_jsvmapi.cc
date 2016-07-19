@@ -583,6 +583,24 @@ void napi_throw(napi_env e, napi_value error) {
     // to the javascript invoker will fail
 }
 
+void napi_throw_error(napi_env e, char* msg) {
+    v8::Isolate *isolate = v8impl::V8IsolateFromJsEnv(e);
+
+    isolate->ThrowException(
+      v8::Exception::Error(v8::String::NewFromUtf8(isolate, msg)));
+    // any VM calls after this point and before returning
+    // to the javascript invoker will fail
+}
+
+void napi_throw_type_error(napi_env e, char* msg) {
+    v8::Isolate *isolate = v8impl::V8IsolateFromJsEnv(e);
+
+    isolate->ThrowException(
+      v8::Exception::TypeError(v8::String::NewFromUtf8(isolate, msg)));
+    // any VM calls after this point and before returning
+    // to the javascript invoker will fail
+}
+
 double napi_get_number_from_value(napi_env e, napi_value v) {
     return v8impl::V8LocalValueFromJsValue(v)->NumberValue();
 }
