@@ -434,9 +434,13 @@ napi_value napi_create_boolean(napi_env e, bool b) {
 
 napi_value napi_create_symbol(napi_env e, const char* s) {
     v8::Isolate* isolate = v8impl::V8IsolateFromJsEnv(e);
-    v8::Local<v8::String> string = v8::String::NewFromUtf8(isolate, s);
-    return v8impl::JsValueFromV8LocalValue(
-        v8::Symbol::New(isolate, string));
+    if (s == NULL){
+        return v8impl::JsValueFromV8LocalValue(v8::Symbol::New(isolate));
+    }
+    else {
+        v8::Local<v8::String> string = v8::String::NewFromUtf8(isolate, s);
+        return v8impl::JsValueFromV8LocalValue(v8::Symbol::New(isolate, string));
+    }
 }
 
 napi_value napi_create_error(napi_env, napi_value msg) {
