@@ -57,6 +57,7 @@ NODE_EXTERN napi_value napi_create_number(napi_env e, double val);
 NODE_EXTERN napi_value napi_create_string(napi_env e, const char*);
 NODE_EXTERN napi_value napi_create_string_with_length(napi_env e, const char*, size_t length);
 NODE_EXTERN napi_value napi_create_boolean(napi_env e, bool b);
+NODE_EXTERN napi_value napi_create_symbol(napi_env e, const char* s);
 NODE_EXTERN napi_value napi_create_function(napi_env e, napi_callback cbinfo);
 NODE_EXTERN napi_value napi_create_error(napi_env e, napi_value msg);
 NODE_EXTERN napi_value napi_create_type_error(napi_env e, napi_value msg);
@@ -69,7 +70,7 @@ NODE_EXTERN int napi_get_string_from_value(napi_env e, napi_value v, char* buf, 
 NODE_EXTERN int32_t napi_get_value_int32(napi_env e, napi_value v);
 NODE_EXTERN uint32_t napi_get_value_uint32(napi_env e, napi_value v);
 NODE_EXTERN int64_t napi_get_value_int64(napi_env e, napi_value v);
-NODE_EXTERN bool napi_get_value_bool(napi_env e, napi_value v);
+NODE_EXTERN bool napi_get_value_bool(napi_env e, napi_value v); 
 
 NODE_EXTERN int napi_get_string_length(napi_env e, napi_value v);
 NODE_EXTERN int napi_get_string_utf8_length(napi_env e, napi_value v);
