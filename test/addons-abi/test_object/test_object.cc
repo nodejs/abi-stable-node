@@ -30,10 +30,25 @@ void Test(napi_env env, napi_func_cb_info info) {
   }
 }
 
+void New(napi_env env, napi_func_cb_info info) {
+  napi_value ret = napi_create_object(env);
+
+  napi_propertyname test_number = napi_property_name(env, "test_number");
+  napi_set_property(env, ret, test_number, napi_create_number(env, 987654321));
+  napi_propertyname test_string = napi_property_name(env, "test_string");
+  napi_set_property(env, ret, test_string, napi_create_string(env, "test string"));
+ 
+  napi_set_return_value(env, info, ret);
+}
+
 void Init(napi_env env, napi_value exports, napi_value module) {
   napi_set_property(env, exports,
                     napi_property_name(env, "Test"),
                     napi_create_function(env, Test));
+  napi_set_property(env, exports,
+                    napi_property_name(env, "New"),
+                    napi_create_function(env, New));
+
 }
 
 NODE_MODULE_ABI(addon, Init)
