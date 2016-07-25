@@ -305,6 +305,12 @@ napi_propertyname napi_property_name(napi_env e, const char* utf8name) {
     return reinterpret_cast<napi_propertyname>(v8impl::JsValueFromV8LocalValue(namestring));
 }
 
+napi_value napi_get_propertynames(napi_env e, napi_value o) {
+    v8::Local<v8::Object> obj = v8impl::V8LocalValueFromJsValue(o)->ToObject();
+    v8::Local<v8::Array> array = obj->GetPropertyNames();
+    return v8impl::JsValueFromV8LocalValue(array);
+}
+
 void napi_set_property(napi_env e, napi_value o, napi_propertyname k, napi_value v) {
     v8::Local<v8::Object> obj = v8impl::V8LocalValueFromJsValue(o)->ToObject();
     v8::Local<v8::Value> key = v8impl::V8LocalValueFromJsPropertyName(k);

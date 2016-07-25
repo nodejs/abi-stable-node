@@ -86,6 +86,7 @@ NODE_EXTERN napi_value napi_coerce_to_string(napi_env e, napi_value v);
 // Methods to work with Objects
 NODE_EXTERN napi_value napi_get_prototype(napi_env e, napi_value object);
 NODE_EXTERN napi_propertyname napi_property_name(napi_env e, const char* utf8name);
+NODE_EXTERN napi_value napi_get_propertynames(napi_env e, napi_value object);
 NODE_EXTERN void napi_set_property(napi_env e, napi_value object, napi_propertyname name, napi_value v);
 NODE_EXTERN bool napi_has_property(napi_env e, napi_value object, napi_propertyname name);
 NODE_EXTERN napi_value napi_get_property(napi_env e, napi_value object, napi_propertyname name);
