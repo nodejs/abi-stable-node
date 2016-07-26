@@ -31,7 +31,7 @@ void Test(napi_env env, napi_func_cb_info info) {
       napi_throw_type_error(env, "Invalid index. Expects a positive integer.");
     }
     else {
-      napi_value ret = napi_get_array_element(env, array, index);
+      napi_value ret = napi_get_element(env, array, index);
       napi_set_return_value(env, info, ret);
     }
   }
@@ -54,8 +54,8 @@ void New(napi_env env, napi_func_cb_info info) {
   napi_value ret = napi_create_array(env);
   int length = napi_get_array_length(env, args[0]);
   for (int i=0; i<length; i++) {
-    napi_set_array_element(env, ret, i,
-        napi_get_array_element(env, args[0], i));
+    napi_set_element(env, ret, i,
+        napi_get_element(env, args[0], i));
   }
   napi_set_return_value(env, info, ret);
 }
