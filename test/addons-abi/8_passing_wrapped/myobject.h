@@ -1,5 +1,5 @@
-#ifndef MYOBJECT_H
-#define MYOBJECT_H
+#ifndef TEST_ADDONS_ABI_8_PASSING_WRAPPED_MYOBJECT_H_
+#define TEST_ADDONS_ABI_8_PASSING_WRAPPED_MYOBJECT_H_
 
 #include <node_jsvmapi.h>
 
@@ -19,4 +19,4 @@ class MyObject {
   double val_;
 };
 
-#endif
+#endif  // TEST_ADDONS_ABI_8_PASSING_WRAPPED_MYOBJECT_H_

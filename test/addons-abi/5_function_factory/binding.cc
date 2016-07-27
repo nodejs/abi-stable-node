@@ -1,10 +1,10 @@
 #include <node_jsvmapi.h>
 
-void MyFunction(napi_env env, napi_func_cb_info info) { 
+void MyFunction(napi_env env, napi_func_cb_info info) {
   napi_set_return_value(env, info, napi_create_string(env, "hello world"));
 }
 
-void napi_create_function(napi_env env, napi_func_cb_info info) { 
+void napi_create_function(napi_env env, napi_func_cb_info info) {
   napi_value fn = napi_create_function(env, MyFunction);
 
   // omit this to make it anonymous

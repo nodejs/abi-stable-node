@@ -16,7 +16,7 @@ void Test(napi_env env, napi_func_cb_info info) {
 
   double input = napi_get_number_from_value(env, args[0]);
   napi_value output = napi_create_number(env, input);
-  napi_set_return_value(env, info, output);  
+  napi_set_return_value(env, info, output);
 }
 
 void Init(napi_env env, napi_value exports, napi_value module) {

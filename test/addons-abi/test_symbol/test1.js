@@ -2,7 +2,7 @@
 require('../../common');
 var assert = require('assert');
 
-// testing api calls for symbol 
+// testing api calls for symbol
 var test_symbol = require('./build/Release/test_symbol');
 
 var sym = test_symbol.New('test');

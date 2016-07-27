@@ -11,11 +11,13 @@ void Test(napi_env env, napi_func_cb_info info) {
   napi_get_cb_args(env, info, args, 2);
 
   if (napi_get_type_of_value(env, args[0]) != napi_object) {
-    napi_throw_type_error(env, "Wrong type of argments. Expects an array as first argument.");
+    napi_throw_type_error(env,
+        "Wrong type of argments. Expects an array as first argument.");
     return;
   }
   if (napi_get_type_of_value(env, args[1]) != napi_number) {
-    napi_throw_type_error(env, "Wrong type of argments. Expects an integer as second argument.");
+    napi_throw_type_error(env,
+        "Wrong type of argments. Expects an integer as second argument.");
     return;
   }
 
@@ -24,13 +26,11 @@ void Test(napi_env env, napi_func_cb_info info) {
   if (napi_is_array(env, array)) {
     int size = napi_get_array_length(env, array);
     if (index >= size) {
-      napi_set_return_value(env, info, 
+      napi_set_return_value(env, info,
           napi_create_string(env, "Index out of bound!"));
-    }
-    else if (index < 0) {
+    } else if (index < 0) {
       napi_throw_type_error(env, "Invalid index. Expects a positive integer.");
-    }
-    else {
+    } else {
       napi_value ret = napi_get_element(env, array, index);
       napi_set_return_value(env, info, ret);
     }
@@ -47,13 +47,14 @@ void New(napi_env env, napi_func_cb_info info) {
   napi_get_cb_args(env, info, args, 1);
 
   if (napi_get_type_of_value(env, args[0]) != napi_object) {
-    napi_throw_type_error(env, "Wrong type of argments. Expects an array as first argument.");
+    napi_throw_type_error(env,
+        "Wrong type of argments. Expects an array as first argument.");
     return;
   }
 
   napi_value ret = napi_create_array(env);
   int length = napi_get_array_length(env, args[0]);
-  for (int i=0; i<length; i++) {
+  for (int i = 0; i < length; i++) {
     napi_set_element(env, ret, i,
         napi_get_element(env, args[0], i));
   }
