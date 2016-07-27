@@ -38,7 +38,7 @@ void Length(napi_env env, napi_func_cb_info info) {
     napi_throw_type_error(env, "Wrong type of argments. Expects a string.");
     return;
   }
-  
+
   int length = napi_get_string_length(env, args[0]);
   napi_value output = napi_create_number(env, length);
   napi_set_return_value(env, info, output);
@@ -57,7 +57,7 @@ void Utf8Length(napi_env env, napi_func_cb_info info) {
     napi_throw_type_error(env, "Wrong type of argments. Expects a string.");
     return;
   }
-  
+
   int length = napi_get_string_utf8_length(env, args[0]);
   napi_value output = napi_create_number(env, length);
   napi_set_return_value(env, info, output);

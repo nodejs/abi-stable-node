@@ -1,5 +1,5 @@
-#ifndef MYOBJECT_H
-#define MYOBJECT_H
+#ifndef TEST_ADDONS_ABI_6_OBJECT_WRAP_MYOBJECT_H_
+#define TEST_ADDONS_ABI_6_OBJECT_WRAP_MYOBJECT_H_
 
 #include <node_jsvmapi.h>
 
@@ -20,4 +20,4 @@ class MyObject {
   double value_;
 };
 
-#endif
+#endif  // TEST_ADDONS_ABI_6_OBJECT_WRAP_MYOBJECT_H_

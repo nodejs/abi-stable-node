@@ -9,7 +9,7 @@ MyObject::~MyObject() {
 }
 
 void MyObject::Destructor(void* nativeObject) {
-  ((MyObject*) nativeObject)->~MyObject();
+  reinterpret_cast<MyObject*>(nativeObject)->~MyObject();
 }
 
 void MyObject::Init(napi_env env, napi_value exports) {
@@ -19,19 +19,22 @@ void MyObject::Init(napi_env env, napi_value exports) {
     napi_get_property(env, function, napi_property_name(env, "prototype"));
 
   napi_value napi_valueFunction = napi_create_function(env, GetValue);
-  napi_set_function_name(env, napi_valueFunction, napi_property_name(env, "napi_value"));
+  napi_set_function_name(env, napi_valueFunction,
+                         napi_property_name(env, "napi_value"));
   napi_set_property(env, prototype, napi_property_name(env, "napi_value"),
                         napi_valueFunction);
 
   napi_value plusOneFunction = napi_create_function(env, PlusOne);
-  napi_set_function_name(env, plusOneFunction, napi_property_name(env, "plusOne"));
+  napi_set_function_name(env, plusOneFunction,
+                         napi_property_name(env, "plusOne"));
   napi_set_property(env, prototype, napi_property_name(env, "plusOne"),
                         plusOneFunction);
 
 
   napi_value multiplyFunction = napi_create_function(env, Multiply);
-  napi_set_function_name(env, multiplyFunction, napi_property_name(env, "multiply"));
-  napi_set_property(env, prototype, napi_property_name(env, "multiply"), 
+  napi_set_function_name(env, multiplyFunction,
+                         napi_property_name(env, "multiply"));
+  napi_set_property(env, prototype, napi_property_name(env, "multiply"),
                         multiplyFunction);
 
   constructor = napi_create_persistent(env, function);
@@ -51,7 +54,8 @@ void MyObject::New(napi_env env, napi_func_cb_info info) {
     }
     MyObject* obj = new MyObject(value);
     napi_value jsthis = napi_get_cb_this(env, info);
-    napi_wrap(env, jsthis, (void*) obj, MyObject::Destructor, nullptr);
+    napi_wrap(env, jsthis, reinterpret_cast<void*>(obj),
+              MyObject::Destructor, nullptr);
     napi_set_return_value(env, info, jsthis);
   } else {
     // Invoked as plain function `MyObject(...)`, turn into construct call.
@@ -65,12 +69,14 @@ void MyObject::New(napi_env env, napi_func_cb_info info) {
 }
 
 void MyObject::GetValue(napi_env env, napi_func_cb_info info) {
-  MyObject* obj = (MyObject*) napi_unwrap(env, napi_get_cb_this(env, info));
+  MyObject* obj = reinterpret_cast<MyObject*>(
+                      napi_unwrap(env, napi_get_cb_this(env, info)));
   napi_set_return_value(env, info, napi_create_number(env, obj->value_));
 }
 
 void MyObject::PlusOne(napi_env env, napi_func_cb_info info) {
-  MyObject* obj = (MyObject*) napi_unwrap(env, napi_get_cb_this(env, info));
+  MyObject* obj = reinterpret_cast<MyObject*>(
+                      napi_unwrap(env, napi_get_cb_this(env, info)));
   obj->value_ += 1;
   napi_set_return_value(env, info, napi_create_number(env, obj->value_));
 }
@@ -84,7 +90,8 @@ void MyObject::Multiply(napi_env env, napi_func_cb_info info) {
     multiple = napi_get_number_from_value(env, args[0]);
   }
 
-  MyObject* obj = (MyObject*) napi_unwrap(env, napi_get_cb_this(env, info));
+  MyObject* obj = reinterpret_cast<MyObject*>(
+                      napi_unwrap(env, napi_get_cb_this(env, info)));
 
   napi_value cons = napi_get_persistent_value(env, constructor);
   const int argc = 1;
