@@ -1,12 +1,11 @@
-#include <node.h>
 #include "myobject.h"
+#include <node.h>
 
-
-MyObject::MyObject() {};
-MyObject::~MyObject() {};
+MyObject::MyObject() {}
+MyObject::~MyObject() {}
 
 void MyObject::Destructor(void* nativeObject) {
-  ((MyObject*) nativeObject)->~MyObject();
+  reinterpret_cast<MyObject*>(nativeObject)->~MyObject();
 }
 
 napi_persistent MyObject::constructor;
@@ -22,9 +21,11 @@ void MyObject::New(napi_env env, napi_func_cb_info info) {
   napi_value args[1];
   napi_get_cb_args(env, info, args, 1);
   MyObject* obj = new MyObject();
-  obj->val_ = (args[0] == napi_get_undefined_(env)) ? 0 : napi_get_number_from_value(env, args[0]);
+  obj->val_ = (args[0] == napi_get_undefined_(env)) ?
+               0 : napi_get_number_from_value(env, args[0]);
   napi_value jsthis = napi_get_cb_this(env, info);
-  napi_wrap(env, jsthis, (void*) obj, MyObject::Destructor, nullptr);
+  napi_wrap(env, jsthis, reinterpret_cast<void*>(obj),
+            MyObject::Destructor, nullptr);
   napi_set_return_value(env, info, jsthis);
 }
 

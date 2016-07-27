@@ -22,7 +22,7 @@
 #include <node_object_wrap.h>
 #include <vector>
 
-typedef void napi_destruct(void*);
+typedef void napi_destruct(void* v);
 
 namespace v8impl {
 
@@ -38,14 +38,16 @@ namespace v8impl {
 
     class HandleScopeWrapper {
     public:
-        HandleScopeWrapper(v8::Isolate* isolate) : scope(isolate) { }
+        explicit HandleScopeWrapper(
+                     v8::Isolate* isolate) : scope(isolate) { }
     private:
         v8::HandleScope scope;
     };
 
     class EscapableHandleScopeWrapper {
     public:
-        EscapableHandleScopeWrapper(v8::Isolate* isolate) : scope(isolate) { }
+        explicit EscapableHandleScopeWrapper(
+                     v8::Isolate* isolate) : scope(isolate) { }
         template <typename T>
         v8::Local<T> Escape(v8::Local<T> handle) {
             return scope.Escape(handle);
@@ -62,11 +64,15 @@ namespace v8impl {
         return reinterpret_cast<HandleScopeWrapper*>(s);
     }
 
-    napi_escapable_handle_scope JsEscapableHandleScopeFromV8EscapableHandleScope(EscapableHandleScopeWrapper* s) {
+    napi_escapable_handle_scope
+    JsEscapableHandleScopeFromV8EscapableHandleScope(
+                                            EscapableHandleScopeWrapper* s) {
         return reinterpret_cast<napi_escapable_handle_scope>(s);
     }
 
-    EscapableHandleScopeWrapper* V8EscapableHandleScopeFromJsEscapableHandleScope(napi_escapable_handle_scope s) {
+    EscapableHandleScopeWrapper*
+    V8EscapableHandleScopeFromJsEscapableHandleScope(
+                                             napi_escapable_handle_scope s) {
         return reinterpret_cast<EscapableHandleScopeWrapper*>(s);
     }
 
@@ -75,7 +81,6 @@ namespace v8impl {
     // This is assuming v8::Local<> will always be implemented with a single
     // pointer field so that we can pass it around as a void* (maybe we should
     // use intptr_t instead of void*)
-    static_assert(sizeof(void*) == sizeof(v8::Local<v8::Value>), "v8::Local<v8::Value> is too large to store in a void*");
 
     napi_value JsValueFromV8LocalValue(v8::Local<v8::Value> local) {
         // This is awkward, better way? memcpy but don't want that dependency?
@@ -84,6 +89,7 @@ namespace v8impl {
             v8::Local<v8::Value> l;
             U(v8::Local<v8::Value> _l) : l(_l) { }
         } u(local);
+        assert(sizeof(u.v) == sizeof(u.l));
         return u.v;
     };
 
@@ -94,6 +100,7 @@ namespace v8impl {
             v8::Local<v8::Value> l;
             U(napi_value _v) : v(_v) { }
         } u(v);
+        assert(sizeof(u.v) == sizeof(u.l));
         return u.l;
     }
 
@@ -104,6 +111,7 @@ namespace v8impl {
             v8::Local<v8::Value> l;
             U(napi_propertyname _pn) : pn(_pn) { }
         } u(pn);
+        assert(sizeof(u.pn) == sizeof(u.l));
         return u.l;
     }
 
@@ -114,49 +122,60 @@ namespace v8impl {
             v8::Local<v8::Function> f;
             U(napi_value _v) : v(_v) { }
         } u(v);
+        assert(sizeof(u.v) == sizeof(u.f));
         return u.f;
     }
 
-    static napi_persistent JsPersistentFromV8PersistentValue(v8::Persistent<v8::Value> *per) {
+    static napi_persistent JsPersistentFromV8PersistentValue(
+                                            v8::Persistent<v8::Value> *per) {
       return (napi_persistent) per;
     };
 
-    static v8::Persistent<v8::Value>* V8PersistentValueFromJsPersistentValue(napi_persistent per) {
+    static v8::Persistent<v8::Value>* V8PersistentValueFromJsPersistentValue(
+                                                       napi_persistent per) {
       return (v8::Persistent<v8::Value>*) per;
     }
 
 //=== Conversion between V8 FunctionCallbackInfo and ===========================
 //=== napi_func_cb_info ===========================================
 
-    static napi_func_cb_info JsFunctionCallbackInfoFromV8FunctionCallbackInfo(const v8::FunctionCallbackInfo<v8::Value>* cbinfo) {
+    static napi_func_cb_info JsFunctionCallbackInfoFromV8FunctionCallbackInfo(
+                          const v8::FunctionCallbackInfo<v8::Value>* cbinfo) {
         return reinterpret_cast<napi_func_cb_info>(cbinfo);
     };
 
-    static const v8::FunctionCallbackInfo<v8::Value>* V8FunctionCallbackInfoFromJsFunctionCallbackInfo(napi_func_cb_info cbinfo) {
-        return reinterpret_cast<const v8::FunctionCallbackInfo<v8::Value>*>(cbinfo);
+    static const v8::FunctionCallbackInfo<v8::Value>*
+    V8FunctionCallbackInfoFromJsFunctionCallbackInfo(napi_func_cb_info info) {
+        return
+          reinterpret_cast<const v8::FunctionCallbackInfo<v8::Value>*>(info);
     };
 
-//=== Function napi_callback wrapper ================================================
+//=== Function napi_callback wrapper ==========================================
 
     // This function callback wrapper implementation is taken from nan
     static const int kDataIndex =           0;
     static const int kFunctionIndex =       1;
     static const int kFunctionFieldCount =  2;
 
-    static void FunctionCallbackWrapperOld(const v8::FunctionCallbackInfo<v8::Value> &info) {
+    static void FunctionCallbackWrapperOld(
+                             const v8::FunctionCallbackInfo<v8::Value> &info) {
         v8::Local<v8::Object> obj = info.Data().As<v8::Object>();
         napi_callback cb = reinterpret_cast<napi_callback>(
-            reinterpret_cast<intptr_t>(
-                obj->GetInternalField(kFunctionIndex).As<v8::External>()->Value()));
-        napi_func_cb_info cbinfo = JsFunctionCallbackInfoFromV8FunctionCallbackInfo(&info);
+            reinterpret_cast<intptr_t>(obj->GetInternalField(kFunctionIndex)
+                                              .As<v8::External>()->Value()));
+        napi_func_cb_info cbinfo =
+            JsFunctionCallbackInfoFromV8FunctionCallbackInfo(&info);
         cb(
             v8impl::JsEnvFromV8Isolate(info.GetIsolate()),
             cbinfo);
     }
 
-    static void FunctionCallbackWrapper(const v8::FunctionCallbackInfo<v8::Value> &info) {
-        napi_callback cb = reinterpret_cast<napi_callback>(info.Data().As<v8::External>()->Value()); 
-        napi_func_cb_info cbinfo = JsFunctionCallbackInfoFromV8FunctionCallbackInfo(&info);
+    static void FunctionCallbackWrapper(
+                             const v8::FunctionCallbackInfo<v8::Value> &info) {
+        napi_callback cb = reinterpret_cast<napi_callback>(
+                               info.Data().As<v8::External>()->Value());
+        napi_func_cb_info cbinfo =
+            JsFunctionCallbackInfoFromV8FunctionCallbackInfo(&info);
         cb(
             v8impl::JsEnvFromV8Isolate(info.GetIsolate()),
             cbinfo);
@@ -164,7 +183,8 @@ namespace v8impl {
 
   class ObjectWrapWrapper: public node::ObjectWrap  {
     public:
-      ObjectWrapWrapper(napi_value jsObject, void* nativeObj, napi_destruct* destructor) {
+      ObjectWrapWrapper(napi_value jsObject, void* nativeObj,
+                        napi_destruct* destructor) {
         _destructor = destructor;
         _nativeObj = nativeObj;
         Wrap(V8LocalValueFromJsValue(jsObject)->ToObject());
@@ -175,8 +195,10 @@ namespace v8impl {
       }
 
       static void* Unwrap(napi_value jsObject) {
-        ObjectWrapWrapper* wrapper = ObjectWrap::Unwrap<ObjectWrapWrapper>(V8LocalValueFromJsValue(jsObject)->ToObject());
-        return wrapper->getValue(); 
+        ObjectWrapWrapper* wrapper =
+            ObjectWrap::Unwrap<ObjectWrapWrapper>(
+                 V8LocalValueFromJsValue(jsObject)->ToObject());
+        return wrapper->getValue();
       }
 
       virtual ~ObjectWrapWrapper() {
@@ -212,49 +234,54 @@ napi_value napi_create_functionOld(napi_env e, napi_callback cb) {
     v8::EscapableHandleScope scope(isolate);
     v8::Local<v8::ObjectTemplate> tpl = v8::ObjectTemplate::New(isolate);
     tpl->SetInternalFieldCount(v8impl::kFunctionFieldCount);
-    v8::Local<v8::Object> obj = tpl->NewInstance(isolate->GetCurrentContext()).ToLocalChecked();
+    v8::Local<v8::Object> obj =
+        tpl->NewInstance(isolate->GetCurrentContext()).ToLocalChecked();
 
     obj->SetInternalField(
-        v8impl::kFunctionIndex
-        , v8::External::New(isolate, reinterpret_cast<void *>(cb)));
+        v8impl::kFunctionIndex,
+            v8::External::New(isolate, reinterpret_cast<void *>(cb)));
     v8::Local<v8::Value> val = v8::Local<v8::Value>::New(isolate, data);
 
     if (!val.IsEmpty()) {
         obj->SetInternalField(v8impl::kDataIndex, val);
     }
 
-    retval = scope.Escape(v8::Function::New(isolate
-        , v8impl::FunctionCallbackWrapperOld
-        , obj));
+    retval = scope.Escape(v8::Function::New(isolate,
+        v8impl::FunctionCallbackWrapperOld,
+        obj));
 
     return v8impl::JsValueFromV8LocalValue(retval);
 }
 
 napi_value napi_create_function(napi_env e, napi_callback cb) {
-    v8::Isolate *isolate = v8impl::V8IsolateFromJsEnv(e);
-    v8::Local<v8::Object> retval;
+  v8::Isolate *isolate = v8impl::V8IsolateFromJsEnv(e);
+  v8::Local<v8::Object> retval;
 
-    v8::EscapableHandleScope scope(isolate);
-    v8::Local<v8::FunctionTemplate> tpl = v8::FunctionTemplate::New(isolate, v8impl::FunctionCallbackWrapper,
-                                                                    v8::External::New(isolate, (void*) cb));
+  v8::EscapableHandleScope scope(isolate);
+  v8::Local<v8::FunctionTemplate> tpl =
+      v8::FunctionTemplate::New(isolate, v8impl::FunctionCallbackWrapper,
+                                v8::External::New(isolate,
+                                                  reinterpret_cast<void*>(cb)));
 
-    retval = scope.Escape(tpl->GetFunction());
-    return v8impl::JsValueFromV8LocalValue(retval);
+  retval = scope.Escape(tpl->GetFunction());
+  return v8impl::JsValueFromV8LocalValue(retval);
 }
 
 napi_value napi_create_constructor_for_wrap(napi_env e, napi_callback cb) {
-    v8::Isolate *isolate = v8impl::V8IsolateFromJsEnv(e);
-    v8::Local<v8::Object> retval;
+  v8::Isolate *isolate = v8impl::V8IsolateFromJsEnv(e);
+  v8::Local<v8::Object> retval;
 
-    v8::EscapableHandleScope scope(isolate);
-    v8::Local<v8::FunctionTemplate> tpl = v8::FunctionTemplate::New(isolate, v8impl::FunctionCallbackWrapper,
-                                                                    v8::External::New(isolate, (void*) cb));
+  v8::EscapableHandleScope scope(isolate);
+  v8::Local<v8::FunctionTemplate> tpl =
+      v8::FunctionTemplate::New(isolate, v8impl::FunctionCallbackWrapper,
+                                v8::External::New(isolate,
+                                                  reinterpret_cast<void*>(cb)));
 
-    // we need an internal field to stash the wrapped object
-    tpl->InstanceTemplate()->SetInternalFieldCount(1);
+  // we need an internal field to stash the wrapped object
+  tpl->InstanceTemplate()->SetInternalFieldCount(1);
 
-    retval = scope.Escape(tpl->GetFunction());
-    return v8impl::JsValueFromV8LocalValue(retval);
+  retval = scope.Escape(tpl->GetFunction());
+  return v8impl::JsValueFromV8LocalValue(retval);
 }
 
 napi_value napi_create_constructor_for_wrap_with_methods(
@@ -267,20 +294,28 @@ napi_value napi_create_constructor_for_wrap_with_methods(
   v8::Local<v8::Object> retval;
 
   v8::EscapableHandleScope scope(isolate);
-  v8::Local<v8::FunctionTemplate> tpl = v8::FunctionTemplate::New(isolate, v8impl::FunctionCallbackWrapper,
-                                                                  v8::External::New(isolate, (void*) cb));
+  v8::Local<v8::FunctionTemplate> tpl =
+      v8::FunctionTemplate::New(isolate, v8impl::FunctionCallbackWrapper,
+                                v8::External::New(isolate,
+                                                  reinterpret_cast<void*>(cb)));
 
   // we need an internal field to stash the wrapped object
   tpl->InstanceTemplate()->SetInternalFieldCount(1);
 
-  v8::Local<v8::String> namestring = v8::String::NewFromUtf8(isolate, utf8name, v8::NewStringType::kInternalized).ToLocalChecked();
+  v8::Local<v8::String> namestring =
+      v8::String::NewFromUtf8(isolate, utf8name,
+          v8::NewStringType::kInternalized).ToLocalChecked();
   tpl->SetClassName(namestring);
 
   for (int i = 0; i < methodcount; i++) {
-    v8::Local<v8::FunctionTemplate> t = v8::FunctionTemplate::New(isolate, v8impl::FunctionCallbackWrapper,
-                                                                  v8::External::New(isolate, (void*) methods[i].callback),
-                                                                  v8::Signature::New(isolate, tpl));
-    v8::Local<v8::String> fn_name = v8::String::NewFromUtf8(isolate, methods[i].utf8name, v8::NewStringType::kInternalized).ToLocalChecked();
+    v8::Local<v8::FunctionTemplate> t =
+        v8::FunctionTemplate::New(isolate, v8impl::FunctionCallbackWrapper,
+                                  v8::External::New(isolate,
+                                  reinterpret_cast<void*>(methods[i].callback)),
+                                  v8::Signature::New(isolate, tpl));
+    v8::Local<v8::String> fn_name =
+        v8::String::NewFromUtf8(isolate, methods[i].utf8name,
+            v8::NewStringType::kInternalized).ToLocalChecked();
     tpl->PrototypeTemplate()->Set(fn_name, t);
     t->SetClassName(fn_name);
   }
@@ -289,20 +324,27 @@ napi_value napi_create_constructor_for_wrap_with_methods(
   return v8impl::JsValueFromV8LocalValue(retval);
 }
 
-void napi_set_function_name(napi_env e, napi_value func, napi_propertyname name) {
+void napi_set_function_name(napi_env e, napi_value func,
+                            napi_propertyname name) {
     v8::Local<v8::Function> v8func = v8impl::V8LocalFunctionFromJsValue(func);
-    v8func->SetName(v8impl::V8LocalValueFromJsPropertyName(name).As<v8::String>());
+    v8func->SetName(
+        v8impl::V8LocalValueFromJsPropertyName(name).As<v8::String>());
 }
 
-void napi_set_return_value(napi_env e, napi_func_cb_info cbinfo, napi_value v) {
-    const v8::FunctionCallbackInfo<v8::Value> *info = v8impl::V8FunctionCallbackInfoFromJsFunctionCallbackInfo(cbinfo);
+void napi_set_return_value(napi_env e,
+                           napi_func_cb_info cbinfo, napi_value v) {
+    const v8::FunctionCallbackInfo<v8::Value> *info =
+        v8impl::V8FunctionCallbackInfoFromJsFunctionCallbackInfo(cbinfo);
     v8::Local<v8::Value> val = v8impl::V8LocalValueFromJsValue(v);
     info->GetReturnValue().Set(val);
 }
 
 napi_propertyname napi_property_name(napi_env e, const char* utf8name) {
-    v8::Local<v8::String> namestring = v8::String::NewFromUtf8(v8impl::V8IsolateFromJsEnv(e), utf8name, v8::NewStringType::kInternalized).ToLocalChecked();
-    return reinterpret_cast<napi_propertyname>(v8impl::JsValueFromV8LocalValue(namestring));
+    v8::Local<v8::String> namestring =
+        v8::String::NewFromUtf8(v8impl::V8IsolateFromJsEnv(e), utf8name,
+            v8::NewStringType::kInternalized).ToLocalChecked();
+    return reinterpret_cast<napi_propertyname>(
+        v8impl::JsValueFromV8LocalValue(namestring));
 }
 
 napi_value napi_get_propertynames(napi_env e, napi_value o) {
@@ -311,7 +353,8 @@ napi_value napi_get_propertynames(napi_env e, napi_value o) {
     return v8impl::JsValueFromV8LocalValue(array);
 }
 
-void napi_set_property(napi_env e, napi_value o, napi_propertyname k, napi_value v) {
+void napi_set_property(napi_env e, napi_value o,
+                       napi_propertyname k, napi_value v) {
     v8::Local<v8::Object> obj = v8impl::V8LocalValueFromJsValue(o)->ToObject();
     v8::Local<v8::Value> key = v8impl::V8LocalValueFromJsPropertyName(k);
     v8::Local<v8::Value> val = v8impl::V8LocalValueFromJsValue(v);
@@ -376,7 +419,8 @@ bool napi_is_array(napi_env e, napi_value v) {
 }
 
 uint32_t napi_get_array_length(napi_env e, napi_value v) {
-    v8::Local<v8::Array> arr = v8impl::V8LocalValueFromJsValue(v).As<v8::Array>();
+    v8::Local<v8::Array> arr =
+        v8impl::V8LocalValueFromJsValue(v).As<v8::Array>();
     return arr->Length();
 }
 
@@ -412,10 +456,12 @@ napi_value napi_create_string(napi_env e, const char* s) {
         v8::String::NewFromUtf8(v8impl::V8IsolateFromJsEnv(e), s));
 }
 
-napi_value napi_create_string_with_length(napi_env e, const char* s, size_t length) {
+napi_value napi_create_string_with_length(napi_env e,
+                                          const char* s, size_t length) {
     return v8impl::JsValueFromV8LocalValue(
         v8::String::NewFromUtf8(v8impl::V8IsolateFromJsEnv(e), s,
-            v8::NewStringType::kNormal, static_cast<int>(length)).ToLocalChecked());
+            v8::NewStringType::kNormal,
+            static_cast<int>(length)).ToLocalChecked());
 }
 
 napi_value napi_create_number(napi_env e, double v) {
@@ -430,12 +476,12 @@ napi_value napi_create_boolean(napi_env e, bool b) {
 
 napi_value napi_create_symbol(napi_env e, const char* s) {
     v8::Isolate* isolate = v8impl::V8IsolateFromJsEnv(e);
-    if (s == NULL){
+    if (s == NULL) {
         return v8impl::JsValueFromV8LocalValue(v8::Symbol::New(isolate));
-    }
-    else {
+    } else {
         v8::Local<v8::String> string = v8::String::NewFromUtf8(isolate, s);
-        return v8impl::JsValueFromV8LocalValue(v8::Symbol::New(isolate, string));
+        return v8impl::JsValueFromV8LocalValue(
+            v8::Symbol::New(isolate, string));
     }
 }
 
@@ -456,32 +502,24 @@ napi_valuetype napi_get_type_of_value(napi_env e, napi_value vv) {
 
     if (v->IsNumber()) {
         return napi_number;
-    }
-    else if (v->IsString()) {
+    } else if (v->IsString()) {
         return napi_string;
-    }
-    else if (v->IsFunction()) {
+    } else if (v->IsFunction()) {
         // This test has to come before IsObject because IsFunction
         // implies IsObject
         return napi_function;
-    }
-    else if (v->IsObject()) {
+    } else if (v->IsObject()) {
         return napi_object;
-    }
-    else if (v->IsBoolean()) {
+    } else if (v->IsBoolean()) {
         return napi_boolean;
-    }
-    else if (v->IsUndefined()) {
+    } else if (v->IsUndefined()) {
         return napi_undefined;
-    }
-    else if (v->IsSymbol()) {
+    } else if (v->IsSymbol()) {
         return napi_symbol;
-    }
-    else if (v->IsNull()) {
+    } else if (v->IsNull()) {
         return napi_null;
-    }
-    else {
-        return napi_object; // Is this correct?
+    } else {
+        return napi_object;   // Is this correct?
     }
 }
 
@@ -506,39 +544,47 @@ napi_value napi_get_true(napi_env e) {
 }
 
 int napi_get_cb_args_length(napi_env e, napi_func_cb_info cbinfo) {
-    const v8::FunctionCallbackInfo<v8::Value> *info = v8impl::V8FunctionCallbackInfoFromJsFunctionCallbackInfo(cbinfo);
+    const v8::FunctionCallbackInfo<v8::Value> *info =
+        v8impl::V8FunctionCallbackInfoFromJsFunctionCallbackInfo(cbinfo);
     return info->Length();
 }
 
 bool napi_is_construct_call(napi_env e, napi_func_cb_info cbinfo) {
-    const v8::FunctionCallbackInfo<v8::Value> *info = v8impl::V8FunctionCallbackInfoFromJsFunctionCallbackInfo(cbinfo);
+    const v8::FunctionCallbackInfo<v8::Value> *info =
+        v8impl::V8FunctionCallbackInfoFromJsFunctionCallbackInfo(cbinfo);
     return info->IsConstructCall();
 }
 
 // copy encoded arguments into provided buffer or return direct pointer to
 // encoded arguments array?
-void napi_get_cb_args(napi_env e, napi_func_cb_info cbinfo, napi_value* buffer, size_t bufferlength) {
-    const v8::FunctionCallbackInfo<v8::Value> *info = v8impl::V8FunctionCallbackInfoFromJsFunctionCallbackInfo(cbinfo);
+void napi_get_cb_args(napi_env e, napi_func_cb_info cbinfo,
+                      napi_value* buffer, size_t bufferlength) {
+    const v8::FunctionCallbackInfo<v8::Value> *info =
+        v8impl::V8FunctionCallbackInfoFromJsFunctionCallbackInfo(cbinfo);
 
     int i = 0;
     // size_t appropriate for the buffer length parameter?
     // Probably this API is not the way to go.
-    int min = (int)bufferlength < info->Length() ? (int)bufferlength : info->Length();
+    int min =
+        static_cast<int>(bufferlength) < info->Length() ?
+        static_cast<int>(bufferlength) : info->Length();
 
     for (; i < min; i += 1) {
         buffer[i] = v8impl::JsValueFromV8LocalValue((*info)[i]);
     }
 
-    if (i < (int)bufferlength) {
-        napi_value undefined = v8impl::JsValueFromV8LocalValue(v8::Undefined(v8::Isolate::GetCurrent()));
-        for (; i < (int)bufferlength; i += 1) {
+    if (i < static_cast<int>(bufferlength)) {
+        napi_value undefined = v8impl::JsValueFromV8LocalValue(
+            v8::Undefined(v8::Isolate::GetCurrent()));
+        for (; i < static_cast<int>(bufferlength); i += 1) {
             buffer[i] = undefined;
         }
     }
 }
 
 napi_value napi_get_cb_this(napi_env e, napi_func_cb_info cbinfo) {
-    const v8::FunctionCallbackInfo<v8::Value> *info = v8impl::V8FunctionCallbackInfoFromJsFunctionCallbackInfo(cbinfo);
+    const v8::FunctionCallbackInfo<v8::Value> *info =
+        v8impl::V8FunctionCallbackInfoFromJsFunctionCallbackInfo(cbinfo);
     return v8impl::JsValueFromV8LocalValue(info->This());
 }
 
@@ -546,15 +592,18 @@ napi_value napi_get_cb_this(napi_env e, napi_func_cb_info cbinfo) {
 // AFAIK Holder should be the owner of the JS function, which should be in the
 // prototype chain of This, so maybe it is possible to emulate.
 napi_value napi_get_cb_holder(napi_env e, napi_func_cb_info cbinfo) {
-    const v8::FunctionCallbackInfo<v8::Value> *info = v8impl::V8FunctionCallbackInfoFromJsFunctionCallbackInfo(cbinfo);
+    const v8::FunctionCallbackInfo<v8::Value> *info =
+        v8impl::V8FunctionCallbackInfoFromJsFunctionCallbackInfo(cbinfo);
     return v8impl::JsValueFromV8LocalValue(info->Holder());
 }
 
-napi_value napi_call_function(napi_env e, napi_value scope, napi_value func, int argc, napi_value* argv) {
+napi_value napi_call_function(napi_env e, napi_value scope,
+                              napi_value func, int argc, napi_value* argv) {
     std::vector<v8::Handle<v8::Value>> args(argc);
 
     v8::Local<v8::Function> v8func = v8impl::V8LocalFunctionFromJsValue(func);
-    v8::Handle<v8::Object> v8scope = v8impl::V8LocalValueFromJsValue(scope)->ToObject();
+    v8::Handle<v8::Object> v8scope =
+        v8impl::V8LocalValueFromJsValue(scope)->ToObject();
     for (int i = 0; i < argc; i++) {
       args[i] = v8impl::V8LocalValueFromJsValue(argv[i]);
     }
@@ -564,8 +613,9 @@ napi_value napi_call_function(napi_env e, napi_value scope, napi_value func, int
 
 napi_value napi_get_global_scope(napi_env e) {
     v8::Isolate *isolate = v8impl::V8IsolateFromJsEnv(e);
-    // TODO (ianhall): what if we need the global object from a different context in the same isolate?
-    //                 Should napi_env be the current context rather than the current isolate?
+    // TODO(ianhall): what if we need the global object from a different
+    // context in the same isolate?
+    // Should napi_env be the current context rather than the current isolate?
     v8::Local<v8::Context> context = isolate->GetCurrentContext();
     return v8impl::JsValueFromV8LocalValue(context->Global());
 }
@@ -601,8 +651,8 @@ double napi_get_number_from_value(napi_env e, napi_value v) {
     return v8impl::V8LocalValueFromJsValue(v)->NumberValue();
 }
 
-int napi_get_string_from_value(napi_env e, napi_value v, 
-                                char* buf, const int buf_size) { 
+int napi_get_string_from_value(napi_env e, napi_value v,
+                                char* buf, const int buf_size) {
     int len = napi_get_string_utf8_length(e, v);
     int copied = v8impl::V8LocalValueFromJsValue(v).As<v8::String>()
       ->WriteUtf8(
@@ -660,12 +710,16 @@ napi_value napi_coerce_to_string(napi_env e, napi_value v) {
 }
 
 
-void napi_wrap(napi_env e, napi_value jsObject, void* nativeObj, napi_destruct* destructor, napi_persistent* handle) {
+void napi_wrap(napi_env e, napi_value jsObject, void* nativeObj,
+               napi_destruct* destructor, napi_persistent* handle) {
   // object wrap api needs more thought
   // e.g. who deletes this object?
-  v8impl::ObjectWrapWrapper* wrap = new v8impl::ObjectWrapWrapper(jsObject, nativeObj, destructor);
+  v8impl::ObjectWrapWrapper* wrap =
+      new v8impl::ObjectWrapWrapper(jsObject, nativeObj, destructor);
   if (handle != nullptr) {
-    *handle = napi_create_persistent(e, v8impl::JsValueFromV8LocalValue(wrap->handle()));
+    *handle = napi_create_persistent(
+                  e,
+                  v8impl::JsValueFromV8LocalValue(wrap->handle()));
   }
 };
 
@@ -675,20 +729,25 @@ void* napi_unwrap(napi_env e, napi_value jsObject) {
 
 napi_persistent napi_create_persistent(napi_env e, napi_value v) {
   v8::Isolate *isolate = v8impl::V8IsolateFromJsEnv(e);
-  v8::Persistent<v8::Value> *thePersistent = new v8::Persistent<v8::Value>(isolate, v8impl::V8LocalValueFromJsValue(v));
+  v8::Persistent<v8::Value> *thePersistent =
+      new v8::Persistent<v8::Value>(
+          isolate, v8impl::V8LocalValueFromJsValue(v));
   return v8impl::JsPersistentFromV8PersistentValue(thePersistent);
 }
 
 void napi_release_persistent(napi_env e, napi_persistent p) {
-  v8::Persistent<v8::Value> *thePersistent = v8impl::V8PersistentValueFromJsPersistentValue(p);
+  v8::Persistent<v8::Value> *thePersistent =
+      v8impl::V8PersistentValueFromJsPersistentValue(p);
   thePersistent->Reset();
   delete thePersistent;
 }
 
 napi_value napi_get_persistent_value(napi_env e, napi_persistent p) {
   v8::Isolate *isolate = v8impl::V8IsolateFromJsEnv(e);
-  v8::Persistent<v8::Value> *thePersistent = v8impl::V8PersistentValueFromJsPersistentValue(p);
-  v8::Local<v8::Value> napi_value = v8::Local<v8::Value>::New(isolate, *thePersistent);
+  v8::Persistent<v8::Value> *thePersistent =
+      v8impl::V8PersistentValueFromJsPersistentValue(p);
+  v8::Local<v8::Value> napi_value =
+      v8::Local<v8::Value>::New(isolate, *thePersistent);
   return v8impl::JsValueFromV8LocalValue(napi_value);
 };
 
@@ -706,17 +765,21 @@ napi_escapable_handle_scope napi_open_escapable_handle_scope(napi_env e) {
     new v8impl::EscapableHandleScopeWrapper(v8impl::V8IsolateFromJsEnv(e)));
 }
 
-void napi_close_escapable_handle_scope(napi_env e, napi_escapable_handle_scope scope) {
+void napi_close_escapable_handle_scope(napi_env e,
+                                       napi_escapable_handle_scope scope) {
   delete v8impl::V8EscapableHandleScopeFromJsEscapableHandleScope(scope);
 }
 
-napi_value napi_escape_handle(napi_env e, napi_escapable_handle_scope scope, napi_value escapee) {
-  v8impl::EscapableHandleScopeWrapper* s = v8impl::V8EscapableHandleScopeFromJsEscapableHandleScope(scope);
+napi_value napi_escape_handle(napi_env e, napi_escapable_handle_scope scope,
+                              napi_value escapee) {
+  v8impl::EscapableHandleScopeWrapper* s =
+      v8impl::V8EscapableHandleScopeFromJsEscapableHandleScope(scope);
   return v8impl::JsValueFromV8LocalValue(
     s->Escape(v8impl::V8LocalValueFromJsValue(escapee)));
 }
 
-napi_value napi_new_instance(napi_env e, napi_value cons, int argc, napi_value *argv){
+napi_value napi_new_instance(napi_env e, napi_value cons,
+                             int argc, napi_value *argv) {
   v8::Isolate *isolate = v8impl::V8IsolateFromJsEnv(e);
   v8::Local<v8::Function> v8cons = v8impl::V8LocalFunctionFromJsValue(cons);
   std::vector<v8::Handle<v8::Value>> args(argc);
@@ -724,24 +787,32 @@ napi_value napi_new_instance(napi_env e, napi_value cons, int argc, napi_value *
     args[i] = v8impl::V8LocalValueFromJsValue(argv[i]);
   }
 
-  v8::Handle<v8::Value> result = v8cons->NewInstance(isolate->GetCurrentContext(), argc, args.data()).ToLocalChecked();
+  v8::Handle<v8::Value> result = v8cons->NewInstance(
+                                     isolate->GetCurrentContext(),
+                                     argc,
+                                     args.data()).ToLocalChecked();
   return v8impl::JsValueFromV8LocalValue(result);
 };
 
-napi_value napi_make_callback(napi_env e, napi_value recv, napi_value func, int argc, napi_value* argv) {
+napi_value napi_make_callback(napi_env e, napi_value recv,
+                              napi_value func, int argc, napi_value* argv) {
   v8::Isolate *isolate = v8impl::V8IsolateFromJsEnv(e);
-  v8::Local<v8::Object> v8recv = v8impl::V8LocalValueFromJsValue(recv).As<v8::Object>();
-  v8::Local<v8::Function> v8func = v8impl::V8LocalValueFromJsValue(func).As<v8::Function>();
+  v8::Local<v8::Object> v8recv =
+      v8impl::V8LocalValueFromJsValue(recv).As<v8::Object>();
+  v8::Local<v8::Function> v8func =
+      v8impl::V8LocalValueFromJsValue(func).As<v8::Function>();
   std::vector<v8::Handle<v8::Value>> args(argc);
   for (int i = 0; i < argc; i++) {
     args[i] = v8impl::V8LocalValueFromJsValue(argv[i]);
   }
 
-  v8::Handle<v8::Value> result = node::MakeCallback(isolate, v8recv, v8func, argc, args.data());
+  v8::Handle<v8::Value> result =
+      node::MakeCallback(isolate, v8recv, v8func, argc, args.data());
   return v8impl::JsValueFromV8LocalValue(result);
 }
 
-bool napi_try_catch(napi_env e, napi_try_callback cbtry, napi_catch_callback cbcatch, void* data) {
+bool napi_try_catch(napi_env e, napi_try_callback cbtry,
+                    napi_catch_callback cbcatch, void* data) {
   v8::TryCatch try_catch;
   cbtry(e, data);
   if (try_catch.HasCaught()) {
@@ -753,7 +824,8 @@ bool napi_try_catch(napi_env e, napi_try_callback cbtry, napi_catch_callback cbc
 
 napi_value napi_buffer_copy(napi_env e, const char* data, uint32_t size) {
   return v8impl::JsValueFromV8LocalValue(
-    node::Buffer::Copy(v8impl::V8IsolateFromJsEnv(e), data, size).ToLocalChecked());
+    node::Buffer::Copy(
+        v8impl::V8IsolateFromJsEnv(e), data, size).ToLocalChecked());
 }
 
 bool napi_buffer_has_instance(napi_env e, napi_value v) {

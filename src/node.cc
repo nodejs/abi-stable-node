@@ -29,6 +29,8 @@
 #include "node_lttng.h"
 #endif
 
+#include "node_jsvmapi_internal.h"
+
 #include "ares.h"
 #include "async-wrap.h"
 #include "async-wrap-inl.h"
@@ -47,8 +49,6 @@
 #include "v8-debug.h"
 #include "v8-profiler.h"
 #include "zlib.h"
-
-#include "node_jsvmapi_internal.h"
 
 #ifdef NODE_ENABLE_VTUNE_PROFILING
 #include "../deps/v8/src/third_party/vtune/v8-vtune.h"
@@ -107,6 +107,7 @@ uint32_t s_ttdSnapInterval = 2000;
 uint32_t s_ttdSnapHistoryLength = 2;
 uint64_t s_ttdStartupMode = 0x1;
 #endif
+
 
 namespace node {
 

@@ -41,8 +41,7 @@ void New(napi_env env, napi_func_cb_info info) {
       napi_value symbol = napi_create_symbol(env, buffer);
       napi_set_return_value(env, info, symbol);
     }
-  }
-  else {
+  } else {
     napi_value symbol = napi_create_symbol(env, NULL);
     napi_set_return_value(env, info, symbol);
   }
