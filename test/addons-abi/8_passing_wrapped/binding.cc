@@ -9,10 +9,10 @@ void napi_create_object(napi_env env, napi_func_cb_info info) {
 void Add(napi_env env, napi_func_cb_info info) {
   napi_value args[2];
   napi_get_cb_args(env, info, args, 2);
-  MyObject* obj1 = (MyObject*) napi_unwrap(env, args[0]);
-  MyObject* obj2 = (MyObject*) napi_unwrap(env, args[1]);
+  MyObject* obj1 = reinterpret_cast<MyObject*>(napi_unwrap(env, args[0]));
+  MyObject* obj2 = reinterpret_cast<MyObject*>(napi_unwrap(env, args[1]));
   double sum = obj1->Val() + obj2->Val();
-  napi_set_return_value(env, info, napi_create_number(env,sum));
+  napi_set_return_value(env, info, napi_create_number(env, sum));
 }
 
 void Init(napi_env env, napi_value exports, napi_value module) {

@@ -8,7 +8,7 @@ assert.equal(obj.plusOne(), 11);
 assert.equal(obj.plusOne(), 12);
 assert.equal(obj.plusOne(), 13);
 
-assert.equal(obj.multiply().napi_value() , 13);
+assert.equal(obj.multiply().napi_value(), 13);
 assert.equal(obj.multiply(10).napi_value(), 130);
 
 var newobj = obj.multiply(-1);
