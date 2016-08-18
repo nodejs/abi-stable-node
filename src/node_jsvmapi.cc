@@ -833,7 +833,8 @@ bool napi_buffer_has_instance(napi_env e, napi_value v) {
 }
 
 char* napi_buffer_data(napi_env e, napi_value v) {
-  return node::Buffer::Data(v8impl::V8LocalValueFromJsValue(v));
+  return node::Buffer::Data(
+      v8impl::V8LocalValueFromJsValue(v).As<v8::Object>());
 }
 
 size_t napi_buffer_length(napi_env e, napi_value v) {
