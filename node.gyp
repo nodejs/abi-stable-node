@@ -176,6 +176,8 @@
         'src/node_internals.h',
         'src/node_javascript.h',
         'src/node_jsvmapi.h',
+        'src/node_jsvmapi_internal.h',
+        'src/node_jsvmapi_types.h',
         'src/node_root_certs.h',
         'src/node_version.h',
         'src/node_watchdog.h',
