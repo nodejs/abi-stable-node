@@ -20,6 +20,7 @@
 // USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 #include "node.h"
+
 #include "req_wrap.h"
 #include "handle_wrap.h"
 #include "string_bytes.h"
@@ -84,6 +85,7 @@ typedef int mode_t;
 
 #include "node_crypto.h"
 #include "util.h"
+#include "node_jsvmapi_internal.h"
 
 using namespace v8;
 
@@ -1917,8 +1919,14 @@ Handle<Value> DLOpen(const v8::Arguments& args) {
   }
 
   // Execute the C++ module
-  mod->register_func(exports, module);
-
+  if (mod->register_func != NULL) {
+    mod->register_func(exports, module);
+  } else {
+    mod->abi_register_func(
+      v8impl::JsEnvFromV8Isolate(v8::Isolate::GetCurrent()),
+      v8impl::JsValueFromV8LocalValue(exports),
+      v8impl::JsValueFromV8LocalValue(module));
+  }
   // Tell coverity that 'handle' should not be freed when we return.
   // coverity[leaked_storage]
   return Undefined();
@@ -2003,7 +2011,14 @@ static Handle<Value> Binding(const Arguments& args) {
     exports = Object::New();
     // Internal bindings don't have a "module" object,
     // only exports.
-    modp->register_func(exports, Undefined());
+    if (modp->register_func != NULL) {
+      modp->register_func(exports, Undefined());
+    } else {
+      modp->abi_register_func(
+        v8impl::JsEnvFromV8Isolate(v8::Isolate::GetCurrent()),
+        v8impl::JsValueFromV8LocalValue(exports),
+        v8impl::JsValueFromV8LocalValue(Undefined());
+    }
     binding_cache->Set(module, exports);
 
   } else if (!strcmp(*module_v, "constants")) {

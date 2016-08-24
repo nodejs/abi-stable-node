@@ -60,6 +60,7 @@
 
 #include "uv.h"
 #include "v8.h"
+
 #include <sys/types.h> /* struct stat */
 #include <sys/stat.h>
 #include <assert.h>
@@ -69,6 +70,8 @@
 #if defined(NODE_WANT_INTERNALS) && NODE_WANT_INTERNALS
 # include "node_internals.h"
 #endif
+
+#include "node_jsvmapi_types.h"
 
 #ifndef NODE_STRINGIFY
 #define NODE_STRINGIFY(n) NODE_STRINGIFY_HELPER(n)
@@ -191,11 +194,17 @@ const char *signo_string(int errorno);
 NODE_EXTERN typedef void (* addon_register_func)(
     v8::Handle<v8::Object> exports, v8::Handle<v8::Value> module);
 
+typedef void (*addon_abi_register_func)(
+    napi_env env,
+    napi_value exports,
+    napi_value module);
+
 struct node_module_struct {
   int version;
   void *dso_handle;
   const char *filename;
   node::addon_register_func register_func;
+  node::addon_abi_register_func abi_register_func;
   const char *modname;
 };
 
@@ -226,7 +235,19 @@ node_module_struct* get_builtin_module(const char *name);
     {                                                                 \
       NODE_STANDARD_MODULE_STUFF,                                     \
       (node::addon_register_func)regfunc,                             \
+      NULL,                                                           \
       NODE_STRINGIFY(modname)                                         \
+    };                                                                \
+  }
+
+#define NODE_MODULE_ABI(modname, regfunc)              \
+  extern "C" {                                                        \
+    NODE_MODULE_EXPORT node::node_module_struct modname ## _module =  \
+    {                                                                 \
+      NODE_STANDARD_MODULE_STUFF,                                     \
+      NULL,                                                           \
+      (node::addon_abi_register_func) (regfunc),                      \
+      NODE_STRINGIFY(modname),                                        \
     };                                                                \
   }
 
