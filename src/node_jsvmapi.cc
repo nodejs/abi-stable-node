@@ -136,6 +136,19 @@ namespace v8impl {
       return (v8::Persistent<v8::Value>*) per;
     }
 
+    static napi_weakref JsWeakRefFromV8PersistentValue(
+                                            v8::Persistent<v8::Value> *per) {
+      return (napi_weakref) per;
+    };
+
+    static v8::Persistent<v8::Value>* V8PersistentValueFromJsWeakRefValue(
+                                                       napi_weakref per) {
+      return (v8::Persistent<v8::Value>*) per;
+    }
+
+  static void WeakRefCallback(const v8::WeakCallbackInfo<int>& data) {
+  }
+
 //=== Conversion between V8 FunctionCallbackInfo and ===========================
 //=== napi_func_cb_info ===========================================
 
@@ -711,13 +724,13 @@ napi_value napi_coerce_to_string(napi_env e, napi_value v) {
 
 
 void napi_wrap(napi_env e, napi_value jsObject, void* nativeObj,
-               napi_destruct* destructor, napi_persistent* handle) {
+               napi_destruct* destructor, napi_weakref* handle) {
   // object wrap api needs more thought
   // e.g. who deletes this object?
   v8impl::ObjectWrapWrapper* wrap =
       new v8impl::ObjectWrapWrapper(jsObject, nativeObj, destructor);
   if (handle != nullptr) {
-    *handle = napi_create_persistent(
+    *handle = napi_create_weakref(
                   e,
                   v8impl::JsValueFromV8LocalValue(wrap->handle()));
   }
@@ -750,6 +763,37 @@ napi_value napi_get_persistent_value(napi_env e, napi_persistent p) {
       v8::Local<v8::Value>::New(isolate, *thePersistent);
   return v8impl::JsValueFromV8LocalValue(napi_value);
 };
+
+napi_weakref napi_create_weakref(napi_env e, napi_value v) {
+  v8::Isolate *isolate = v8impl::V8IsolateFromJsEnv(e);
+  v8::Persistent<v8::Value> *thePersistent =
+    new v8::Persistent<v8::Value>(
+      isolate, v8impl::V8LocalValueFromJsValue(v));
+  thePersistent->SetWeak((int*)nullptr, v8impl::WeakRefCallback, v8::WeakCallbackType::kParameter);
+  // need to mark independent?
+  return v8impl::JsWeakRefFromV8PersistentValue(thePersistent);
+}
+
+bool napi_get_weakref_value(napi_env e, napi_weakref w, napi_value* pv) {
+  v8::Isolate *isolate = v8impl::V8IsolateFromJsEnv(e);
+  v8::Persistent<v8::Value> *thePersistent =
+    v8impl::V8PersistentValueFromJsWeakRefValue(w);
+  v8::Local<v8::Value> v =
+    v8::Local<v8::Value>::New(isolate, *thePersistent);
+  if (v.IsEmpty()) {
+    *pv = nullptr;
+    return false;
+  }
+  *pv = v8impl::JsValueFromV8LocalValue(v);
+  return true;
+}
+
+void napi_release_weakref(napi_env e, napi_weakref w) {
+  v8::Persistent<v8::Value> *thePersistent =
+      v8impl::V8PersistentValueFromJsWeakRefValue(w);
+  thePersistent->Reset();
+  delete thePersistent;
+}
 
 napi_handle_scope napi_open_handle_scope(napi_env e) {
   return v8impl::JsHandleScopeFromV8HandleScope(
