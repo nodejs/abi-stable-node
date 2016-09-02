@@ -2017,7 +2017,7 @@ static Handle<Value> Binding(const Arguments& args) {
       modp->abi_register_func(
         v8impl::JsEnvFromV8Isolate(v8::Isolate::GetCurrent()),
         v8impl::JsValueFromV8LocalValue(exports),
-        v8impl::JsValueFromV8LocalValue(Undefined());
+        v8impl::JsValueFromV8LocalValue(Local<Value>(*Undefined())));
     }
     binding_cache->Set(module, exports);
 

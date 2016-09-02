@@ -170,8 +170,8 @@
         ],
       }],
       [ 'OS=="linux" or OS=="freebsd" or OS=="openbsd" or OS=="solaris"', {
-        'cflags': [ '-Wall', '-Wextra', '-Wno-unused-parameter', '-pthread', ],
-        'cflags_cc': [ '-fno-rtti', '-fno-exceptions' ],
+        'cflags': [ '-Wall', '-Wextra', '-Wno-unused-parameter', '-pthread' ],
+        'cflags_cc': [ '-fno-rtti', '-fno-exceptions', '-std=gnu++0x' ],
         'ldflags': [ '-pthread', '-rdynamic' ],
         'target_conditions': [
           ['_type=="static_library"', {
