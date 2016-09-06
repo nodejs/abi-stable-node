@@ -11,11 +11,12 @@ typedef struct napi_persistent__ *napi_persistent;
 typedef struct napi_handle_scope__ *napi_handle_scope;
 typedef struct napi_escapable_handle_scope__ *napi_escapable_handle_scope;
 typedef struct napi_propertyname__ *napi_propertyname;
+typedef struct napi_func_cb_info__ *napi_func_cb_info;
 
-typedef struct napi_func_cb_info__ {
+typedef struct napi_func_cb_info_wrapper__ {
   napi_value Arguments;
   napi_persistent ReturnValue;
-} *napi_func_cb_info;
+} *napi_func_cb_info_wrapper;
 
 typedef void (*napi_callback)(napi_env, napi_func_cb_info);
 typedef void napi_destruct(void* v);

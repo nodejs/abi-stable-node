@@ -140,7 +140,8 @@ namespace v8impl {
 
     static const v8::Arguments*
     V8ArgumentsFromJsFunctionCallbackInfo(napi_func_cb_info info) {
-        return reinterpret_cast<const v8::Arguments*>(info->Arguments);
+        return reinterpret_cast<const v8::Arguments*>(
+             reinterpret_cast<napi_func_cb_info_wrapper>(info)->Arguments);
     }
 
     static napi_value
@@ -149,15 +150,16 @@ namespace v8impl {
                    const_cast<v8::Arguments*>(arguments));
     }
 
-    static napi_func_cb_info JsFunctionCallbackInfoFromV8FunctionCallbackInfo(
+    static napi_func_cb_info_wrapper__
+    JsFunctionCallbackInfoFromV8FunctionCallbackInfo(
                           const v8::Arguments* arguments,
-                          v8::Persistent<v8::Value>& return_value) {
+                          v8::Persistent<v8::Value>* return_value) {
         napi_value args = JsValueFromV8Arguments(arguments);
         napi_persistent retval =
-                         JsPersistentFromV8PersistentValue(&return_value);
-        napi_func_cb_info info = new napi_func_cb_info__;
-        info->Arguments = args;
-        info->ReturnValue = retval;
+                         JsPersistentFromV8PersistentValue(return_value);
+        napi_func_cb_info_wrapper__ info;
+        info.Arguments = args;
+        info.ReturnValue = retval;
         return info;
     }
 
@@ -174,26 +176,26 @@ namespace v8impl {
             reinterpret_cast<intptr_t>(obj->GetInternalField(kFunctionIndex)
                                               .As<v8::External>()->Value()));
         v8::Persistent<v8::Value> ret;
-        napi_func_cb_info cbinfo =
-            JsFunctionCallbackInfoFromV8FunctionCallbackInfo(&args, ret);
+        napi_func_cb_info_wrapper__ cbinfo =
+             JsFunctionCallbackInfoFromV8FunctionCallbackInfo(&args, &ret);
         cb(
-            v8impl::JsEnvFromV8Isolate(args.GetIsolate()),
-            cbinfo);
+            JsEnvFromV8Isolate(args.GetIsolate()),
+            reinterpret_cast<napi_func_cb_info>(&cbinfo));
         return *V8PersistentValueFromJsPersistentValue(
-                   cbinfo->ReturnValue);
+                   cbinfo.ReturnValue);
     }
 
     v8::Handle<v8::Value> FunctionCallbackWrapper(const v8::Arguments& args) {
         napi_callback cb = reinterpret_cast<napi_callback>(
                                args.Data().As<v8::External>()->Value());
         v8::Persistent<v8::Value> ret;
-        napi_func_cb_info cbinfo =
-            JsFunctionCallbackInfoFromV8FunctionCallbackInfo(&args, ret);
+        napi_func_cb_info_wrapper__ cbinfo =
+             JsFunctionCallbackInfoFromV8FunctionCallbackInfo(&args, &ret);
         cb(
-            v8impl::JsEnvFromV8Isolate(args.GetIsolate()),
-            cbinfo);
+            JsEnvFromV8Isolate(args.GetIsolate()),
+            reinterpret_cast<napi_func_cb_info>(&cbinfo));
         return *V8PersistentValueFromJsPersistentValue(
-                   cbinfo->ReturnValue);
+                   cbinfo.ReturnValue);
     }
 
   class ObjectWrapWrapper: public node::ObjectWrap  {
@@ -338,7 +340,8 @@ void napi_set_return_value(napi_env e,
                            napi_func_cb_info cbinfo, napi_value v) {
     v8::Local<v8::Value> val = v8impl::V8LocalValueFromJsValue(v);
     v8::Persistent<v8::Value>* retval =
-         v8impl::V8PersistentValueFromJsPersistentValue(cbinfo->ReturnValue);
+         v8impl::V8PersistentValueFromJsPersistentValue(
+             reinterpret_cast<napi_func_cb_info_wrapper>(cbinfo)->ReturnValue);
     retval->Dispose();
     *retval = v8::Persistent<v8::Value>::New(val); 
 }
