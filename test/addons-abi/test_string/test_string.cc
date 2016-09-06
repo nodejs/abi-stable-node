@@ -75,4 +75,4 @@ void Init(napi_env env, napi_value exports, napi_value module) {
                     napi_create_function(env, Utf8Length));
 }
 
-NODE_MODULE_ABI(addon, Init)
+NODE_MODULE_ABI(test_string, Init)

@@ -16,4 +16,4 @@ void Init(napi_env env, napi_value exports, napi_value module) {
                         napi_create_function(env, RunCallback));
 }
 
-NODE_MODULE_ABI(addon, Init)
+NODE_MODULE_ABI(binding, Init)
