@@ -19,6 +19,7 @@
 #ifndef SRC_NODE_JSVMAPI_H_
 #define SRC_NODE_JSVMAPI_H_
 
+#include "node.h"
 #include "node_jsvmapi_types.h"
 
 // TODO(ianhall): We're using C linkage for the API but we're also using the

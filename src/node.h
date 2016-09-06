@@ -246,8 +246,8 @@ node_module_struct* get_builtin_module(const char *name);
     {                                                                 \
       NODE_STANDARD_MODULE_STUFF,                                     \
       NULL,                                                           \
-      (node::addon_abi_register_func) (regfunc),                      \
-      NODE_STRINGIFY(modname),                                        \
+      (node::addon_abi_register_func)regfunc,                         \
+      NODE_STRINGIFY(modname)                                         \
     };                                                                \
   }
 
