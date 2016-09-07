@@ -343,7 +343,7 @@ void napi_set_return_value(napi_env e,
          v8impl::V8PersistentValueFromJsPersistentValue(
              reinterpret_cast<napi_func_cb_info_wrapper>(cbinfo)->ReturnValue);
     retval->Dispose();
-    *retval = v8::Persistent<v8::Value>::New(val); 
+    *retval = v8::Persistent<v8::Value>::New(val);
 }
 
 napi_propertyname napi_property_name(napi_env e, const char* utf8name) {
@@ -470,6 +470,13 @@ napi_value napi_create_number(napi_env e, double v) {
 napi_value napi_create_boolean(napi_env e, bool b) {
     return v8impl::JsValueFromV8LocalValue(
                v8::Local<v8::Value>(*v8::Boolean::New(b)));
+}
+
+napi_value napi_create_symbol(napi_env e, const char* s) {
+    if (s == NULL) {
+        return v8impl::JsValueFromV8LocalValue(v8::String::NewSymbol(""));
+    }
+    return v8impl::JsValueFromV8LocalValue(v8::String::NewSymbol(s));
 }
 
 napi_value napi_create_error(napi_env, napi_value msg) {
@@ -698,11 +705,11 @@ void napi_wrap(napi_env e, napi_value jsObject, void* nativeObj,
                   v8impl::JsValueFromV8LocalValue(
                       v8::Local<v8::Object>::New(wrap->handle_)));
   }
-};
+}
 
 void* napi_unwrap(napi_env e, napi_value jsObject) {
   return v8impl::ObjectWrapWrapper::Unwrap(jsObject);
-};
+}
 
 napi_persistent napi_create_persistent(napi_env e, napi_value v) {
   v8::Persistent<v8::Value> *thePersistent =
@@ -724,7 +731,7 @@ napi_value napi_get_persistent_value(napi_env e, napi_persistent p) {
   v8::Local<v8::Value> napi_value =
       v8::Local<v8::Value>::New(*thePersistent);
   return v8impl::JsValueFromV8LocalValue(napi_value);
-};
+}
 
 napi_handle_scope napi_open_handle_scope(napi_env e) {
   return v8impl::JsHandleScopeFromV8HandleScope(
@@ -765,7 +772,7 @@ napi_value napi_new_instance(napi_env e, napi_value cons,
                                      argc,
                                      args.data());
   return v8impl::JsValueFromV8LocalValue(v8::Local<v8::Value>(*result));
-};
+}
 
 napi_value napi_make_callback(napi_env e, napi_value recv,
                               napi_value func, int argc, napi_value* argv) {

@@ -20,7 +20,7 @@ assert.equal(test_string.Copy(str3), str3);
 assert.equal(test_string.Length(str3), 27);
 assert.equal(test_string.Utf8Length(str3), 27);
 
-var str4 = '\u{2003}\u{2101}\u{2001}';
+var str4 = '\u00A9\u2665\u2205\u22FF';
 assert.equal(test_string.Copy(str4), str4);
-assert.equal(test_string.Length(str4), 3);
-assert.equal(test_string.Utf8Length(str4), 9);
+assert.equal(test_string.Length(str4), 4);
+assert.equal(test_string.Utf8Length(str4), 11);

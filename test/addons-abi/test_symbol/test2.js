@@ -11,5 +11,3 @@ myObj['foo'] = 'bar';
 myObj[fooSym] = 'baz';
 Object.keys(myObj); // -> [ 'foo' ]
 Object.getOwnPropertyNames(myObj); // -> [ 'foo' ]
-Object.getOwnPropertySymbols(myObj); // -> [ Symbol(foo) ]
-assert(Object.getOwnPropertySymbols(myObj)[0] === fooSym);

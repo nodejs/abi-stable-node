@@ -20,20 +20,14 @@ assert.equal(num1, test_number.Test(num1));
 var num2 = -4350987086545760976737453646576078997096876957864353245245769809;
 assert.equal(num2, test_number.Test(num2));
 
-var num3 = Number.MAX_SAFE_INTEGER;
+var num3 = Number.MAX_VALUE;
 assert.equal(num3, test_number.Test(num3));
 
-var num4 = Number.MAX_SAFE_INTEGER + 10;
+var num4 = Number.MAX_VALUE + 10;
 assert.equal(num4, test_number.Test(num4));
 
-var num5 = Number.MAX_VALUE;
+var num5 = Number.POSITIVE_INFINITY;
 assert.equal(num5, test_number.Test(num5));
 
-var num6 = Number.MAX_VALUE + 10;
+var num6 = Number.NEGATIVE_INFINITY;
 assert.equal(num6, test_number.Test(num6));
-
-var num7 = Number.POSITIVE_INFINITY;
-assert.equal(num7, test_number.Test(num7));
-
-var num8 = Number.NEGATIVE_INFINITY;
-assert.equal(num8, test_number.Test(num8));

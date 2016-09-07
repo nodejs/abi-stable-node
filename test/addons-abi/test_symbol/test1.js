@@ -6,7 +6,7 @@ var assert = require('assert');
 var test_symbol = require('./build/Release/test_symbol');
 
 var sym = test_symbol.New('test');
-assert.equal(sym.toString(), 'Symbol(test)');
+assert.equal(sym.toString(), 'test');
 
 
 var myObj = {};
@@ -15,6 +15,7 @@ var otherSym = test_symbol.New('bar');
 myObj['foo'] = 'bar';
 myObj[fooSym] = 'baz';
 myObj[otherSym] = 'bing';
-assert(myObj.foo === 'bar');
+
+assert(myObj.foo === 'baz');
 assert(myObj[fooSym] === 'baz');
 assert(myObj[otherSym] === 'bing');

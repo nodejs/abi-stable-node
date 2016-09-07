@@ -33,4 +33,4 @@ array.forEach(function(element, index) {
 });
 
 
-assert.deepStrictEqual(test_array.New(array), array);
+assert.deepEqual(test_array.New(array), array);
