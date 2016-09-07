@@ -96,7 +96,7 @@ void Inflate(napi_env env, napi_func_cb_info info) {
 
   napi_value propertynames = napi_get_propertynames(env, obj);
   int length = napi_get_array_length(env, propertynames);
-  for (int i = 0; i < length; i++)i {
+  for (int i = 0; i < length; i++) {
     napi_propertyname propertyname =
         reinterpret_cast<napi_propertyname>(
             napi_get_element(env, propertynames, i));
