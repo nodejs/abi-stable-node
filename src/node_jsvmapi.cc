@@ -154,7 +154,8 @@ namespace v8impl {
 
     static napi_func_cb_info JsFunctionCallbackInfoFromV8FunctionCallbackInfo(
                           const v8::FunctionCallbackInfo<v8::Value>* cbinfo) {
-        return reinterpret_cast<napi_func_cb_info>(cbinfo);
+        return reinterpret_cast<napi_func_cb_info>(
+            const_cast<v8::FunctionCallbackInfo<v8::Value>*>(cbinfo));
     };
 
     static const v8::FunctionCallbackInfo<v8::Value>*
