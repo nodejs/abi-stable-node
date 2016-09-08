@@ -59,6 +59,11 @@ NODE_EXTERN napi_value napi_create_string_with_length(napi_env e, const char*,
                                                                size_t length);
 NODE_EXTERN napi_value napi_create_boolean(napi_env e, bool b);
 NODE_EXTERN napi_value napi_create_symbol(napi_env e, const char* s = NULL);
+// Consider: Would it be useful to include an optional void* for external data
+// to be included on the function object?  A finalizer function would also need
+// to be included.  Same for napi_create_object, and perhaps add a
+// napi_set_external_data() and get api?  Consider JsCreateExternalObject and
+// v8::ObjectTemplate::SetInternalFieldCount()
 NODE_EXTERN napi_value napi_create_function(napi_env e, napi_callback cbinfo);
 NODE_EXTERN napi_value napi_create_error(napi_env e, napi_value msg);
 NODE_EXTERN napi_value napi_create_type_error(napi_env e, napi_value msg);
@@ -140,6 +145,15 @@ NODE_EXTERN void napi_set_return_value(napi_env e, napi_func_cb_info cbinfo,
 
 
 // Methods to support ObjectWrap
+// Consider: current implementation for supporting ObjectWrap pattern is
+// difficult to implement for other VMs because of the dependence on node
+// core's node::ObjectWrap type which depends on v8 types and specifically
+// requires the given v8 object to have an internal field count of >= 1.
+// It is proving difficult in the chakracore version of these APIs to
+// implement this natively in JSRT which means that maybe this isn't the
+// best way to attach external data to a javascript object.  Perhaps
+// instead NAPI should do an external data concept like JsSetExternalData
+// and use that for "wrapping a native object".
 NODE_EXTERN napi_value napi_create_constructor_for_wrap(napi_env e,
                                                         napi_callback cb);
 NODE_EXTERN void napi_wrap(napi_env e, napi_value jsObject, void* nativeObj,
