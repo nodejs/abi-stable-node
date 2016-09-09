@@ -867,6 +867,12 @@ bool napi_try_catch(napi_env e, napi_try_callback cbtry,
   return false;
 }
 
+napi_value napi_buffer_new(napi_env e, char* data, uint32_t size) {
+  return v8impl::JsValueFromV8LocalValue(
+    node::Buffer::New(
+        v8impl::V8IsolateFromJsEnv(e), data, size).ToLocalChecked());
+}
+
 napi_value napi_buffer_copy(napi_env e, const char* data, uint32_t size) {
   return v8impl::JsValueFromV8LocalValue(
     node::Buffer::Copy(
