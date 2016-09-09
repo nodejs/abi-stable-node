@@ -204,6 +204,8 @@ NODE_EXTERN bool napi_try_catch(napi_env e, napi_try_callback t,
 
 
 // Methods to provide node::Buffer functionality with napi types
+NODE_EXTERN napi_value napi_buffer_new(napi_env e,
+                                       char* data, uint32_t size);
 NODE_EXTERN napi_value napi_buffer_copy(napi_env e,
                                         const char* data, uint32_t size);
 NODE_EXTERN bool napi_buffer_has_instance(napi_env e, napi_value v);
