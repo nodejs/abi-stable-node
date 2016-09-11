@@ -1,7 +1,5 @@
 #include "myobject.h"
 
-using v8;
-
 MyObject::MyObject() {}
 MyObject::~MyObject() {}
 
