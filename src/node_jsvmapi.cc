@@ -82,47 +82,19 @@ namespace v8impl {
     // use intptr_t instead of void*)
 
     napi_value JsValueFromV8LocalValue(v8::Local<v8::Value> local) {
-        // This is awkward, better way? memcpy but don't want that dependency?
-        union U {
-            napi_value v;
-            v8::Local<v8::Value> l;
-            U(v8::Local<v8::Value> _l) : l(_l) { }
-        } u(local);
-        assert(sizeof(u.v) == sizeof(u.l));
-        return u.v;
+        return reinterpret_cast<napi_value>(*local);
     }
 
     v8::Local<v8::Value> V8LocalValueFromJsValue(napi_value v) {
-        // Likewise awkward
-        union U {
-            napi_value v;
-            v8::Local<v8::Value> l;
-            U(napi_value _v) : v(_v) { }
-        } u(v);
-        assert(sizeof(u.v) == sizeof(u.l));
-        return u.l;
+        return v8::Local<v8::Value>(reinterpret_cast<v8::Value*>(v));
     }
 
     v8::Local<v8::Value> V8LocalValueFromJsPropertyName(napi_propertyname pn) {
-        // Likewise awkward
-        union U {
-            napi_propertyname pn;
-            v8::Local<v8::Value> l;
-            U(napi_propertyname _pn) : pn(_pn) { }
-        } u(pn);
-        assert(sizeof(u.pn) == sizeof(u.l));
-        return u.l;
+        return v8::Local<v8::Value>(reinterpret_cast<v8::Value*>(pn));
     }
 
     static v8::Local<v8::Function> V8LocalFunctionFromJsValue(napi_value v) {
-        // Likewise awkward
-        union U {
-            napi_value v;
-            v8::Local<v8::Function> f;
-            U(napi_value _v) : v(_v) { }
-        } u(v);
-        assert(sizeof(u.v) == sizeof(u.f));
-        return u.f;
+        return v8::Local<v8::Function>(reinterpret_cast<v8::Function*>(v));
     }
 
     static napi_persistent JsPersistentFromV8PersistentValue(
@@ -588,7 +560,7 @@ napi_value napi_get_cb_holder(napi_env e, napi_func_cb_info cbinfo) {
 
 napi_value napi_call_function(napi_env e, napi_value scope,
                               napi_value func, int argc, napi_value* argv) {
-    std::vector<v8::Handle<v8::Value>> args(argc);
+    std::vector<v8::Handle<v8::Value> > args(argc);
 
     v8::Local<v8::Function> v8func = v8impl::V8LocalFunctionFromJsValue(func);
     v8::Handle<v8::Object> v8scope =
@@ -763,7 +735,7 @@ napi_value napi_escape_handle(napi_env e, napi_escapable_handle_scope scope,
 napi_value napi_new_instance(napi_env e, napi_value cons,
                              int argc, napi_value *argv) {
   v8::Local<v8::Function> v8cons = v8impl::V8LocalFunctionFromJsValue(cons);
-  std::vector<v8::Handle<v8::Value>> args(argc);
+  std::vector<v8::Handle<v8::Value> > args(argc);
   for (int i = 0; i < argc; i++) {
     args[i] = v8impl::V8LocalValueFromJsValue(argv[i]);
   }
@@ -780,7 +752,7 @@ napi_value napi_make_callback(napi_env e, napi_value recv,
       v8impl::V8LocalValueFromJsValue(recv).As<v8::Object>();
   v8::Local<v8::Function> v8func =
       v8impl::V8LocalValueFromJsValue(func).As<v8::Function>();
-  std::vector<v8::Handle<v8::Value>> args(argc);
+  std::vector<v8::Handle<v8::Value> > args(argc);
   for (int i = 0; i < argc; i++) {
     args[i] = v8impl::V8LocalValueFromJsValue(argv[i]);
   }
