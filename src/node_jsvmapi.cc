@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Experimental prototype for demonstrating VM agnostic and ABI stable API
+ / Experimental prototype for demonstrating VM agnostic and ABI stable API
  * for native modules to use instead of using Nan and V8 APIs directly.
  *
  * This is an rough proof of concept not intended for real world usage.
@@ -712,9 +712,9 @@ void* napi_unwrap(napi_env e, napi_value jsObject) {
 }
 
 napi_persistent napi_create_persistent(napi_env e, napi_value v) {
-  v8::Persistent<v8::Value> *thePersistent =
-      new v8::Persistent<v8::Value>(v8impl::V8LocalValueFromJsValue(v));
-  return v8impl::JsPersistentFromV8PersistentValue(thePersistent);
+  v8::Persistent<v8::Value>* p = new v8::Persistent<v8::Value>();
+  *p = v8::Persistent<v8::Value>::New(v8impl::V8LocalValueFromJsValue(v));
+  return v8impl::JsPersistentFromV8PersistentValue(p);
 }
 
 void napi_release_persistent(napi_env e, napi_persistent p) {
@@ -802,14 +802,12 @@ bool napi_try_catch(napi_env e, napi_try_callback cbtry,
   return false;
 }
 
-napi_value napi_buffer_new(napi_env e, char* data, uint32_t size) {
-  return v8impl::JsValueFromV8LocalValue(
-    node::Buffer::New(
-        v8impl::V8IsolateFromJsEnv(e), data, size).ToLocalChecked());
+napi_value napi_buffer_new(napi_env e, const char* data, uint32_t size) {
+  return reinterpret_cast<napi_value>(node::Buffer::New(data, size));
 }
 
 napi_value napi_buffer_copy(napi_env e, const char* data, uint32_t size) {
-  return reinterpret_cast<napi_value>(node::Buffer::New(data, size));
+  return napi_buffer_new(e, data, size);
 }
 
 bool napi_buffer_has_instance(napi_env e, napi_value v) {
