@@ -125,7 +125,7 @@ test: all
 	$(MAKE) build-addons-abi
 	$(MAKE) cctest
 	$(PYTHON) tools/test.py --mode=release -J \
-		addon abi doctool inspector known_issues message pseudo-tty parallel sequential
+		addons addons-abi doctool inspector known_issues message pseudo-tty parallel sequential
 	$(MAKE) lint
 
 test-parallel: all
@@ -792,7 +792,8 @@ endif
 
 .PHONY: lint cpplint jslint bench clean docopen docclean doc dist distclean \
 	check uninstall install install-includes install-bin all staticlib \
-	dynamiclib test test-all test-addons build-addons \
+	dynamiclib test test-all \
+	test-addons build-addons test-addons-abi build-addons-abi \
 	test-addons-abi	build-addons-abi website-upload pkg \
 	blog blogclean tar binary release-only bench-http-simple bench-idle \
 	bench-all bench bench-misc bench-array bench-buffer bench-net \
