@@ -332,12 +332,22 @@ echo Failed to build node-weak.
 goto exit
 
 :build-addons
-if not defined build_addons goto run-tests
+if not defined build_addons goto build-addons-abi
+if not exist "%node_exe%" (
+  echo Failed to find node.exe
+  goto build-addons-abi
+)
+echo Building add-ons
+
+:build-addons-abi
+if not defined build_addons_abi goto run-tests
 if not exist "%node_exe%" (
   echo Failed to find node.exe
   goto run-tests
 )
 echo Building add-ons
+
+
 :: clear
 for /d %%F in (test\addons\??_*) do (
   rd /s /q %%F
