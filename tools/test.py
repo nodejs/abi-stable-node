@@ -1324,7 +1324,8 @@ def GetSpecialCommandProcessor(value):
     return ExpandCommand
 
 
-BUILT_IN_TESTS = ['simple', 'pummel', 'message', 'internet', 'gc']
+BUILT_IN_TESTS = ['simple', 'pummel', 'message', 'internet', 'gc',
+                  'addons', 'addons-abi']
 
 
 def GetSuites(test_root):

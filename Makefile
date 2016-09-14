@@ -73,8 +73,51 @@ distclean:
 	-rm -rf node_modules
 
 test: all
-	$(PYTHON) tools/test.py --mode=release simple message
+	$(MAKE) build-addons
+	$(MAKE) build-addons-abi 
+	$(PYTHON) tools/test.py --mode=release simple message addons addons-abi
 	$(MAKE) jslint
+
+test/addons/.buildstamp: $(ADDONS_BINDING_GYPS) \
+	deps/uv/include/*.h deps/v8/include/*.h \
+	src/node.h src/node_buffer.h src/node_object_wrap.h
+	# Cannot use $(wildcard test/addons/*/) here, it's evaluated before
+	# embedded addons have been generated from the documentation.
+	for dirname in test/addons/*/; do \
+		$(NODE) deps/npm/node_modules/node-gyp/bin/node-gyp rebuild \
+		--python="$(PYTHON)" \
+			--directory="$$PWD/$$dirname" \
+			--nodedir="$$PWD" || exit 1 ; \
+	done
+	touch $@
+
+build-addons: $(NODE_EXE) test/addons/.buildstamp
+
+ADDONS_ABI_BINDING_GYPS := \
+	$(filter-out test/addons-abi/??_*/binding.gyp, \
+	$(wildcard test/addons-abi/*/binding.gyp))
+
+# Implicitly depends on $(NODE_EXE), see the build-addons-abi rule for rationale.
+test/addons-abi/.buildstamp: $(ADDONS_ABI_BINDING_GYPS) \
+	deps/uv/include/*.h deps/v8/include/*.h \
+	src/node.h src/node_buffer.h src/node_object_wrap.h
+	# Cannot use $(wildcard test/addons-abi/*/) here, it's evaluated before
+	# embedded addons have been generated from the documentation.
+	for dirname in test/addons-abi/*/; do \
+		$(NODE) deps/npm/node_modules/node-gyp/bin/node-gyp rebuild \
+			--python="$(PYTHON)" \
+			--directory="$$PWD/$$dirname" \
+			--nodedir="$$PWD" || exit 1 ; \
+	done
+	touch $@
+
+build-addons-abi: $(NODE_EXE) test/addons-abi/.buildstamp
+
+test-addons: build-addons
+	$(PYTHON) tools/test.py --mode=release addons
+
+test-addons-abi: build-addons-abi
+	$(PYTHON) tools/test.py --mode=release addons-abi
 
 test-http1: all
 	$(PYTHON) tools/test.py --mode=release --use-http1 simple message
@@ -381,4 +424,4 @@ cpplint:
 
 lint: jslint cpplint
 
-.PHONY: lint cpplint jslint bench clean docopen docclean doc dist distclean check uninstall install install-includes install-bin all staticlib dynamiclib test test-all website-upload pkg blog blogclean tar binary release-only bench-http-simple bench-idle bench-all bench bench-misc bench-array bench-buffer bench-net bench-http bench-fs bench-tls
+.PHONY: lint cpplint jslint bench clean docopen docclean doc dist distclean check uninstall install install-includes install-bin all staticlib dynamiclib test test-addons build-addons test-addons-abi build-addons-abi test-all website-upload pkg blog blogclean tar binary release-only bench-http-simple bench-idle bench-all bench bench-misc bench-array bench-buffer bench-net bench-http bench-fs bench-tls

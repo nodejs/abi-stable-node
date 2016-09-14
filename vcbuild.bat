@@ -35,6 +35,8 @@ set noetw_msi_arg=
 set noperfctr=
 set noperfctr_arg=
 set noperfctr_msi_arg=
+set build_addons=
+set build_addons_abi=
 
 :next-arg
 if "%1"=="" goto args-done
@@ -58,7 +60,7 @@ if /i "%1"=="test-simple"   set test=test-simple&goto arg-ok
 if /i "%1"=="test-message"  set test=test-message&goto arg-ok
 if /i "%1"=="test-gc"       set test=test-gc&set buildnodeweak=1&goto arg-ok
 if /i "%1"=="test-all"      set test=test-all&set buildnodeweak=1&goto arg-ok
-if /i "%1"=="test"          set test=test&goto arg-ok
+if /i "%1"=="test"          set test=test&set build_addons=1&set build_addons-abi=1&goto arg-ok
 if /i "%1"=="msi"           set msi=1&set licensertf=1&goto arg-ok
 if /i "%1"=="upload"        set upload=1&goto arg-ok
 if /i "%1"=="jslint"        set jslint=1&goto arg-ok
@@ -181,14 +183,48 @@ if "%test%"=="test-all" set test_args=%test_args%
 
 :build-node-weak
 @rem Build node-weak if required
-if "%buildnodeweak%"=="" goto run-tests
+if "%buildnodeweak%"=="" goto build-addons
 "%config%\node" deps\npm\node_modules\node-gyp\bin\node-gyp rebuild --directory="%~dp0test\gc\node_modules\weak" --nodedir="%~dp0."
 if errorlevel 1 goto build-node-weak-failed
-goto run-tests
+goto build-addons
 
 :build-node-weak-failed
 echo Failed to build node-weak.
 goto exit
+
+:build-addons
+if not defined build_addons goto run-tests
+if not exist "%node_exe%" (
+  echo Failed to find node.exe
+  goto run-tests
+)
+echo Building add-ons
+:: clear
+for /d %%F in (test\addons\??_*) do (
+  rd /s /q %%F
+)
+:: generate
+"%node_exe%" tools\doc\addon-verify.js
+:: building addons
+for /d %%F in (test\addons\*) do (
+  "%node_exe%" deps\npm\node_modules\node-gyp\bin\node-gyp rebuild ^
+    --directory="%%F" ^
+    --nodedir="%cd%"
+)
+if not defined build_addon_abi goto run-tests
+echo Building add-ons
+:: clear
+for /d %%F in (test\addons-abi\??_*) do (
+  rd /s /q %%F
+)
+:: building addons-abi
+for /d %%F in (test\addons-abi\*) do (
+  "%node_exe%" deps\npm\node_modules\node-gyp\bin\node-gyp rebuild ^
+    --directory="%%F" ^
+    --nodedir="%cd%"
+)
+
+goto run-tests
 
 :run-tests
 echo running 'python tools/test.py %test_args%'
