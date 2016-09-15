@@ -25,6 +25,11 @@
 
 typedef void napi_destruct(void* v);
 
+struct napi_func_cb_info_impl {
+  v8::Arguments* Arguments;
+  v8::Persistent<v8::Value> ReturnValue;
+};
+
 namespace v8impl {
 
 //=== Conversion between V8 Isolate and napi_env ==========================
@@ -113,7 +118,7 @@ namespace v8impl {
     static const v8::Arguments*
     V8ArgumentsFromJsFunctionCallbackInfo(napi_func_cb_info info) {
         return reinterpret_cast<const v8::Arguments*>(
-             reinterpret_cast<napi_func_cb_info_wrapper>(info)->Arguments);
+             reinterpret_cast<napi_func_cb_info_impl*>(info)->Arguments);
     }
 
     static napi_value
@@ -122,16 +127,13 @@ namespace v8impl {
                    const_cast<v8::Arguments*>(arguments));
     }
 
-    static napi_func_cb_info_wrapper__
+    static napi_func_cb_info_impl
     JsFunctionCallbackInfoFromV8FunctionCallbackInfo(
                           const v8::Arguments* arguments,
                           v8::Persistent<v8::Value>* return_value) {
-        napi_value args = JsValueFromV8Arguments(arguments);
-        napi_persistent retval =
-                         JsPersistentFromV8PersistentValue(return_value);
-        napi_func_cb_info_wrapper__ info;
-        info.Arguments = args;
-        info.ReturnValue = retval;
+        napi_func_cb_info_impl info;
+        info.Arguments = const_cast<v8::Arguments*>(arguments);
+        info.ReturnValue = *return_value;
         return info;
     }
 
@@ -148,26 +150,22 @@ namespace v8impl {
             reinterpret_cast<intptr_t>(obj->GetInternalField(kFunctionIndex)
                                               .As<v8::External>()->Value()));
         v8::Persistent<v8::Value> ret;
-        napi_func_cb_info_wrapper__ cbinfo =
-             JsFunctionCallbackInfoFromV8FunctionCallbackInfo(&args, &ret);
+        napi_func_cb_info_impl cbinfo {const_cast<v8::Arguments*>(&args), ret};
         cb(
             JsEnvFromV8Isolate(args.GetIsolate()),
             reinterpret_cast<napi_func_cb_info>(&cbinfo));
-        return *V8PersistentValueFromJsPersistentValue(
-                   cbinfo.ReturnValue);
+        return cbinfo.ReturnValue;
     }
 
     v8::Handle<v8::Value> FunctionCallbackWrapper(const v8::Arguments& args) {
         napi_callback cb = reinterpret_cast<napi_callback>(
                                args.Data().As<v8::External>()->Value());
         v8::Persistent<v8::Value> ret;
-        napi_func_cb_info_wrapper__ cbinfo =
-             JsFunctionCallbackInfoFromV8FunctionCallbackInfo(&args, &ret);
+        napi_func_cb_info_impl cbinfo {const_cast<v8::Arguments*>(&args), ret};
         cb(
             JsEnvFromV8Isolate(args.GetIsolate()),
             reinterpret_cast<napi_func_cb_info>(&cbinfo));
-        return *V8PersistentValueFromJsPersistentValue(
-                   cbinfo.ReturnValue);
+        return cbinfo.ReturnValue;
     }
 
   class ObjectWrapWrapper: public node::ObjectWrap  {
@@ -311,11 +309,10 @@ void napi_set_function_name(napi_env e, napi_value func,
 void napi_set_return_value(napi_env e,
                            napi_func_cb_info cbinfo, napi_value v) {
     v8::Local<v8::Value> val = v8impl::V8LocalValueFromJsValue(v);
-    v8::Persistent<v8::Value>* retval =
-         v8impl::V8PersistentValueFromJsPersistentValue(
-             reinterpret_cast<napi_func_cb_info_wrapper>(cbinfo)->ReturnValue);
-    retval->Dispose();
-    *retval = v8::Persistent<v8::Value>::New(val);
+    napi_func_cb_info_impl* info =
+        reinterpret_cast<napi_func_cb_info_impl*>(cbinfo);
+    info->ReturnValue.Dispose();
+    info->ReturnValue = v8::Persistent<v8::Value>::New(val);
 }
 
 napi_propertyname napi_property_name(napi_env e, const char* utf8name) {
@@ -581,7 +578,6 @@ napi_value napi_get_global_scope(napi_env e) {
 }
 
 void napi_throw(napi_env e, napi_value error) {
-    v8::HandleScope scope;
     v8::ThrowException(
         v8impl::V8LocalValueFromJsValue(error));
     // any VM calls after this point and before returning
@@ -589,7 +585,6 @@ void napi_throw(napi_env e, napi_value error) {
 }
 
 void napi_throw_error(napi_env e, char* msg) {
-    v8::HandleScope scope;
     v8::ThrowException(
       v8::Exception::Error(v8::String::New(msg)));
     // any VM calls after this point and before returning
@@ -597,7 +592,6 @@ void napi_throw_error(napi_env e, char* msg) {
 }
 
 void napi_throw_type_error(napi_env e, char* msg) {
-    v8::HandleScope scope;
     v8::ThrowException(
       v8::Exception::TypeError(v8::String::New(msg)));
     // any VM calls after this point and before returning
