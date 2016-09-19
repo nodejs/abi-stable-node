@@ -682,6 +682,11 @@ int napi_get_string_length(napi_env e, napi_value v) {
 }
 
 int napi_get_string_utf8_length(napi_env e, napi_value v) {
+ if (napi_get_type_of_value(e, v) == napi_number) {
+   v8::String::Utf8Value str (v8impl::V8LocalValueFromJsValue(v));
+   return str.length();
+ }
+
   return v8impl::V8LocalValueFromJsValue(v).As<v8::String>()->Utf8Length();
 }
 
