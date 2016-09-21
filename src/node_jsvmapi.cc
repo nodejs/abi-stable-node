@@ -768,12 +768,12 @@ bool napi_try_catch(napi_env e, napi_try_callback cbtry,
   return false;
 }
 
-napi_value napi_buffer_new(napi_env e, const char* data, uint32_t size) {
+napi_value napi_buffer_new(napi_env e, char* data, uint32_t size) {
   return reinterpret_cast<napi_value>(node::Buffer::New(data, size));
 }
 
 napi_value napi_buffer_copy(napi_env e, const char* data, uint32_t size) {
-  return napi_buffer_new(e, data, size);
+  return napi_buffer_new(e, const_cast<char*>(data), size);
 }
 
 bool napi_buffer_has_instance(napi_env e, napi_value v) {
