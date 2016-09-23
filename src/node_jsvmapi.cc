@@ -768,24 +768,37 @@ bool napi_try_catch(napi_env e, napi_try_callback cbtry,
   return false;
 }
 
+void free_cb(char* data, void* hint) {
+  // do nothing
+}
+
 napi_value napi_buffer_new(napi_env e, char* data, uint32_t size) {
-  return reinterpret_cast<napi_value>(node::Buffer::New(data, size));
+  v8::HandleScope scope;
+  node::Buffer* buf = node::Buffer::New(data, size, free_cb, nullptr);
+  return v8impl::JsValueFromV8LocalValue(*buf->handle_);
 }
 
 napi_value napi_buffer_copy(napi_env e, const char* data, uint32_t size) {
-  return napi_buffer_new(e, const_cast<char*>(data), size);
+//  return reinterpret_cast<napi_value>(
+//      node::Buffer::New(data, size));
+  v8::HandleScope scope;
+  node::Buffer* buf = node::Buffer::New(size);
+  memcpy(node::Buffer::Data(buf->handle_), data, size);
+  return v8impl::JsValueFromV8LocalValue(*buf->handle_);
 }
 
 bool napi_buffer_has_instance(napi_env e, napi_value v) {
+  v8::HandleScope scope;
   return node::Buffer::HasInstance(v8impl::V8LocalValueFromJsValue(v));
 }
 
 char* napi_buffer_data(napi_env e, napi_value v) {
-  return node::Buffer::Data(
-      v8impl::V8LocalValueFromJsValue(v).As<v8::Object>());
+  v8::HandleScope scope;
+  return node::Buffer::Data(v8impl::V8LocalValueFromJsValue(v));
 }
 
 size_t napi_buffer_length(napi_env e, napi_value v) {
+  v8::HandleScope scope;
   return node::Buffer::Length(v8impl::V8LocalValueFromJsValue(v));
 }
 
