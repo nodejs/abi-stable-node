@@ -602,17 +602,31 @@ double napi_get_number_from_value(napi_env e, napi_value v) {
     return v8impl::V8LocalValueFromJsValue(v)->NumberValue();
 }
 
+// TODO Add number to string conversion
+// TODO and replace node-nanomsg port
 int napi_get_string_from_value(napi_env e, napi_value v,
                                 char* buf, const int buf_size) {
-    int len = napi_get_string_utf8_length(e, v);
-    int copied = v8impl::V8LocalValueFromJsValue(v).As<v8::String>()
-      ->WriteUtf8(
-        buf,
-        buf_size,
-        0,
-        v8::String::REPLACE_INVALID_UTF8 | v8::String::PRESERVE_ASCII_NULL);
-    // add one for null ending
-    return len - copied + 1;
+    if (napi_get_type_of_value(e, v) == napi_number) {
+        v8::String::Utf8Value str (v8impl::V8LocalValueFromJsValue(v));
+        int len = str.length();
+        if (buf_size > len) {
+            memcpy(buf, *str, len);
+            return 0;
+        } else {
+            memcpy(buf, *str, buf_size - 1);
+            return len - buf_size + 1;
+        }
+    } else {
+        int len = napi_get_string_utf8_length(e, v);
+        int copied = v8impl::V8LocalValueFromJsValue(v).As<v8::String>()
+          ->WriteUtf8(
+            buf,
+            buf_size,
+            0,
+            v8::String::REPLACE_INVALID_UTF8 | v8::String::PRESERVE_ASCII_NULL);
+        // add one for null ending
+        return len - copied + 1;
+    }
 }
 
 int32_t napi_get_value_int32(napi_env e, napi_value v) {
@@ -779,12 +793,14 @@ napi_value napi_buffer_new(napi_env e, char* data, uint32_t size) {
 }
 
 napi_value napi_buffer_copy(napi_env e, const char* data, uint32_t size) {
-//  return reinterpret_cast<napi_value>(
-//      node::Buffer::New(data, size));
   v8::HandleScope scope;
+  node::Buffer* buf = node::Buffer::New(data, size);
+  return v8impl::JsValueFromV8LocalValue(*buf->handle_);
+/*  v8::HandleScope scope;
   node::Buffer* buf = node::Buffer::New(size);
   memcpy(node::Buffer::Data(buf->handle_), data, size);
   return v8impl::JsValueFromV8LocalValue(*buf->handle_);
+*/
 }
 
 bool napi_buffer_has_instance(napi_env e, napi_value v) {
