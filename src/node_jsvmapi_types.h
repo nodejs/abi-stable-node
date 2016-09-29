@@ -8,6 +8,7 @@
 typedef struct napi_env__ *napi_env;
 typedef struct napi_value__ *napi_value;
 typedef struct napi_persistent__ *napi_persistent;
+typedef struct napi_weakref__ *napi_weakref;
 typedef struct napi_handle_scope__ *napi_handle_scope;
 typedef struct napi_escapable_handle_scope__ *napi_escapable_handle_scope;
 typedef struct napi_propertyname__ *napi_propertyname;

@@ -158,7 +158,7 @@ NODE_EXTERN napi_value napi_create_constructor_for_wrap(napi_env e,
                                                         napi_callback cb);
 NODE_EXTERN void napi_wrap(napi_env e, napi_value jsObject, void* nativeObj,
                            napi_destruct* napi_destructor,
-                           napi_persistent* handle);
+                           napi_weakref* handle);
 NODE_EXTERN void* napi_unwrap(napi_env e, napi_value jsObject);
 
 NODE_EXTERN napi_value napi_create_constructor_for_wrap_with_methods(
@@ -172,6 +172,9 @@ NODE_EXTERN napi_value napi_create_constructor_for_wrap_with_methods(
 NODE_EXTERN napi_persistent napi_create_persistent(napi_env e, napi_value v);
 NODE_EXTERN void napi_release_persistent(napi_env e, napi_persistent p);
 NODE_EXTERN napi_value napi_get_persistent_value(napi_env e, napi_persistent p);
+NODE_EXTERN napi_weakref napi_create_weakref(napi_env e, napi_value v);
+NODE_EXTERN bool napi_get_weakref_value(napi_env e, napi_weakref w, napi_value *pv);
+NODE_EXTERN void napi_release_weakref(napi_env e, napi_weakref w); // is this actually needed?
 NODE_EXTERN napi_handle_scope napi_open_handle_scope(napi_env e);
 NODE_EXTERN void napi_close_handle_scope(napi_env e, napi_handle_scope s);
 NODE_EXTERN napi_escapable_handle_scope
