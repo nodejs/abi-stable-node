@@ -1921,7 +1921,7 @@ Handle<Value> DLOpen(const v8::Arguments& args) {
   // Execute the C++ module
   if (mod->register_func != NULL) {
     mod->register_func(exports, module);
-  } else {
+  } else if (mod->abi_register_func != NULL) {
     mod->abi_register_func(
       v8impl::JsEnvFromV8Isolate(v8::Isolate::GetCurrent()),
       v8impl::JsValueFromV8LocalValue(exports),
@@ -2013,7 +2013,7 @@ static Handle<Value> Binding(const Arguments& args) {
     // only exports.
     if (modp->register_func != NULL) {
       modp->register_func(exports, Undefined());
-    } else {
+    } else if (modp->abi_register_func != NULL) {
       modp->abi_register_func(
         v8impl::JsEnvFromV8Isolate(v8::Isolate::GetCurrent()),
         v8impl::JsValueFromV8LocalValue(exports),

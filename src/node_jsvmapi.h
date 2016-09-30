@@ -26,15 +26,15 @@
 // bool type in these exports.  Is that safe and stable?
 extern "C" {
 enum napi_valuetype {
-    // ES6 types (corresponds to typeof)
-    napi_undefined,
-    napi_null,
-    napi_boolean,
-    napi_number,
-    napi_string,
-    napi_symbol,
-    napi_object,
-    napi_function,
+  // ES6 types (corresponds to typeof)
+  napi_undefined,
+  napi_null,
+  napi_boolean,
+  napi_number,
+  napi_string,
+  napi_symbol,
+  napi_object,
+  napi_function,
 };
 
 // Environment
@@ -173,8 +173,10 @@ NODE_EXTERN napi_persistent napi_create_persistent(napi_env e, napi_value v);
 NODE_EXTERN void napi_release_persistent(napi_env e, napi_persistent p);
 NODE_EXTERN napi_value napi_get_persistent_value(napi_env e, napi_persistent p);
 NODE_EXTERN napi_weakref napi_create_weakref(napi_env e, napi_value v);
-NODE_EXTERN bool napi_get_weakref_value(napi_env e, napi_weakref w, napi_value *pv);
-NODE_EXTERN void napi_release_weakref(napi_env e, napi_weakref w); // is this actually needed?
+NODE_EXTERN bool napi_get_weakref_value(napi_env e, napi_weakref w,
+                                        napi_value *pv);
+// is this actually needed?
+NODE_EXTERN void napi_release_weakref(napi_env e, napi_weakref w);
 NODE_EXTERN napi_handle_scope napi_open_handle_scope(napi_env e);
 NODE_EXTERN void napi_close_handle_scope(napi_env e, napi_handle_scope s);
 NODE_EXTERN napi_escapable_handle_scope
@@ -228,20 +230,23 @@ NODE_EXTERN size_t napi_buffer_length(napi_env e, napi_value v);
 #include <uv.h>
 
 #define NAPI_METHOD(name)                                                      \
-    void name(napi_env env, napi_func_cb_info info)
+  void name(napi_env env, napi_func_cb_info info)
+
+#define NAPI_MODULE_INIT(name)                                                 \
+  void name(napi_env napi_env, napi_value target, napi_value module)
 
 // This is taken from NAN and is the C++11 version.
 // TODO(ianhall): Support pre-C++11 compilation?
 #define NAPI_DISALLOW_ASSIGN(CLASS) void operator=(const CLASS&) = delete;
 #define NAPI_DISALLOW_COPY(CLASS) CLASS(const CLASS&) = delete;
 #define NAPI_DISALLOW_MOVE(CLASS)                                              \
-    CLASS(CLASS&) = delete;                                                   \
-    void operator=(CLASS&) = delete;
+  CLASS(CLASS&) = delete;                                                      \
+  void operator=(CLASS&) = delete;
 
 #define NAPI_DISALLOW_ASSIGN_COPY_MOVE(CLASS)                                  \
-    NAPI_DISALLOW_ASSIGN(CLASS)                                                \
-    NAPI_DISALLOW_COPY(CLASS)                                                  \
-    NAPI_DISALLOW_MOVE(CLASS)
+  NAPI_DISALLOW_ASSIGN(CLASS)                                                \
+  NAPI_DISALLOW_COPY(CLASS)                                                  \
+  NAPI_DISALLOW_MOVE(CLASS)
 
 namespace Napi {
   // RAII HandleScope helpers
@@ -291,10 +296,10 @@ namespace Napi {
   public:
     inline explicit Utf8String(napi_value from) :
         length_(0), str_(str_st_) {
-      if (from != nullptr) {
+      if (from != NULL) {
         napi_env env = napi_get_current_env();
         napi_value string = napi_coerce_to_string(env, from);
-        if (string != nullptr) {
+        if (string != NULL) {
           size_t len = 3 * napi_get_string_length(env, string) + 1;
           assert(len <= INT_MAX);
           if (len > sizeof(str_st_)) {
@@ -352,7 +357,7 @@ namespace Napi {
     }
 
     ~Callback() {
-      if (handle == nullptr) {
+      if (handle == NULL) {
         return;
       }
       napi_release_persistent(napi_get_current_env(), handle);
@@ -455,7 +460,7 @@ namespace Napi {
   /* abstract */ class AsyncWorker {
    public:
     explicit AsyncWorker(Callback *callback_)
-        : callback(callback_), errmsg_(nullptr) {
+        : callback(callback_), errmsg_(NULL) {
       request.data = this;
       napi_env env = napi_get_current_env();
 
@@ -467,10 +472,10 @@ namespace Napi {
     virtual ~AsyncWorker() {
       HandleScope scope;
 
-      if (persistentHandle != nullptr) {
+      if (persistentHandle != NULL) {
         napi_env env = napi_get_current_env();
         napi_release_persistent(env, persistentHandle);
-        persistentHandle = nullptr;
+        persistentHandle = NULL;
       }
       delete callback;
       delete[] errmsg_;
@@ -551,7 +556,7 @@ namespace Napi {
     Callback *callback;
 
     virtual void HandleOKCallback() {
-      callback->Call(0, nullptr);
+      callback->Call(0, NULL);
     }
 
     virtual void HandleErrorCallback() {

@@ -55,7 +55,7 @@ void MyObject::New(napi_env env, napi_func_cb_info info) {
     MyObject* obj = new MyObject(value);
     napi_value jsthis = napi_get_cb_this(env, info);
     napi_wrap(env, jsthis, reinterpret_cast<void*>(obj),
-              MyObject::Destructor, nullptr);
+              MyObject::Destructor, NULL);
     napi_set_return_value(env, info, jsthis);
   } else {
     // Invoked as plain function `MyObject(...)`, turn into construct call.
