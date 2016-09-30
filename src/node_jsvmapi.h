@@ -26,15 +26,15 @@
 // bool type in these exports.  Is that safe and stable?
 extern "C" {
 enum napi_valuetype {
-    // ES6 types (corresponds to typeof)
-    napi_undefined,
-    napi_null,
-    napi_boolean,
-    napi_number,
-    napi_string,
-    napi_symbol,
-    napi_object,
-    napi_function,
+  // ES6 types (corresponds to typeof)
+  napi_undefined,
+  napi_null,
+  napi_boolean,
+  napi_number,
+  napi_string,
+  napi_symbol,
+  napi_object,
+  napi_function,
 };
 
 // Environment
@@ -175,7 +175,7 @@ NODE_EXTERN napi_value napi_get_persistent_value(napi_env e, napi_persistent p);
 NODE_EXTERN napi_weakref napi_create_weakref(napi_env e, napi_value v);
 NODE_EXTERN bool napi_get_weakref_value(napi_env e, napi_weakref w,
                                         napi_value *pv);
-// is this actually needed ?
+// is this actually needed?
 NODE_EXTERN void napi_release_weakref(napi_env e, napi_weakref w);
 NODE_EXTERN napi_handle_scope napi_open_handle_scope(napi_env e);
 NODE_EXTERN void napi_close_handle_scope(napi_env e, napi_handle_scope s);
@@ -230,20 +230,23 @@ NODE_EXTERN size_t napi_buffer_length(napi_env e, napi_value v);
 #include <uv.h>
 
 #define NAPI_METHOD(name)                                                      \
-    void name(napi_env env, napi_func_cb_info info)
+  void name(napi_env env, napi_func_cb_info info)
+
+#define NAPI_MODULE_INIT(name)                                                 \
+  void name(napi_env napi_env, napi_value target, napi_value module)
 
 // This is taken from NAN and is the C++11 version.
 // TODO(ianhall): Support pre-C++11 compilation?
 #define NAPI_DISALLOW_ASSIGN(CLASS) void operator=(const CLASS&) = delete;
 #define NAPI_DISALLOW_COPY(CLASS) CLASS(const CLASS&) = delete;
 #define NAPI_DISALLOW_MOVE(CLASS)                                              \
-    CLASS(CLASS&&) = delete;                                                   \
-    void operator=(CLASS&&) = delete;
+  CLASS(CLASS&&) = delete;                                                     \
+  void operator=(CLASS&&) = delete;
 
 #define NAPI_DISALLOW_ASSIGN_COPY_MOVE(CLASS)                                  \
-    NAPI_DISALLOW_ASSIGN(CLASS)                                                \
-    NAPI_DISALLOW_COPY(CLASS)                                                  \
-    NAPI_DISALLOW_MOVE(CLASS)
+  NAPI_DISALLOW_ASSIGN(CLASS)                                                \
+  NAPI_DISALLOW_COPY(CLASS)                                                  \
+  NAPI_DISALLOW_MOVE(CLASS)
 
 namespace Napi {
   // RAII HandleScope helpers
@@ -618,4 +621,4 @@ NODE_EXTERN v8::Persistent<v8::Value>* V8PersistentValue(napi_persistent p);
 /////////////////////////////////////////////////////////
 #undef NAN_MODULE_INIT
 #define NAN_MODULE_INIT(name)                                                  \
-    void name(napi_env napi_env, napi_value target, napi_value module)
+  void name(napi_env napi_env, napi_value target, napi_value module)
