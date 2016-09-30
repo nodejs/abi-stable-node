@@ -233,7 +233,7 @@ NODE_EXTERN size_t napi_buffer_length(napi_env e, napi_value v);
   void name(napi_env env, napi_func_cb_info info)
 
 #define NAPI_MODULE_INIT(name)                                                 \
-  void name(napi_env napi_env, napi_value target, napi_value module)
+  void name(napi_env env, napi_value exports, napi_value module)
 
 // This is taken from NAN and is the C++11 version.
 // TODO(ianhall): Support pre-C++11 compilation?
