@@ -156,19 +156,6 @@ namespace v8impl {
   static const int kFunctionIndex =       1;
   static const int kFunctionFieldCount =  2;
 
-  v8::Handle<v8::Value> FunctionCallbackWrapperOld(const v8::Arguments& args) {
-    v8::Local<v8::Object> obj = args.Data().As<v8::Object>();
-    napi_callback cb = reinterpret_cast<napi_callback>(
-        reinterpret_cast<intptr_t>(obj->GetInternalField(kFunctionIndex)
-                                              .As<v8::External>()->Value()));
-    v8::Persistent<v8::Value> ret;
-    napi_func_cb_info_impl cbinfo {const_cast<v8::Arguments*>(&args), ret};
-    cb(
-        JsEnvFromV8Isolate(args.GetIsolate()),
-        reinterpret_cast<napi_func_cb_info>(&cbinfo));
-    return cbinfo.ReturnValue;
-  }
-
   v8::Handle<v8::Value> FunctionCallbackWrapper(const v8::Arguments& args) {
     napi_callback cb = reinterpret_cast<napi_callback>(
                            args.Data().As<v8::External>()->Value());
@@ -214,37 +201,6 @@ namespace v8impl {
 
 napi_env napi_get_current_env() {
   return v8impl::JsEnvFromV8Isolate(v8::Isolate::GetCurrent());
-}
-
-napi_value napi_create_functionOld(napi_env e, napi_callback cb) {
-  // This code is adapted from nan
-
-  // This parameter is unused currently but would probably be useful to
-  // expose in the API for client code to provide a data object to be
-  // included on callback.
-  v8::Local<v8::Value> data = v8::Local<v8::Value>();
-
-  v8::Local<v8::Function> retval;
-
-  v8::HandleScope scope;
-  v8::Local<v8::ObjectTemplate> tpl = v8::ObjectTemplate::New();
-  tpl->SetInternalFieldCount(v8impl::kFunctionFieldCount);
-  v8::Local<v8::Object> obj = tpl->NewInstance();
-
-  obj->SetInternalField(
-      v8impl::kFunctionIndex,
-          v8::External::New(reinterpret_cast<void *>(cb)));
-  v8::Local<v8::Value> val = v8::Local<v8::Value>::New(data);
-
-  if (!val.IsEmpty()) {
-    obj->SetInternalField(v8impl::kDataIndex, val);
-  }
-
-  retval = scope.Close(v8::FunctionTemplate::New(
-               v8impl::FunctionCallbackWrapperOld,
-               obj)->GetFunction());
-
-  return v8impl::JsValueFromV8LocalValue(retval);
 }
 
 napi_value napi_create_function(napi_env e, napi_callback cb) {
