@@ -677,11 +677,12 @@ napi_value napi_get_persistent_value(napi_env e, napi_persistent p) {
 }
 
 napi_weakref napi_create_weakref(napi_env e, napi_value v) {
-  v8::Persistent<v8::Value> *thePersistent =
-      new v8::Persistent<v8::Value>(v8impl::V8LocalValueFromJsValue(v));
-  thePersistent->MakeWeak((int*)NULL, v8impl::WeakRefCallback);
+  v8::Persistent<v8::Value>* p = new v8::Persistent<v8::Value>();
+  *p = v8::Persistent<v8::Value>::New(v8impl::V8LocalValueFromJsValue(v));
+ 
+  p->MakeWeak((int*)NULL, v8impl::WeakRefCallback);
   // need to mark independent?
-  return v8impl::JsWeakRefFromV8PersistentValue(thePersistent);
+  return v8impl::JsWeakRefFromV8PersistentValue(p);
 }
 
 bool napi_get_weakref_value(napi_env e, napi_weakref w, napi_value* pv) {
