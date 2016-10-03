@@ -44,6 +44,11 @@ namespace v8impl {
       v8::HandleScope scope;
   };
 
+  // In node v0.10 version of v8, there is no EscapableHandleScope and the
+  // node v0.10 port use HandleScope::Close(Local<T> v) to mimic the behavior
+  // of a EscapableHandleScope::Escape(Local<T> v), but it is not the same
+  // semantics. This is an example of where the api abstraction fail to work
+  // across different versions.
   class EscapableHandleScopeWrapper {
     public:
       explicit EscapableHandleScopeWrapper(
