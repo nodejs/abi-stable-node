@@ -18,10 +18,14 @@ assert.equal(Buffer.byteLength(path.basename(utf8)),
              Buffer.byteLength('\u0222abc.XXXXXX'));
 assert(common.fileExists(utf8));
 
-fs.mkdtemp(
-    path.join(common.tmpDir, 'bar.'),
-    common.mustCall(function(err, folder) {
-      assert.ifError(err);
-      assert(common.fileExists(folder));
-    })
-);
+function handler(err, folder) {
+  assert.ifError(err);
+  assert(common.fileExists(folder));
+  assert.strictEqual(this, null);
+}
+
+fs.mkdtemp(path.join(common.tmpDir, 'bar.'), common.mustCall(handler));
+
+// Same test as above, but making sure that passing an options object doesn't
+// affect the way the callback function is handled.
+fs.mkdtemp(path.join(common.tmpDir, 'bar.'), {}, common.mustCall(handler));

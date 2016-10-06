@@ -104,7 +104,9 @@ if (!common.hasCrypto) {
 }
 var tls = require('tls');
 
-var constants = require('constants');
+const SSL_OP_NO_SESSION_RESUMPTION_ON_RENEGOTIATION =
+  require('crypto').constants.SSL_OP_NO_SESSION_RESUMPTION_ON_RENEGOTIATION;
+
 var assert = require('assert');
 var fs = require('fs');
 var spawn = require('child_process').spawn;
@@ -254,15 +256,13 @@ function runTest(port, testIndex) {
     rejectUnauthorized: tcase.rejectUnauthorized
   };
 
-  var connections = 0;
-
   /*
    * If renegotiating - session might be resumed and openssl won't request
    * client's certificate (probably because of bug in the openssl)
    */
   if (tcase.renegotiate) {
     serverOptions.secureOptions =
-        constants.SSL_OP_NO_SESSION_RESUMPTION_ON_RENEGOTIATION;
+        SSL_OP_NO_SESSION_RESUMPTION_ON_RENEGOTIATION;
   }
 
   var renegotiated = false;
@@ -290,7 +290,6 @@ function runTest(port, testIndex) {
       return;
     }
 
-    connections++;
     if (c.authorized) {
       console.error(prefix + '- authed connection: ' +
                     c.getPeerCertificate().subject.CN);
@@ -315,6 +314,7 @@ function runTest(port, testIndex) {
   }
 
   server.listen(port, function() {
+    port = server.address().port;
     if (tcase.debug) {
       console.error(prefix + 'TLS server running on port ' + port);
     } else {
@@ -339,8 +339,8 @@ function runTest(port, testIndex) {
 
 
 var nextTest = 0;
-runTest(common.PORT, nextTest++);
-runTest(common.PORT + 1, nextTest++);
+runTest(0, nextTest++);
+runTest(0, nextTest++);
 
 
 process.on('exit', function() {

@@ -5,6 +5,12 @@ const assert = require('assert');
 const path = require('path');
 const childProcess = require('child_process');
 
+if (common.isChakraEngine) {
+  console.log('1..0 # Skipped: This test is disabled for chakra engine ' +
+  'because debugger support is not implemented yet.');
+  return;
+}
+
 // Refs: https://github.com/nodejs/node/pull/2253
 if (common.isSunOS) {
   common.skip('unreliable on SunOS');
@@ -22,7 +28,7 @@ const preloadOption = function(preloads) {
 };
 
 const fixture = function(name) {
-  return path.join(__dirname, '../fixtures/' + name);
+  return path.join(common.fixturesDir, name);
 };
 
 const fixtureA = fixture('printA.js');
@@ -138,7 +144,7 @@ childProcess.exec(nodeBinary + ' '
   });
 
 // https://github.com/nodejs/node/issues/1691
-process.chdir(path.join(__dirname, '../fixtures/'));
+process.chdir(common.fixturesDir);
 childProcess.exec(nodeBinary + ' '
   + '--expose_debug_as=v8debug '
   + '--require ' + fixture('cluster-preload.js') + ' '

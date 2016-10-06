@@ -12,6 +12,18 @@ var start = Date.now();
 var err;
 var caught = false;
 
+// Verify that stderr is not accessed when a bad shell is used
+assert.throws(
+  function() { execSync('exit -1', {shell: 'bad_shell'}); },
+  /spawnSync bad_shell ENOENT/,
+  'execSync did not throw the expected exception!'
+);
+assert.throws(
+  function() { execFileSync('exit -1', {shell: 'bad_shell'}); },
+  /spawnSync bad_shell ENOENT/,
+  'execFileSync did not throw the expected exception!'
+);
+
 try {
   var cmd = `"${process.execPath}" -e "setTimeout(function(){}, ${SLEEP});"`;
   var ret = execSync(cmd, {timeout: TIMER});
@@ -61,24 +73,17 @@ assert.strictEqual(ret, msg + '\n',
                    'execFileSync encoding result should match');
 
 // Verify that the cwd option works - GH #7824
-(function() {
-  var response;
-  var cwd;
-
-  if (common.isWindows) {
-    cwd = 'c:\\';
-    response = execSync('echo %cd%', {cwd: cwd});
-  } else {
-    cwd = '/';
-    response = execSync('pwd', {cwd: cwd});
-  }
+{
+  const cwd = common.rootDir;
+  const cmd = common.isWindows ? 'echo %cd%' : 'pwd';
+  const response = execSync(cmd, {cwd});
 
   assert.strictEqual(response.toString().trim(), cwd);
-})();
+}
 
 // Verify that stderr is not accessed when stdio = 'ignore' - GH #7966
-(function() {
+{
   assert.throws(function() {
     execSync('exit -1', {stdio: 'ignore'});
   }, /Command failed: exit -1/);
-})();
+}

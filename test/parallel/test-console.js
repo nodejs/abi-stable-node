@@ -111,8 +111,14 @@ for (const expected of expectedStrings) {
   assert.equal(expected + '\n', errStrings.shift());   // console.warn  (stderr)
 }
 
-assert.equal("{ foo: 'bar', inspect: [Function] }\n", strings.shift());
-assert.equal("{ foo: 'bar', inspect: [Function] }\n", strings.shift());
+
+var expectedFuncToString = common.engineSpecificMessage({
+  v8: "{ foo: 'bar', inspect: [Function: inspect] }\n",
+  chakracore: "{ foo: 'bar', inspect: [Function: inspect] }\n"
+});
+
+assert.equal(expectedFuncToString, strings.shift());
+assert.equal(expectedFuncToString, strings.shift());
 assert.notEqual(-1, strings.shift().indexOf('foo: [Object]'));
 assert.equal(-1, strings.shift().indexOf('baz'));
 assert.ok(/^label: \d+\.\d{3}ms$/.test(strings.shift().trim()));
@@ -133,3 +139,4 @@ assert.throws(() => {
 assert.doesNotThrow(() => {
   console.assert(true, 'this should not throw');
 });
+

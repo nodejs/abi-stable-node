@@ -1,6 +1,6 @@
 'use strict';
+const common = require('../common');
 var assert = require('assert');
-var common = require('../common');
 var fork = require('child_process').fork;
 var net = require('net');
 
@@ -38,38 +38,33 @@ if (process.argv[2] === 'child') {
 
   // when the server is ready tell parent
   server.on('listening', function() {
-    process.send('ready');
+    process.send({ msg: 'ready', port: server.address().port });
   });
 
-  server.listen(common.PORT);
+  server.listen(0);
 
 } else {
   // testcase
   var child = fork(process.argv[1], ['child']);
 
   var childFlag = false;
-  var childSelfTerminate = false;
-  var parentEmit = false;
   var parentFlag = false;
 
   // when calling .disconnect the event should emit
   // and the disconnected flag should be true.
-  child.on('disconnect', function() {
-    parentEmit = true;
+  child.on('disconnect', common.mustCall(function() {
     parentFlag = child.connected;
-  });
+  }));
 
   // the process should also self terminate without using signals
-  child.on('exit', function() {
-    childSelfTerminate = true;
-  });
+  child.on('exit', common.mustCall(function() {}));
 
   // when child is listening
-  child.on('message', function(msg) {
-    if (msg === 'ready') {
+  child.on('message', function(obj) {
+    if (obj && obj.msg === 'ready') {
 
       // connect to child using TCP to know if disconnect was emitted
-      var socket = net.connect(common.PORT);
+      var socket = net.connect(obj.port);
 
       socket.on('data', function(data) {
         data = data.toString();
@@ -91,8 +86,5 @@ if (process.argv[2] === 'child') {
   process.on('exit', function() {
     assert.equal(childFlag, false);
     assert.equal(parentFlag, false);
-
-    assert.ok(childSelfTerminate);
-    assert.ok(parentEmit);
   });
 }

@@ -32,8 +32,7 @@ console.error('test runInContext signature');
 var gh1140Exception;
 try {
   vm.runInContext('throw new Error()', context, 'expected-filename.js');
-}
-catch (e) {
+} catch (e) {
   gh1140Exception = e;
   assert.ok(/expected-filename/.test(e.stack),
             'expected appearance of filename in Error stack');
@@ -72,3 +71,7 @@ assert.throws(function() {
 }, function(err) {
   return /expected-filename.js:33:130/.test(err.stack);
 }, 'Expected appearance of proper offset in Error stack');
+
+// https://github.com/nodejs/node/issues/6158
+ctx = new Proxy({}, {});
+assert.strictEqual(typeof vm.runInNewContext('String', ctx), 'function');

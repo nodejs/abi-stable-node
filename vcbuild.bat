@@ -21,6 +21,7 @@ set nobuild=
 set nosign=
 set nosnapshot=
 set test_args=
+set package=
 set msi=
 set upload=
 set licensertf=
@@ -37,7 +38,7 @@ set build_release=
 set enable_vtune_arg=
 set configure_flags=
 set build_addons=
-set build_addon_abi=
+set engine=v8
 
 :next-arg
 if "%1"=="" goto args-done
@@ -47,6 +48,7 @@ if /i "%1"=="clean"         set target=Clean&goto arg-ok
 if /i "%1"=="ia32"          set target_arch=x86&goto arg-ok
 if /i "%1"=="x86"           set target_arch=x86&goto arg-ok
 if /i "%1"=="x64"           set target_arch=x64&goto arg-ok
+if /i "%1"=="arm"           set target_arch=arm&goto arg-ok
 if /i "%1"=="vc2013"        set target_env=vc2013&goto arg-ok
 if /i "%1"=="vc2015"        set target_env=vc2015&goto arg-ok
 if /i "%1"=="noprojgen"     set noprojgen=1&goto arg-ok
@@ -56,10 +58,9 @@ if /i "%1"=="nosnapshot"    set nosnapshot=1&goto arg-ok
 if /i "%1"=="noetw"         set noetw=1&goto arg-ok
 if /i "%1"=="noperfctr"     set noperfctr=1&goto arg-ok
 if /i "%1"=="licensertf"    set licensertf=1&goto arg-ok
-if /i "%1"=="test"          set test_args=%test_args% addons addons-abi doctool known_issues message parallel sequential -J&set jslint=1&set build_addons=1&set build_addon_abi=1&goto arg-ok
-if /i "%1"=="test-ci"       set test_args=%test_args% %test_ci_args% -p tap --logfile test.tap addons addons-abi doctool known_issues message sequential parallel&set build_addons=1&set build_addon_abi=1&goto arg-ok
+if /i "%1"=="test"          set test_args=%test_args% addons doctool known_issues message parallel sequential -J&set jslint=1&set build_addons=1&goto arg-ok
+if /i "%1"=="test-ci"       set test_args=%test_args% %test_ci_args% -p tap --logfile test.tap addons doctool known_issues message sequential parallel&set build_addons=1&goto arg-ok
 if /i "%1"=="test-addons"   set test_args=%test_args% addons&set build_addons=1&goto arg-ok
-if /i "%1"=="test-addons-abi"   set test_args=%test_args% addons-abi&set build_addon_abi=1&goto arg-ok
 if /i "%1"=="test-simple"   set test_args=%test_args% sequential parallel -J&goto arg-ok
 if /i "%1"=="test-message"  set test_args=%test_args% message&goto arg-ok
 if /i "%1"=="test-gc"       set test_args=%test_args% gc&set buildnodeweak=1&goto arg-ok
@@ -69,6 +70,7 @@ if /i "%1"=="test-all"      set test_args=%test_args% sequential parallel messag
 if /i "%1"=="test-known-issues" set test_args=%test_args% known_issues&goto arg-ok
 if /i "%1"=="jslint"        set jslint=1&goto arg-ok
 if /i "%1"=="jslint-ci"     set jslint_ci=1&goto arg-ok
+if /i "%1"=="package"       set package=1&goto arg-ok
 if /i "%1"=="msi"           set msi=1&set licensertf=1&set download_arg="--download=all"&set i18n_arg=small-icu&goto arg-ok
 if /i "%1"=="build-release" set build_release=1&goto arg-ok
 if /i "%1"=="upload"        set upload=1&goto arg-ok
@@ -79,6 +81,8 @@ if /i "%1"=="without-intl"     set i18n_arg=%1&goto arg-ok
 if /i "%1"=="download-all"  set download_arg="--download=all"&goto arg-ok
 if /i "%1"=="ignore-flaky"  set test_args=%test_args% --flaky-tests=dontcare&goto arg-ok
 if /i "%1"=="enable-vtune"  set enable_vtune_arg=1&goto arg-ok
+if /i "%1"=="v8"            set engine=v8&goto arg-ok
+if /i "%1"=="chakracore"    set engine=chakracore&set chakra_jslint=deps\chakrashim\lib&goto arg-ok
 
 echo Warning: ignoring invalid command line option `%1`.
 
@@ -91,6 +95,7 @@ goto next-arg
 
 if defined build_release (
   set config=Release
+  set package=1
   set msi=1
   set licensertf=1
   set download_arg="--download=all"
@@ -112,6 +117,7 @@ if "%i18n_arg%"=="full-icu" set configure_flags=%configure_flags% --with-intl=fu
 if "%i18n_arg%"=="small-icu" set configure_flags=%configure_flags% --with-intl=small-icu
 if "%i18n_arg%"=="intl-none" set configure_flags=%configure_flags% --with-intl=none
 if "%i18n_arg%"=="without-intl" set configure_flags=%configure_flags% --without-intl
+if "%engine%"=="chakracore" set configure_flags=%configure_flags% --without-intl --without-inspector --without-v8-platform --without-bundled-v8
 
 if defined config_flags set configure_flags=%configure_flags% %config_flags%
 
@@ -186,8 +192,8 @@ goto run
 if defined noprojgen goto msbuild
 
 @rem Generate the VS project.
-echo configure %configure_flags% --dest-cpu=%target_arch% --tag=%TAG%
-python configure %configure_flags% --dest-cpu=%target_arch% --tag=%TAG%
+echo configure %configure_flags% --engine=%engine% --dest-cpu=%target_arch% --tag=%TAG%
+python configure %configure_flags% --engine=%engine% --dest-cpu=%target_arch% --tag=%TAG%
 if errorlevel 1 goto create-msvs-files-failed
 if not exist node.sln goto create-msvs-files-failed
 echo Project files generated.
@@ -199,6 +205,7 @@ if defined nobuild goto sign
 @rem Build the sln with msbuild.
 set "msbplatform=Win32"
 if "%target_arch%"=="x64" set "msbplatform=x64"
+if "%target_arch%"=="arm" set "msbplatform=ARM"
 msbuild node.sln /m /t:%target% /p:Configuration=%config% /p:Platform=%msbplatform% /clp:NoSummary;NoItemAndPropertyList;Verbosity=minimal /nologo
 if errorlevel 1 goto exit
 if "%target%" == "Clean" goto exit
@@ -212,10 +219,58 @@ if errorlevel 1 echo Failed to sign exe&goto exit
 
 :licensertf
 @rem Skip license.rtf generation if not requested.
-if not defined licensertf goto msi
+if not defined licensertf goto package
 
 %config%\node tools\license2rtf.js < LICENSE > %config%\license.rtf
 if errorlevel 1 echo Failed to generate license.rtf&goto exit
+
+:package
+if not defined package goto msi
+echo Creating package...
+cd Release
+mkdir node-v%FULLVERSION%-win-%target_arch% > nul 2> nul
+mkdir node-v%FULLVERSION%-win-%target_arch%\node_modules > nul 2>nul
+
+copy /Y node.exe node-v%FULLVERSION%-win-%target_arch%\ > nul
+if errorlevel 1 echo Cannot copy node.exe && goto package_error
+copy /Y ..\LICENSE node-v%FULLVERSION%-win-%target_arch%\ > nul
+if errorlevel 1 echo Cannot copy LICENSE && goto package_error
+copy /Y ..\README.md node-v%FULLVERSION%-win-%target_arch%\ > nul
+if errorlevel 1 echo Cannot copy README.md && goto package_error
+copy /Y ..\CHANGELOG.md node-v%FULLVERSION%-win-%target_arch%\ > nul
+if errorlevel 1 echo Cannot copy CHANGELOG.md && goto package_error
+robocopy /e ..\deps\npm node-v%FULLVERSION%-win-%target_arch%\node_modules\npm > nul
+if errorlevel 8 echo Cannot copy npm package && goto package_error
+copy /Y ..\deps\npm\bin\npm node-v%FULLVERSION%-win-%target_arch%\ > nul
+if errorlevel 1 echo Cannot copy npm && goto package_error
+copy /Y ..\deps\npm\bin\npm.cmd node-v%FULLVERSION%-win-%target_arch%\ > nul
+if errorlevel 1 echo Cannot copy npm.cmd && goto package_error
+
+echo Creating node-v%FULLVERSION%-win-%target_arch%.7z
+del node-v%FULLVERSION%-win-%target_arch%.7z > nul 2> nul
+7z a -r -mx9 -t7z node-v%FULLVERSION%-win-%target_arch%.7z node-v%FULLVERSION%-win-%target_arch% > nul
+if errorlevel 1 echo Cannot create node-v%FULLVERSION%-win-%target_arch%.7z && goto package_error
+
+echo Creating node-v%FULLVERSION%-win-%target_arch%.zip
+del node-v%FULLVERSION%-win-%target_arch%.zip > nul 2> nul
+7z a -r -mx9 -tzip node-v%FULLVERSION%-win-%target_arch%.zip node-v%FULLVERSION%-win-%target_arch% > nul
+if errorlevel 1 echo Cannot create node-v%FULLVERSION%-win-%target_arch%.zip && goto package_error
+
+echo Creating node_pdb.7z
+del node_pdb.7z > nul 2> nul
+7z a -mx9 -t7z node_pdb.7z node.pdb > nul
+
+echo Creating node_pdb.zip
+del node_pdb.zip  > nul 2> nul
+7z a -mx9 -tzip node_pdb.zip node.pdb > nul
+
+cd ..
+echo Package created!
+goto package_done
+:package_error
+cd ..
+exit /b 1
+:package_done
 
 :msi
 @rem Skip msi generation if not requested
@@ -242,8 +297,12 @@ if not defined STAGINGSERVER set STAGINGSERVER=node-www
 ssh -F %SSHCONFIG% %STAGINGSERVER% "mkdir -p nodejs/%DISTTYPEDIR%/v%FULLVERSION%/win-%target_arch%"
 scp -F %SSHCONFIG% Release\node.exe %STAGINGSERVER%:nodejs/%DISTTYPEDIR%/v%FULLVERSION%/win-%target_arch%/node.exe
 scp -F %SSHCONFIG% Release\node.lib %STAGINGSERVER%:nodejs/%DISTTYPEDIR%/v%FULLVERSION%/win-%target_arch%/node.lib
+scp -F %SSHCONFIG% Release\node_pdb.zip %STAGINGSERVER%:nodejs/%DISTTYPEDIR%/v%FULLVERSION%/win-%target_arch%/node_pdb.zip
+scp -F %SSHCONFIG% Release\node_pdb.7z %STAGINGSERVER%:nodejs/%DISTTYPEDIR%/v%FULLVERSION%/win-%target_arch%/node_pdb.7z
+scp -F %SSHCONFIG% Release\node-v%FULLVERSION%-win-%target_arch%.7z %STAGINGSERVER%:nodejs/%DISTTYPEDIR%/v%FULLVERSION%/node-v%FULLVERSION%-win-%target_arch%.7z
+scp -F %SSHCONFIG% Release\node-v%FULLVERSION%-win-%target_arch%.zip %STAGINGSERVER%:nodejs/%DISTTYPEDIR%/v%FULLVERSION%/node-v%FULLVERSION%-win-%target_arch%.zip
 scp -F %SSHCONFIG% node-v%FULLVERSION%-%target_arch%.msi %STAGINGSERVER%:nodejs/%DISTTYPEDIR%/v%FULLVERSION%/
-ssh -F %SSHCONFIG% %STAGINGSERVER% "touch nodejs/%DISTTYPEDIR%/v%FULLVERSION%/node-v%FULLVERSION%-%target_arch%.msi.done nodejs/%DISTTYPEDIR%/v%FULLVERSION%/win-%target_arch%.done && chmod -R ug=rw-x+X,o=r+X nodejs/%DISTTYPEDIR%/v%FULLVERSION%/node-v%FULLVERSION%-%target_arch%.msi* nodejs/%DISTTYPEDIR%/v%FULLVERSION%/win-%target_arch%*"
+ssh -F %SSHCONFIG% %STAGINGSERVER% "touch nodejs/%DISTTYPEDIR%/v%FULLVERSION%/node-v%FULLVERSION%-%target_arch%.msi.done nodejs/%DISTTYPEDIR%/v%FULLVERSION%/node-v%FULLVERSION%-win-%target_arch%.zip.done nodejs/%DISTTYPEDIR%/v%FULLVERSION%/node-v%FULLVERSION%-win-%target_arch%.7z.done nodejs/%DISTTYPEDIR%/v%FULLVERSION%/win-%target_arch%.done && chmod -R ug=rw-x+X,o=r+X nodejs/%DISTTYPEDIR%/v%FULLVERSION%/node-v%FULLVERSION%-%target_arch%.* nodejs/%DISTTYPEDIR%/v%FULLVERSION%/win-%target_arch%*"
 
 :run
 @rem Run tests if requested.
@@ -260,22 +319,12 @@ echo Failed to build node-weak.
 goto exit
 
 :build-addons
-if not defined build_addons goto build-addons-abi
-if not exist "%node_exe%" (
-  echo Failed to find node.exe
-  goto build-addons-abi
-)
-echo Building add-ons
-
-:build-addons-abi
-if not defined build_addons_abi goto run-tests
+if not defined build_addons goto run-tests
 if not exist "%node_exe%" (
   echo Failed to find node.exe
   goto run-tests
 )
 echo Building add-ons
-
-
 :: clear
 for /d %%F in (test\addons\??_*) do (
   rd /s /q %%F
@@ -288,19 +337,6 @@ for /d %%F in (test\addons\*) do (
     --directory="%%F" ^
     --nodedir="%cd%"
 )
-if not defined build_addon_abi goto run-tests
-echo Building add-ons
-:: clear
-for /d %%F in (test\addons-abi\??_*) do (
-  rd /s /q %%F
-)
-:: building addons-abi
-for /d %%F in (test\addons-abi\*) do (
-  "%node_exe%" deps\npm\node_modules\node-gyp\bin\node-gyp rebuild ^
-    --directory="%%F" ^
-    --nodedir="%cd%"
-)
-
 goto run-tests
 
 :run-tests
@@ -318,12 +354,12 @@ if defined jslint_ci goto jslint-ci
 if not defined jslint goto exit
 if not exist tools\eslint\bin\eslint.js goto no-lint
 echo running jslint
-%config%\node tools\jslint.js -J benchmark lib src test tools\doc tools\eslint-rules tools\jslint.js
+%config%\node tools\jslint.js -J benchmark lib src test %chakra_jslint% tools
 goto exit
 
 :jslint-ci
 echo running jslint-ci
-%config%\node tools\jslint.js -J -f tap -o test-eslint.tap benchmark lib src test tools\doc tools\eslint-rules tools\jslint.js
+%config%\node tools\jslint.js -J -f tap -o test-eslint.tap benchmark lib src test %chakra_jslint% tools
 goto exit
 
 :no-lint

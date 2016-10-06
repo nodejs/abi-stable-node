@@ -13,10 +13,10 @@
  * and the test will fail.
  */
 
+const common = require('../common');
 var dgram = require('dgram');
 var fork = require('child_process').fork;
 var assert = require('assert');
-var common = require('../common');
 
 if (common.isWindows) {
   common.skip('Sending dgram sockets to child processes is ' +
@@ -72,7 +72,7 @@ if (process.argv[2] === 'child') {
         msg,
         0,
         msg.length,
-        common.PORT,
+        server.address().port,
         '127.0.0.1',
         function(err) {
           if (err) throw err;
@@ -98,7 +98,7 @@ if (process.argv[2] === 'child') {
     client.close();
   };
 
-  server.bind(common.PORT, '127.0.0.1');
+  server.bind(0, '127.0.0.1');
 
   process.once('exit', function() {
     assert(parentGotMessage);

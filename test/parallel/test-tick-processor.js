@@ -1,8 +1,15 @@
 'use strict';
-var fs = require('fs');
-var assert = require('assert');
-var cp = require('child_process');
-var common = require('../common');
+const common = require('../common');
+const fs = require('fs');
+const assert = require('assert');
+const cp = require('child_process');
+
+// Skip running this test for chakra engine because it doesn't
+// support -prof option.
+if (common.isChakraEngine) {
+  console.log('1..0 # Skipped: This test is disabled for chakra engine.');
+  return;
+}
 
 // TODO(mhdawson) Currently the test-tick-processor functionality in V8
 // depends on addresses being smaller than a full 64 bits.  Aix supports
@@ -49,12 +56,12 @@ function runTest(pattern, code) {
     return /^isolate-/.test(file);
   });
   if (matches.length != 1) {
-    assert.fail(null, null, 'There should be a single log file.');
+    common.fail('There should be a single log file.');
   }
   var log = matches[0];
   var out = cp.execSync(process.execPath +
                         ' --prof-process --call-graph-size=10 ' + log,
                         {encoding: 'utf8'});
-  assert(pattern.test(out));
+  assert(pattern.test(out), `${pattern} not matching ${out}`);
   fs.unlinkSync(log);
 }

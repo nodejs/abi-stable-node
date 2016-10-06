@@ -3,6 +3,12 @@ var common = require('../common');
 var assert = require('assert');
 var spawn = require('child_process').spawn;
 
+if (common.isChakraEngine) {
+  console.log('1..0 # Skipped: This test is disabled for chakra engine ' +
+  'because debugger support is not implemented yet.');
+  return;
+}
+
 var debugPort = common.PORT;
 var args = ['--interactive', '--debug-port=' + debugPort];
 var childOptions = { stdio: ['pipe', 'pipe', 'pipe', 'ipc'] };
@@ -39,11 +45,10 @@ function processStderrLine(line) {
 function assertOutputLines() {
   var expectedLines = [
     'Starting debugger agent.',
-    'Debugger listening on port ' + debugPort
+    'Debugger listening on (\\[::\\]|0\\.0\\.0\\.0):' + debugPort,
   ];
 
   assert.equal(outputLines.length, expectedLines.length);
   for (var i = 0; i < expectedLines.length; i++)
-    assert.equal(outputLines[i], expectedLines[i]);
-
+    assert(RegExp(expectedLines[i]).test(outputLines[i]));
 }

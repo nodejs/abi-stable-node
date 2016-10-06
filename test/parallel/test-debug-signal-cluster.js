@@ -3,7 +3,13 @@ var common = require('../common');
 var assert = require('assert');
 var spawn = require('child_process').spawn;
 
-var port = common.PORT + 42;
+if (common.isChakraEngine) {
+  console.log('1..0 # Skipped: This test is disabled for chakra engine ' +
+  'because debugger support is not implemented yet.');
+  return;
+}
+
+const port = common.PORT + 1;  // The fixture uses common.PORT.
 var args = ['--debug-port=' + port,
             common.fixturesDir + '/clustered-server/app.js'];
 var options = { stdio: ['inherit', 'inherit', 'pipe', 'ipc'] };
@@ -63,11 +69,11 @@ process.on('exit', function onExit() {
 
 var expectedLines = [
   'Starting debugger agent.',
-  'Debugger listening on port ' + (port + 0),
+  'Debugger listening on (\\[::\\]|0\\.0\\.0\\.0):' + (port + 0),
   'Starting debugger agent.',
-  'Debugger listening on port ' + (port + 1),
+  'Debugger listening on (\\[::\\]|0\\.0\\.0\\.0):' + (port + 1),
   'Starting debugger agent.',
-  'Debugger listening on port ' + (port + 2),
+  'Debugger listening on (\\[::\\]|0\\.0\\.0\\.0):' + (port + 2),
 ];
 
 function assertOutputLines() {
@@ -79,5 +85,5 @@ function assertOutputLines() {
 
   assert.equal(outputLines.length, expectedLines.length);
   for (var i = 0; i < expectedLines.length; i++)
-    assert.equal(outputLines[i], expectedLines[i]);
+    assert(RegExp(expectedLines[i]).test(outputLines[i]));
 }

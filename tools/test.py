@@ -32,7 +32,6 @@ import imp
 import logging
 import optparse
 import os
-import platform
 import re
 import signal
 import subprocess
@@ -273,10 +272,11 @@ class TapProgressIndicator(SimpleProgressIndicator):
     # Print test name as (for example) "parallel/test-assert".  Tests that are
     # scraped from the addons documentation are all named test.js, making it
     # hard to decipher what test is running when only the filename is printed.
-    prefix = abspath(join(dirname(__file__), '../test')) + '/'
+    prefix = abspath(join(dirname(__file__), '../test')) + os.sep
     command = output.command[-1]
     if command.endswith('.js'): command = command[:-3]
     if command.startswith(prefix): command = command[len(prefix):]
+    command = command.replace('\\', '/')
 
     if output.UnexpectedOutput():
       status_line = 'not ok %i %s' % (self._done, command)
@@ -308,6 +308,8 @@ class TapProgressIndicator(SimpleProgressIndicator):
     total_seconds = (duration.microseconds +
       (duration.seconds + duration.days * 24 * 3600) * 10**6) / 10**6
 
+    # duration_ms is measured in seconds and is read as such by TAP parsers.
+    # It should read as "duration including ms" rather than "duration in ms"
     logger.info('  ---')
     logger.info('  duration_ms: %d.%d' % (total_seconds, duration.microseconds / 1000))
     logger.info('  ...')
@@ -575,11 +577,17 @@ def RunProcess(context, timeout, args, **rest):
       error_mode = SEM_NOGPFAULTERRORBOX;
       prev_error_mode = Win32SetErrorMode(error_mode);
       Win32SetErrorMode(error_mode | prev_error_mode);
+
+  faketty = rest.pop('faketty', False)
+  pty_out = rest.pop('pty_out')
+
   process = subprocess.Popen(
     shell = utils.IsWindows(),
     args = popen_args,
     **rest
   )
+  if faketty:
+    os.close(rest['stdout'])
   if utils.IsWindows() and context.suppress_dialogs and prev_error_mode != SEM_INVALID_VALUE:
     Win32SetErrorMode(prev_error_mode)
   # Compute the end time - if the process crosses this limit we
@@ -591,6 +599,29 @@ def RunProcess(context, timeout, args, **rest):
   # loop and keep track of whether or not it times out.
   exit_code = None
   sleep_time = INITIAL_SLEEP_TIME
+  output = ''
+  if faketty:
+    while True:
+      if time.time() >= end_time:
+        # Kill the process and wait for it to exit.
+        KillProcessWithID(process.pid)
+        exit_code = process.wait()
+        timed_out = True
+        break
+
+      # source: http://stackoverflow.com/a/12471855/1903116
+      # related: http://stackoverflow.com/q/11165521/1903116
+      try:
+        data = os.read(pty_out, 9999)
+      except OSError as e:
+        if e.errno != errno.EIO:
+          raise
+        break # EIO means EOF on some systems
+      else:
+        if not data: # EOF
+          break
+        output += data
+
   while exit_code is None:
     if (not end_time is None) and (time.time() >= end_time):
       # Kill the process and wait for it to exit.
@@ -603,7 +634,7 @@ def RunProcess(context, timeout, args, **rest):
       sleep_time = sleep_time * SLEEP_TIME_FACTOR
       if sleep_time > MAX_SLEEP_TIME:
         sleep_time = MAX_SLEEP_TIME
-  return (process, exit_code, timed_out)
+  return (process, exit_code, timed_out, output)
 
 
 def PrintError(str):
@@ -625,39 +656,44 @@ def CheckedUnlink(name):
       PrintError("os.unlink() " + str(e))
     break
 
-def Execute(args, context, timeout=None, env={}):
-  (fd_out, outname) = tempfile.mkstemp()
-  (fd_err, errname) = tempfile.mkstemp()
+def Execute(args, context, timeout=None, env={}, faketty=False):
+  if faketty:
+    import pty
+    (out_master, fd_out) = pty.openpty()
+    fd_err = fd_out
+    pty_out = out_master
+  else:
+    (fd_out, outname) = tempfile.mkstemp()
+    (fd_err, errname) = tempfile.mkstemp()
+    pty_out = None
 
   # Extend environment
   env_copy = os.environ.copy()
   for key, value in env.iteritems():
     env_copy[key] = value
 
-  (process, exit_code, timed_out) = RunProcess(
+  (process, exit_code, timed_out, output) = RunProcess(
     context,
     timeout,
     args = args,
     stdout = fd_out,
     stderr = fd_err,
-    env = env_copy
+    env = env_copy,
+    faketty = faketty,
+    pty_out = pty_out
   )
-  os.close(fd_out)
-  os.close(fd_err)
-  output = file(outname).read()
-  errors = file(errname).read()
-  CheckedUnlink(outname)
-  CheckedUnlink(errname)
+  if faketty:
+    os.close(out_master)
+    errors = ''
+  else:
+    os.close(fd_out)
+    os.close(fd_err)
+    output = file(outname).read()
+    errors = file(errname).read()
+    CheckedUnlink(outname)
+    CheckedUnlink(errname)
+
   return CommandOutput(exit_code, timed_out, output, errors)
-
-
-def ExecuteNoCapture(args, context, timeout=None):
-  (process, exit_code, timed_out) = RunProcess(
-    context,
-    timeout,
-    args = args,
-  )
-  return CommandOutput(exit_code, False, "", "")
 
 
 def CarCdr(path):
@@ -734,8 +770,7 @@ class TestRepository(TestSuite):
       tests = self.GetConfiguration(context).ListTests(current_path, path,
                                                        arch, mode)
       for t in tests: t.variant_flags = v
-      result += tests
-
+      result += tests * context.repeat
 
   def GetTestStatus(self, context, sections, defs):
     self.GetConfiguration(context).GetTestStatus(sections, defs)
@@ -788,7 +823,8 @@ TIMEOUT_SCALEFACTOR = {
 class Context(object):
 
   def __init__(self, workspace, buildspace, verbose, vm, args, expect_fail,
-               timeout, processor, suppress_dialogs, store_unexpected_output):
+               timeout, processor, suppress_dialogs,
+               store_unexpected_output, repeat):
     self.workspace = workspace
     self.buildspace = buildspace
     self.verbose = verbose
@@ -799,6 +835,7 @@ class Context(object):
     self.processor = processor
     self.suppress_dialogs = suppress_dialogs
     self.store_unexpected_output = store_unexpected_output
+    self.repeat = repeat
 
   def GetVm(self, arch, mode):
     if arch == 'none':
@@ -827,17 +864,14 @@ class Context(object):
   def GetTimeout(self, mode):
     return self.timeout * TIMEOUT_SCALEFACTOR[ARCH_GUESS or 'ia32'][mode]
 
+  def GetEngine(self, arch, mode):
+    vm = self.GetVm(arch, mode)
+    engine = Execute([vm, "-p", "process.jsEngine || 'v8'"], self)
+    return engine.stdout.strip() if engine.exit_code is 0 else 'v8'
+
 def RunTestCases(cases_to_run, progress, tasks, flaky_tests_mode):
   progress = PROGRESS_INDICATORS[progress](cases_to_run, flaky_tests_mode)
   return progress.Run(tasks)
-
-
-def BuildRequirements(context, requirements, mode, scons_flags):
-  command_line = (['scons', '-Y', context.workspace, 'mode=' + ",".join(mode)]
-                  + requirements
-                  + scons_flags)
-  output = ExecuteNoCapture(command_line, context)
-  return output.exit_code == 0
 
 
 # -------------------------------------------
@@ -1277,15 +1311,9 @@ def BuildOptions():
       default=False, action="store_true")
   result.add_option('--logfile', dest='logfile',
       help='write test output to file. NOTE: this only applies the tap progress indicator')
-  result.add_option("-S", dest="scons_flags", help="Flag to pass through to scons",
-      default=[], action="append")
   result.add_option("-p", "--progress",
       help="The style of progress indicator (verbose, dots, color, mono, tap)",
       choices=PROGRESS_INDICATORS.keys(), default="mono")
-  result.add_option("--no-build", help="Don't build requirements",
-      default=True, action="store_true")
-  result.add_option("--build-only", help="Only build requirements, don't run the tests",
-      default=False, action="store_true")
   result.add_option("--report", help="Print a summary of the tests to be run",
       default=False, action="store_true")
   result.add_option("-s", "--suite", help="A test suite",
@@ -1332,6 +1360,9 @@ def BuildOptions():
       default="")
   result.add_option('--temp-dir',
       help='Optional path to change directory used for tests', default=False)
+  result.add_option('--repeat',
+      help='Number of times to repeat given tests',
+      default=1, type="int")
   return result
 
 
@@ -1433,7 +1464,6 @@ BUILT_IN_TESTS = [
   'message',
   'internet',
   'addons',
-  'addons-abi',
   'gc',
   'debugger',
   'doctool',
@@ -1498,22 +1528,8 @@ def Main():
                     options.timeout,
                     processor,
                     options.suppress_dialogs,
-                    options.store_unexpected_output)
-  # First build the required targets
-  if not options.no_build:
-    reqs = [ ]
-    for path in paths:
-      reqs += root.GetBuildRequirements(path, context)
-    reqs = list(set(reqs))
-    if len(reqs) > 0:
-      if options.j != 1:
-        options.scons_flags += ['-j', str(options.j)]
-      if not BuildRequirements(context, reqs, options.mode, options.scons_flags):
-        return 1
-
-  # Just return if we are only building the targets for running the tests.
-  if options.build_only:
-    return 0
+                    options.store_unexpected_output,
+                    options.repeat)
 
   # Get status for tests
   sections = [ ]
@@ -1537,6 +1553,7 @@ def Main():
         vmArch = archEngineContext.stdout.rstrip()
         if archEngineContext.exit_code is not 0 or vmArch == "undefined":
           print "Can't determine the arch of: '%s'" % vm
+          print archEngineContext.stderr.rstrip()
           continue
         env = {
           'mode': mode,
@@ -1600,7 +1617,6 @@ def Main():
                      in xrange(options.run[0],
                                len(cases_to_run),
                                options.run[1]) ]
-
   if len(cases_to_run) == 0:
     print "No tests to run."
     return 1

@@ -6,6 +6,10 @@
     'node_use_etw%': 'false',
     'node_use_perfctr%': 'false',
     'node_no_browser_globals%': 'false',
+    'node_use_v8_platform%': 'true',
+    'node_use_bundled_v8%': 'true',
+    'node_shared%': 'false',
+    'node_module_version%': '',
     'node_shared_zlib%': 'false',
     'node_shared_http_parser%': 'false',
     'node_shared_cares%': 'false',
@@ -14,7 +18,7 @@
     'node_shared_openssl%': 'false',
     'node_v8_options%': '',
     'node_enable_v8_vtunejit%': 'false',
-    'node_target_type%': 'executable',
+    'node_engine%': 'v8',
     'node_core_target_name%': 'node',
     'library_files': [
       'lib/internal/bootstrap_node.js',
@@ -88,6 +92,7 @@
       'lib/internal/v8_prof_polyfill.js',
       'lib/internal/v8_prof_processor.js',
       'lib/internal/streams/lazy_transform.js',
+      'lib/internal/streams/BufferList.js',
       'deps/v8/tools/splaytree.js',
       'deps/v8/tools/codemap.js',
       'deps/v8/tools/consarray.js',
@@ -99,6 +104,20 @@
       'deps/v8/tools/SourceMap.js',
       'deps/v8/tools/tickprocessor-driver.js',
     ],
+    'conditions': [
+      [ 'node_shared=="true"', {
+        'node_target_type%': 'shared_library',
+      }, {
+        'node_target_type%': 'executable',
+      }],
+      [ 'OS=="win" and '
+        'node_use_openssl=="true" and '
+        'node_shared_openssl=="false"', {
+        'use_openssl_def': 1,
+      }, {
+        'use_openssl_def': 0,
+      }],
+    ],
   },
 
   'targets': [
@@ -107,9 +126,7 @@
       'type': '<(node_target_type)',
 
       'dependencies': [
-        'node_js2c#host',
-        'deps/v8/tools/gyp/v8.gyp:v8',
-        'deps/v8/tools/gyp/v8.gyp:v8_libplatform'
+        'node_js2c#host'
       ],
 
       'include_dirs': [
@@ -117,7 +134,6 @@
         'tools/msvs/genfiles',
         'deps/uv/src/ares',
         '<(SHARED_INTERMEDIATE_DIR)', # for node_natives.h
-        'deps/v8' # include/v8_platform.h
       ],
 
       'sources': [
@@ -126,6 +142,7 @@
         'src/env.cc',
         'src/fs_event_wrap.cc',
         'src/cares_wrap.cc',
+        'src/connection_wrap.cc',
         'src/handle_wrap.cc',
         'src/js_stream.cc',
         'src/node.cc',
@@ -136,7 +153,8 @@
         'src/node_file.cc',
         'src/node_http_parser.cc',
         'src/node_javascript.cc',
-        'src/node_jsvmapi.cc',
+        'src/node_jsrtapi.cc',
+#        'src/node_jsvmapi.cc',
         'src/node_main.cc',
         'src/node_os.cc',
         'src/node_revert.cc',
@@ -163,6 +181,7 @@
         'src/async-wrap-inl.h',
         'src/base-object.h',
         'src/base-object-inl.h',
+        'src/connection_wrap.h',
         'src/debug-agent.h',
         'src/env.h',
         'src/env-inl.h',
@@ -178,6 +197,7 @@
         'src/node_jsvmapi.h',
         'src/node_jsvmapi_internal.h',
         'src/node_jsvmapi_types.h',
+        'src/node_mutex.h',
         'src/node_root_certs.h',
         'src/node_version.h',
         'src/node_watchdog.h',
@@ -219,6 +239,41 @@
 
 
       'conditions': [
+        [ 'node_shared=="false"', {
+          'msvs_settings': {
+            'VCManifestTool': {
+              'EmbedManifest': 'true',
+              'AdditionalManifestFiles': 'src/res/node.exe.extra.manifest'
+            }
+          },
+        }, {
+          'defines': [
+            'NODE_SHARED_MODE',
+          ],
+          'conditions': [
+            [ 'node_module_version!=""', {
+              'product_extension': 'so.<(node_module_version)',
+            }]
+          ],
+        }],
+        [ 'node_enable_d8=="true"', {
+          'dependencies': [ 'deps/v8/src/d8.gyp:d8' ],
+        }],
+        [ 'node_use_bundled_v8=="true"', {
+          'dependencies': [
+            'deps/v8/tools/gyp/v8.gyp:v8',
+            'deps/v8/tools/gyp/v8.gyp:v8_libplatform'
+          ],
+        }],
+        [ 'node_use_v8_platform=="true"', {
+          'defines': [
+            'NODE_USE_V8_PLATFORM=1',
+          ],
+        }, {
+          'defines': [
+            'NODE_USE_V8_PLATFORM=0',
+          ],
+        }],
         [ 'node_tag!=""', {
           'defines': [ 'NODE_TAG="<(node_tag)"' ],
         }],
@@ -247,12 +302,36 @@
               'defines': [ 'NODE_HAVE_SMALL_ICU=1' ],
           }]],
         }],
-        [ 'node_enable_v8_vtunejit=="true" and (target_arch=="x64" or \
+        [ 'node_use_bundled_v8=="true" and \
+           node_enable_v8_vtunejit=="true" and (target_arch=="x64" or \
            target_arch=="ia32" or target_arch=="x32")', {
           'defines': [ 'NODE_ENABLE_VTUNE_PROFILING' ],
           'dependencies': [
             'deps/v8/src/third_party/vtune/v8vtune.gyp:v8_vtune'
           ],
+        }],
+        [ 'v8_inspector=="true" and node_engine=="v8"', {
+          'defines': [
+            'HAVE_INSPECTOR=1',
+            'V8_INSPECTOR_USE_STL=1',
+            'V8_INSPECTOR_USE_OLD_STL=1',
+          ],
+          'sources': [
+            'src/inspector_agent.cc',
+            'src/inspector_socket.cc',
+            'src/inspector_socket.h',
+            'src/inspector-agent.h',
+          ],
+          'dependencies': [
+            'deps/v8_inspector/third_party/v8_inspector/platform/'
+                'v8_inspector/v8_inspector.gyp:v8_inspector_stl',
+          ],
+          'include_dirs': [
+            'deps/v8_inspector/third_party/v8_inspector',
+            '<(SHARED_INTERMEDIATE_DIR)/blink', # for inspector
+          ],
+        }, {
+          'defines': [ 'HAVE_INSPECTOR=0' ]
         }],
         [ 'node_use_openssl=="true"', {
           'defines': [ 'HAVE_OPENSSL=1' ],
@@ -288,11 +367,14 @@
                     ],
                   },
                   'conditions': [
-                    ['OS in "linux freebsd"', {
+                    ['OS in "linux freebsd" and node_shared=="false"', {
                       'ldflags': [
                         '-Wl,--whole-archive <(PRODUCT_DIR)/<(OPENSSL_PRODUCT)',
                         '-Wl,--no-whole-archive',
                       ],
+                    }],
+                    ['use_openssl_def==1', {
+                      'sources': ['<(SHARED_INTERMEDIATE_DIR)/openssl.def'],
                     }],
                   ],
                 }],
@@ -375,7 +457,7 @@
         [ 'node_no_browser_globals=="true"', {
           'defines': [ 'NODE_NO_BROWSER_GLOBALS' ],
         } ],
-        [ 'v8_postmortem_support=="true"', {
+        [ 'node_use_bundled_v8=="true" and v8_postmortem_support=="true"', {
           'dependencies': [ 'deps/v8/tools/gyp/v8.gyp:postmortem-metadata' ],
           'conditions': [
             # -force_load is not applicable for the static library
@@ -388,6 +470,23 @@
             }],
           ],
         }],
+
+        [ 'node_engine=="v8"', {
+          'include_dirs': [
+            'deps/v8' # include/v8_platform.h
+          ],
+          'dependencies': [
+            'deps/v8/tools/gyp/v8.gyp:v8',
+            'deps/v8/tools/gyp/v8.gyp:v8_libplatform'
+          ],
+        }],
+        ['node_engine=="chakracore"', {
+          'include_dirs': [
+            'deps/chakrashim' # include/v8_platform.h
+          ],
+          'dependencies': [ 'deps/chakrashim/chakrashim.gyp:chakrashim' ],
+        }],
+
         [ 'node_shared_zlib=="false"', {
           'dependencies': [ 'deps/zlib/zlib.gyp:zlib' ],
         }],
@@ -406,6 +505,7 @@
 
         [ 'OS=="win"', {
           'sources': [
+            'src/backtrace_win32.cc',
             'src/res/node.rc',
           ],
           'defines!': [
@@ -420,6 +520,7 @@
           'libraries': [ '-lpsapi.lib' ]
         }, { # POSIX
           'defines': [ '__POSIX__' ],
+          'sources': [ 'src/backtrace_posix.cc' ],
         }],
         [ 'OS=="mac"', {
           # linking Corefoundation is needed since certain OSX debugging tools
@@ -458,21 +559,68 @@
             'NODE_PLATFORM="sunos"',
           ],
         }],
-        [ 'OS=="freebsd" or OS=="linux"', {
-          'ldflags': [ '-Wl,-z,noexecstack',
-                       '-Wl,--whole-archive <(V8_BASE)',
-                       '-Wl,--no-whole-archive' ]
+        [ '(OS=="freebsd" or OS=="linux") and node_shared=="false"', {
+          'ldflags': [ '-Wl,-z,noexecstack' ],
+          'conditions': [
+            [ 'node_engine=="v8"', {
+              'ldflags': [
+                '-Wl,--whole-archive <(V8_BASE)',
+                '-Wl,--no-whole-archive',
+              ],
+            }],
+          ],
         }],
         [ 'OS=="sunos"', {
           'ldflags': [ '-Wl,-M,/usr/lib/ld/map.noexstk' ],
         }],
       ],
-      'msvs_settings': {
-        'VCManifestTool': {
-          'EmbedManifest': 'true',
-          'AdditionalManifestFiles': 'src/res/node.exe.extra.manifest'
-        }
-      },
+    },
+    {
+      'target_name': 'mkssldef',
+      'type': 'none',
+      # TODO(bnoordhuis) Make all platforms export the same list of symbols.
+      # Teach mkssldef.py to generate linker maps that UNIX linkers understand.
+      'conditions': [
+        [ 'use_openssl_def==1', {
+          'variables': {
+            'mkssldef_flags': [
+              # Categories to export.
+              '-CAES,BF,BIO,DES,DH,DSA,EC,ECDH,ECDSA,ENGINE,EVP,HMAC,MD4,MD5,'
+              'NEXTPROTONEG,PSK,RC2,RC4,RSA,SHA,SHA0,SHA1,SHA256,SHA512,SOCK,'
+              'STDIO,TLSEXT',
+              # Defines.
+              '-DWIN32',
+              # Symbols to filter from the export list.
+              '-X^DSO',
+              '-X^_',
+              '-X^private_',
+            ],
+          },
+          'conditions': [
+            ['openssl_fips!=""', {
+              'variables': { 'mkssldef_flags': ['-DOPENSSL_FIPS'] },
+            }],
+          ],
+          'actions': [
+            {
+              'action_name': 'mkssldef',
+              'inputs': [
+                'deps/openssl/openssl/util/libeay.num',
+                'deps/openssl/openssl/util/ssleay.num',
+              ],
+              'outputs': ['<(SHARED_INTERMEDIATE_DIR)/openssl.def'],
+              'action': [
+                'python',
+                'tools/mkssldef.py',
+                '<@(mkssldef_flags)',
+                '-o',
+                '<@(_outputs)',
+                '<@(_inputs)',
+              ],
+            },
+          ],
+        }],
+      ],
     },
     # generate ETW header and resource files
     {
@@ -693,15 +841,68 @@
     {
       'target_name': 'cctest',
       'type': 'executable',
-      'dependencies': [
-        'deps/gtest/gtest.gyp:gtest',
-        'deps/v8/tools/gyp/v8.gyp:v8',
-        'deps/v8/tools/gyp/v8.gyp:v8_libplatform'
-      ],
+      'dependencies': [ 'deps/gtest/gtest.gyp:gtest' ],
       'include_dirs': [
         'src',
-        'deps/v8/include'
       ],
+      'conditions': [
+        [ 'node_engine=="v8"', {
+          'include_dirs': [
+            'deps/v8/include'
+          ],
+          'dependencies': [
+            'deps/v8/tools/gyp/v8.gyp:v8',
+            'deps/v8/tools/gyp/v8.gyp:v8_libplatform'
+          ],
+          'conditions' : [
+              ['v8_inspector=="true"', {
+                'sources': [
+                    'src/inspector_socket.cc',
+                    'test/cctest/test_inspector_socket.cc'
+          ],
+          'conditions': [
+            [ 'node_shared_openssl=="false"', {
+              'dependencies': [
+                'deps/openssl/openssl.gyp:openssl'
+              ]
+            }],
+            [ 'node_shared_http_parser=="false"', {
+              'dependencies': [
+                'deps/http_parser/http_parser.gyp:http_parser'
+              ]
+            }],
+            [ 'node_shared_libuv=="false"', {
+              'dependencies': [
+                'deps/uv/uv.gyp:libuv'
+              ]
+            }]
+                ]
+              }],
+              ['node_use_v8_platform=="true"', {
+                 'dependencies': [
+                    'deps/v8/tools/gyp/v8.gyp:v8_libplatform',
+                ],
+              }],
+              ['node_use_bundled_v8=="true"', {
+                'dependencies': [
+                    'deps/v8/tools/gyp/v8.gyp:v8',
+                    'deps/v8/tools/gyp/v8.gyp:v8_libplatform'
+                ],
+              }],
+          ]
+        }],
+        ['node_engine=="chakracore"', {
+          'dependencies': [
+             'deps/chakrashim/chakrashim.gyp:chakrashim',
+             'deps/uv/uv.gyp:libuv'
+          ],
+        }],
+      ],
+      'msvs_settings': {
+        'VCLinkerTool': {
+          'SubSystem': 1, # /subsystem:console
+        },
+      },
       'defines': [
         # gtest's ASSERT macros conflict with our own.
         'GTEST_DONT_DEFINE_ASSERT_EQ=1',
@@ -710,6 +911,7 @@
         'GTEST_DONT_DEFINE_ASSERT_LE=1',
         'GTEST_DONT_DEFINE_ASSERT_LT=1',
         'GTEST_DONT_DEFINE_ASSERT_NE=1',
+        'NODE_WANT_INTERNALS=1',
       ],
       'sources': [
         'test/cctest/util.cc',
@@ -737,7 +939,7 @@
             'common.gypi',
           ],
 
-          'ldflags': ['-Wl,-bbigtoc,-bE:<(PRODUCT_DIR)/node.exp'],
+          'ldflags': ['-Wl,-bE:<(PRODUCT_DIR)/node.exp'],
         },
         {
           'target_name': 'node_exp',

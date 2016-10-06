@@ -5,6 +5,12 @@ var assert = require('assert');
 var vm = require('vm');
 var spawn = require('child_process').spawn;
 
+if (common.isChakraEngine) {
+  console.log('1..0 # Skipped: This test is disabled for chakra engine ' +
+  'because debugger support is not implemented yet.');
+  return;
+}
+
 assert.throws(function() {
   vm.runInDebugContext('*');
 }, /SyntaxError/);
@@ -19,7 +25,11 @@ assert.throws(function() {
 
 assert.throws(function() {
   vm.runInDebugContext('(function(f) { f(f) })(function(f) { f(f) })');
-}, /RangeError/);
+},
+common.engineSpecificMessage({
+  v8: /RangeError/,
+  chakracore: /Error\: Out of stack space/
+}));
 
 assert.equal(typeof vm.runInDebugContext('this'), 'object');
 assert.equal(typeof vm.runInDebugContext('Debug'), 'object');
@@ -31,9 +41,9 @@ assert.strictEqual(vm.runInDebugContext(undefined), undefined);
 
 // See https://github.com/nodejs/node/issues/1190, accessing named interceptors
 // and accessors inside a debug event listener should not crash.
-(function() {
-  var Debug = vm.runInDebugContext('Debug');
-  var breaks = 0;
+{
+  const Debug = vm.runInDebugContext('Debug');
+  let breaks = 0;
 
   function ondebugevent(evt, exc) {
     if (evt !== Debug.DebugEvent.Break) return;
@@ -51,10 +61,10 @@ assert.strictEqual(vm.runInDebugContext(undefined), undefined);
   assert.equal(breaks, 0);
   breakpoint();
   assert.equal(breaks, 1);
-})();
+}
 
 // Can set listeners and breakpoints on a single line file
-(function() {
+{
   const Debug = vm.runInDebugContext('Debug');
   const fn = require(common.fixturesDir + '/exports-function-with-param');
   let called = false;
@@ -69,7 +79,7 @@ assert.strictEqual(vm.runInDebugContext(undefined), undefined);
   fn('foo');
   assert.strictEqual(Debug.showBreakPoints(fn), '(arg) { [B0]return arg; }');
   assert.strictEqual(called, true);
-})();
+}
 
 // See https://github.com/nodejs/node/issues/1190, fatal errors should not
 // crash the process.

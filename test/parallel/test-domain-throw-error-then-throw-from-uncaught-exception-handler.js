@@ -10,6 +10,12 @@ const assert = require('assert');
 const child_process = require('child_process');
 const domain = require('domain');
 
+if (common.isChakraEngine) {
+  console.log(`1..0 # Skipped: This test is disabled for chakra engine
+    because it depends on v8-option --abort-on-uncaught-exception`);
+  return;
+}
+
 const uncaughtExceptionHandlerErrMsg = 'boom from uncaughtException handler';
 const domainErrMsg = 'boom from domain';
 
@@ -82,7 +88,7 @@ function runTestWithAbortOnUncaughtException() {
 function createTestCmdLine(options) {
   var testCmd = '';
 
-  if (process.platform !== 'win32') {
+  if (!common.isWindows) {
     // Do not create core files, as it can take a lot of disk space on
     // continuous testing and developers' machines
     testCmd += 'ulimit -c 0 && ';

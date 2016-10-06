@@ -1,8 +1,8 @@
 'use strict';
 
+const common = require('../common');
 const assert = require('assert');
 const fs = require('fs');
-const common = require('../common');
 
 /*
  * The goal of this test is to make sure that:
@@ -25,6 +25,12 @@ const common = require('../common');
  * within a try/catch block, the process should exit gracefully, whether or
  * not --abort_on_uncaught_exception is passed on the command line.
  */
+
+if (common.isChakraEngine) {
+  console.log(`1..0 # Skipped: This test is disabled for chakra engine
+    because it depends on v8-option --abort-on-uncaught-exception`);
+  return;
+}
 
 const domainErrHandlerExMessage = 'exception from domain error handler';
 
@@ -93,7 +99,7 @@ if (process.argv[2] === 'child') {
       throwInDomainErrHandlerOpt = 'throwInDomainErrHandler';
 
     var cmdToExec = '';
-    if (process.platform !== 'win32') {
+    if (!common.isWindows) {
       // Do not create core files, as it can take a lot of disk space on
       // continuous testing and developers' machines
       cmdToExec += 'ulimit -c 0 && ';

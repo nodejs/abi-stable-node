@@ -2,15 +2,15 @@
 // just like test/gc/http-client.js,
 // but aborting every connection that comes in.
 
+require('../common');
+
 function serverHandler(req, res) {
   res.connection.destroy();
 }
 
 const http = require('http');
 const weak = require('weak');
-const common = require('../common');
 const assert = require('assert');
-const PORT = common.PORT;
 const todo = 500;
 let done = 0;
 let count = 0;
@@ -19,7 +19,7 @@ let countGC = 0;
 console.log('We should do ' + todo + ' requests');
 
 var server = http.createServer(serverHandler);
-server.listen(PORT, getall);
+server.listen(0, getall);
 
 function getall() {
   if (count >= todo)
@@ -34,7 +34,7 @@ function getall() {
     var req = http.get({
       hostname: 'localhost',
       pathname: '/',
-      port: PORT
+      port: server.address().port
     }, cb).on('error', cb);
 
     count++;

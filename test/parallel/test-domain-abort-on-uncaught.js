@@ -9,6 +9,12 @@ const assert = require('assert');
 const domain = require('domain');
 const child_process = require('child_process');
 
+if (common.isChakraEngine) {
+  console.log(`1..0 # Skipped: This test is disabled for chakra engine
+    because it depends on v8-option --abort-on-uncaught-exception`);
+  return;
+}
+
 var errorHandlerCalled = false;
 
 const tests = [
@@ -109,8 +115,8 @@ const tests = [
       const server = net.createServer(function(conn) {
         conn.pipe(conn);
       });
-      server.listen(common.PORT, common.localhostIPv4, function() {
-        const conn = net.connect(common.PORT, common.localhostIPv4);
+      server.listen(0, common.localhostIPv4, function() {
+        const conn = net.connect(this.address().port, common.localhostIPv4);
         conn.once('data', function() {
           throw new Error('ok');
         });
@@ -233,7 +239,7 @@ if (process.argv[2] === 'child') {
 
   tests.forEach(function(test, testIndex) {
     var testCmd = '';
-    if (process.platform !== 'win32') {
+    if (!common.isWindows) {
       // Do not create core files, as it can take a lot of disk space on
       // continuous testing and developers' machines
       testCmd += 'ulimit -c 0 && ';

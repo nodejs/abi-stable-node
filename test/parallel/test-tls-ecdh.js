@@ -19,30 +19,22 @@ var options = {
 };
 
 var reply = 'I AM THE WALRUS'; // something recognizable
-var nconns = 0;
-var response = '';
 
-process.on('exit', function() {
-  assert.equal(nconns, 1);
-  assert.notEqual(response.indexOf(reply), -1);
-});
-
-var server = tls.createServer(options, function(conn) {
+var server = tls.createServer(options, common.mustCall(function(conn) {
   conn.end(reply);
-  nconns++;
-});
+}));
 
-server.listen(common.PORT, '127.0.0.1', function() {
+server.listen(0, '127.0.0.1', common.mustCall(function() {
   var cmd = '"' + common.opensslCli + '" s_client -cipher ' + options.ciphers +
-            ' -connect 127.0.0.1:' + common.PORT;
+            ` -connect 127.0.0.1:${this.address().port}`;
 
   // for the performance and stability issue in s_client on Windows
   if (common.isWindows)
     cmd += ' -no_rand_screen';
 
-  exec(cmd, function(err, stdout, stderr) {
+  exec(cmd, common.mustCall(function(err, stdout, stderr) {
     if (err) throw err;
-    response = stdout;
+    assert.notEqual(stdout.indexOf(reply), -1);
     server.close();
-  });
-});
+  }));
+}));

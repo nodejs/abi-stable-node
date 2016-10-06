@@ -23,11 +23,17 @@ try {
   return;
 }
 
+// Skip 'toString()' check for chakra engine because it verifies limit of v8
+// specific kStringMaxLength variable.
+if (common.isChakraEngine) {
+  return;
+}
+
 // Ensure we have enough memory available for future allocations to succeed.
 if (!binding.ensureAllocation(2 * kStringMaxLength)) {
   common.skip(skipMessage);
   return;
 }
 
-const maxString = buf.toString('binary');
+const maxString = buf.toString('latin1');
 assert.equal(maxString.length, kStringMaxLength);

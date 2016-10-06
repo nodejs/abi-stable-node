@@ -471,6 +471,9 @@ Reduction JSCreateLowering::ReduceNewArray(Node* node, Node* length,
   PretenureFlag pretenure = site->GetPretenureMode();
   ElementsKind elements_kind = site->GetElementsKind();
   DCHECK(IsFastElementsKind(elements_kind));
+  if (NodeProperties::GetType(length)->Max() > 0) {
+    elements_kind = GetHoleyElementsKind(elements_kind);
+  }
   dependencies()->AssumeTenuringDecision(site);
   dependencies()->AssumeTransitionStable(site);
 
@@ -905,8 +908,17 @@ Node* JSCreateLowering::AllocateFastLiteral(
         site_context->ExitScope(current_site, boilerplate_object);
       } else if (property_details.representation().IsDouble()) {
         // Allocate a mutable HeapNumber box and store the value into it.
-        value = effect = AllocateMutableHeapNumber(
-            Handle<HeapNumber>::cast(boilerplate_value)->value(),
+        Callable callable = CodeFactory::AllocateMutableHeapNumber(isolate());
+        CallDescriptor* desc = Linkage::GetStubCallDescriptor(
+            isolate(), jsgraph()->zone(), callable.descriptor(), 0,
+            CallDescriptor::kNoFlags, Operator::kNoThrow);
+        value = effect = graph()->NewNode(
+            common()->Call(desc), jsgraph()->HeapConstant(callable.code()),
+            jsgraph()->NoContextConstant(), effect, control);
+        effect = graph()->NewNode(
+            simplified()->StoreField(AccessBuilder::ForHeapNumberValue()),
+            value, jsgraph()->Constant(
+                       Handle<HeapNumber>::cast(boilerplate_value)->value()),
             effect, control);
       } else if (property_details.representation().IsSmi()) {
         // Ensure that value is stored as smi.
@@ -1026,23 +1038,6 @@ Node* JSCreateLowering::AllocateFastLiteralElements(
     builder.Store(access, jsgraph()->Constant(i), elements_values[i]);
   }
   return builder.Finish();
-}
-
-Node* JSCreateLowering::AllocateMutableHeapNumber(double value, Node* effect,
-                                                  Node* control) {
-  // TODO(turbofan): Support inline allocation of MutableHeapNumber
-  // (requires proper alignment on Allocate, and Begin/FinishRegion).
-  Callable callable = CodeFactory::AllocateMutableHeapNumber(isolate());
-  CallDescriptor* desc = Linkage::GetStubCallDescriptor(
-      isolate(), jsgraph()->zone(), callable.descriptor(), 0,
-      CallDescriptor::kNoFlags, Operator::kNoThrow);
-  Node* result = effect = graph()->NewNode(
-      common()->Call(desc), jsgraph()->HeapConstant(callable.code()),
-      jsgraph()->NoContextConstant(), effect, control);
-  effect = graph()->NewNode(
-      simplified()->StoreField(AccessBuilder::ForHeapNumberValue()), result,
-      jsgraph()->Constant(value), effect, control);
-  return result;
 }
 
 MaybeHandle<LiteralsArray> JSCreateLowering::GetSpecializationLiterals(

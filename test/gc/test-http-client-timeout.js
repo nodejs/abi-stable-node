@@ -2,6 +2,8 @@
 // just like test/gc/http-client.js,
 // but with a timeout set
 
+require('../common');
+
 function serverHandler(req, res) {
   setTimeout(function() {
     req.resume();
@@ -12,9 +14,7 @@ function serverHandler(req, res) {
 
 const http = require('http');
 const weak = require('weak');
-const common = require('../common');
 const assert = require('assert');
-const PORT = common.PORT;
 const todo = 550;
 let done = 0;
 let count = 0;
@@ -23,7 +23,7 @@ let countGC = 0;
 console.log('We should do ' + todo + ' requests');
 
 var server = http.createServer(serverHandler);
-server.listen(PORT, getall);
+server.listen(0, getall);
 
 function getall() {
   if (count >= todo)
@@ -39,7 +39,7 @@ function getall() {
     var req = http.get({
       hostname: 'localhost',
       pathname: '/',
-      port: PORT
+      port: server.address().port
     }, cb);
     req.on('error', cb);
     req.setTimeout(10, function() {

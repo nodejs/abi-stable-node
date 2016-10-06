@@ -1,10 +1,9 @@
 'use strict';
 
+const common = require('../common');
 const assert = require('assert');
 const spawnSync = require('child_process').spawnSync;
 const path = require('path');
-
-const common = require('../common');
 
 var node = process.execPath;
 
@@ -54,7 +53,10 @@ var syntaxArgs = [
     assert.equal(c.stdout, '', 'stdout produced');
 
     // stderr should have a syntax error message
-    var match = c.stderr.match(/^SyntaxError: Unexpected identifier$/m);
+    var match = c.stderr.match(common.engineSpecificMessage({
+      v8: /^SyntaxError: Unexpected identifier$/m,
+      chakracore: /^SyntaxError: Expected ';'$/m})
+	);
     assert(match, 'stderr incorrect');
 
     assert.equal(c.status, 1, 'code == ' + c.status);

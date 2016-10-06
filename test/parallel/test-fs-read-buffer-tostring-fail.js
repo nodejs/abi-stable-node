@@ -1,6 +1,13 @@
 'use strict';
 
 const common = require('../common');
+
+if (!common.enoughTestMem) {
+  const skipMessage = 'intensive toString tests due to memory confinements';
+  common.skip(skipMessage);
+  return;
+}
+
 const assert = require('assert');
 const fs = require('fs');
 const path = require('path');
@@ -17,7 +24,10 @@ const stream = fs.createWriteStream(file, {
 });
 
 const size = kStringMaxLength / 200;
-const a = Buffer.alloc(size, 'a');
+const a = Buffer.alloc(common.engineSpecificMessage({
+  v8: size,
+  chakracore: Math.trunc(size)
+})).fill('a');
 
 for (var i = 0; i < 201; i++) {
   stream.write(a);
@@ -27,8 +37,10 @@ stream.end();
 stream.on('finish', common.mustCall(function() {
   fd = fs.openSync(file, 'r');
   fs.read(fd, kStringMaxLength + 1, 0, 'utf8', common.mustCall(function(err) {
-    assert.ok(err instanceof Error);
-    assert.strictEqual('"toString()" failed', err.message);
+    if (!common.isChakraEngine) {
+      assert.ok(err instanceof Error);
+      assert.strictEqual('"toString()" failed', err.message);
+    }
   }));
 }));
 

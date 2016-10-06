@@ -26,15 +26,15 @@
 // bool type in these exports.  Is that safe and stable?
 extern "C" {
 enum napi_valuetype {
-  // ES6 types (corresponds to typeof)
-  napi_undefined,
-  napi_null,
-  napi_boolean,
-  napi_number,
-  napi_string,
-  napi_symbol,
-  napi_object,
-  napi_function,
+    // ES6 types (corresponds to typeof)
+    napi_undefined,
+    napi_null,
+    napi_boolean,
+    napi_number,
+    napi_string,
+    napi_symbol,
+    napi_object,
+    napi_function,
 };
 
 // Environment
@@ -59,11 +59,6 @@ NODE_EXTERN napi_value napi_create_string_with_length(napi_env e, const char*,
                                                                size_t length);
 NODE_EXTERN napi_value napi_create_boolean(napi_env e, bool b);
 NODE_EXTERN napi_value napi_create_symbol(napi_env e, const char* s = NULL);
-// Consider: Would it be useful to include an optional void* for external data
-// to be included on the function object?  A finalizer function would also need
-// to be included.  Same for napi_create_object, and perhaps add a
-// napi_set_external_data() and get api?  Consider JsCreateExternalObject and
-// v8::ObjectTemplate::SetInternalFieldCount()
 NODE_EXTERN napi_value napi_create_function(napi_env e, napi_callback cbinfo);
 NODE_EXTERN napi_value napi_create_error(napi_env e, napi_value msg);
 NODE_EXTERN napi_value napi_create_type_error(napi_env e, napi_value msg);
@@ -145,20 +140,11 @@ NODE_EXTERN void napi_set_return_value(napi_env e, napi_func_cb_info cbinfo,
 
 
 // Methods to support ObjectWrap
-// Consider: current implementation for supporting ObjectWrap pattern is
-// difficult to implement for other VMs because of the dependence on node
-// core's node::ObjectWrap type which depends on v8 types and specifically
-// requires the given v8 object to have an internal field count of >= 1.
-// It is proving difficult in the chakracore version of these APIs to
-// implement this natively in JSRT which means that maybe this isn't the
-// best way to attach external data to a javascript object.  Perhaps
-// instead NAPI should do an external data concept like JsSetExternalData
-// and use that for "wrapping a native object".
 NODE_EXTERN napi_value napi_create_constructor_for_wrap(napi_env e,
                                                         napi_callback cb);
 NODE_EXTERN void napi_wrap(napi_env e, napi_value jsObject, void* nativeObj,
                            napi_destruct* napi_destructor,
-                           napi_weakref* handle);
+	                         napi_weakref* handle);
 NODE_EXTERN void* napi_unwrap(napi_env e, napi_value jsObject);
 
 NODE_EXTERN napi_value napi_create_constructor_for_wrap_with_methods(
@@ -173,10 +159,8 @@ NODE_EXTERN napi_persistent napi_create_persistent(napi_env e, napi_value v);
 NODE_EXTERN void napi_release_persistent(napi_env e, napi_persistent p);
 NODE_EXTERN napi_value napi_get_persistent_value(napi_env e, napi_persistent p);
 NODE_EXTERN napi_weakref napi_create_weakref(napi_env e, napi_value v);
-NODE_EXTERN bool napi_get_weakref_value(napi_env e, napi_weakref w,
-                                        napi_value *pv);
-// is this actually needed?
-NODE_EXTERN void napi_release_weakref(napi_env e, napi_weakref w);
+NODE_EXTERN bool napi_get_weakref_value(napi_env e, napi_weakref w, napi_value *pv);
+NODE_EXTERN void napi_release_weakref(napi_env e, napi_weakref w); // is this actually needed? 
 NODE_EXTERN napi_handle_scope napi_open_handle_scope(napi_env e);
 NODE_EXTERN void napi_close_handle_scope(napi_env e, napi_handle_scope s);
 NODE_EXTERN napi_escapable_handle_scope
@@ -206,8 +190,6 @@ NODE_EXTERN bool napi_try_catch(napi_env e, napi_try_callback t,
 
 
 // Methods to provide node::Buffer functionality with napi types
-NODE_EXTERN napi_value napi_buffer_new(napi_env e,
-                                       char* data, uint32_t size);
 NODE_EXTERN napi_value napi_buffer_copy(napi_env e,
                                         const char* data, uint32_t size);
 NODE_EXTERN bool napi_buffer_has_instance(napi_env e, napi_value v);
@@ -230,23 +212,20 @@ NODE_EXTERN size_t napi_buffer_length(napi_env e, napi_value v);
 #include <uv.h>
 
 #define NAPI_METHOD(name)                                                      \
-  void name(napi_env env, napi_func_cb_info info)
-
-#define NAPI_MODULE_INIT(name)                                                 \
-  void name(napi_env env, napi_value exports, napi_value module)
+    void name(napi_env env, napi_func_cb_info info)
 
 // This is taken from NAN and is the C++11 version.
 // TODO(ianhall): Support pre-C++11 compilation?
 #define NAPI_DISALLOW_ASSIGN(CLASS) void operator=(const CLASS&) = delete;
 #define NAPI_DISALLOW_COPY(CLASS) CLASS(const CLASS&) = delete;
 #define NAPI_DISALLOW_MOVE(CLASS)                                              \
-  CLASS(CLASS&&) = delete;                                                     \
-  void operator=(CLASS&&) = delete;
+    CLASS(CLASS&&) = delete;                                                   \
+    void operator=(CLASS&&) = delete;
 
 #define NAPI_DISALLOW_ASSIGN_COPY_MOVE(CLASS)                                  \
-  NAPI_DISALLOW_ASSIGN(CLASS)                                                \
-  NAPI_DISALLOW_COPY(CLASS)                                                  \
-  NAPI_DISALLOW_MOVE(CLASS)
+    NAPI_DISALLOW_ASSIGN(CLASS)                                                \
+    NAPI_DISALLOW_COPY(CLASS)                                                  \
+    NAPI_DISALLOW_MOVE(CLASS)
 
 namespace Napi {
   // RAII HandleScope helpers
@@ -615,10 +594,3 @@ NODE_EXTERN napi_value JsValue(v8::Local<v8::Value> v);
 NODE_EXTERN v8::Persistent<v8::Value>* V8PersistentValue(napi_persistent p);
 
 #endif  // SRC_NODE_JSVMAPI_H__
-
-/////////////////////////////////////////////////////////
-// NAN transition helpers, tbd what do with these
-/////////////////////////////////////////////////////////
-#undef NAN_MODULE_INIT
-#define NAN_MODULE_INIT(name)                                                  \
-  void name(napi_env napi_env, napi_value target, napi_value module)

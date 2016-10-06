@@ -1,7 +1,6 @@
 'use strict';
 
 const common = require('../common');
-const assert = require('assert');
 const http = require('http');
 
 const server = http.createServer((req, res) => {
@@ -11,7 +10,7 @@ const server = http.createServer((req, res) => {
   res.flushHeaders();
 
   req.setTimeout(common.platformTimeout(200), () => {
-    assert(false, 'Should not happen');
+    common.fail('Request timeout should not fire');
   });
   req.resume();
   req.once('end', common.mustCall(() => {
@@ -19,9 +18,9 @@ const server = http.createServer((req, res) => {
   }));
 });
 
-server.listen(common.PORT, common.mustCall(() => {
+server.listen(0, common.mustCall(() => {
   const req = http.request({
-    port: common.PORT,
+    port: server.address().port,
     method: 'POST'
   }, (res) => {
     const interval = setInterval(() => {
@@ -30,7 +29,7 @@ server.listen(common.PORT, common.mustCall(() => {
     setTimeout(() => {
       clearInterval(interval);
       req.end();
-    }, common.platformTimeout(400));
+    }, common.platformTimeout(200));
   });
   req.write('.');
 }));

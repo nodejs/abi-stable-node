@@ -1,5 +1,6 @@
 #include "tcp_wrap.h"
 
+#include "connection_wrap.h"
 #include "env.h"
 #include "env-inl.h"
 #include "handle_wrap.h"
@@ -28,7 +29,6 @@ using v8::Integer;
 using v8::Local;
 using v8::Object;
 using v8::String;
-using v8::Undefined;
 using v8::Value;
 
 
@@ -121,11 +121,6 @@ void TCPWrap::Initialize(Local<Object> target,
 }
 
 
-uv_tcp_t* TCPWrap::UVHandle() {
-  return &handle_;
-}
-
-
 void TCPWrap::New(const FunctionCallbackInfo<Value>& args) {
   // This constructor should not be exposed to public javascript.
   // Therefore we assert that we are not trying to call this as a
@@ -146,11 +141,10 @@ void TCPWrap::New(const FunctionCallbackInfo<Value>& args) {
 
 
 TCPWrap::TCPWrap(Environment* env, Local<Object> object, AsyncWrap* parent)
-    : StreamWrap(env,
-                 object,
-                 reinterpret_cast<uv_stream_t*>(&handle_),
-                 AsyncWrap::PROVIDER_TCPWRAP,
-                 parent) {
+    : ConnectionWrap(env,
+                     object,
+                     AsyncWrap::PROVIDER_TCPWRAP,
+                     parent) {
   int r = uv_tcp_init(env->event_loop(), &handle_);
   CHECK_EQ(r, 0);  // How do we proxy this error up to javascript?
                    // Suggestion: uv_tcp_init() returns void.
@@ -164,7 +158,10 @@ TCPWrap::~TCPWrap() {
 
 
 void TCPWrap::SetNoDelay(const FunctionCallbackInfo<Value>& args) {
-  TCPWrap* wrap = Unwrap<TCPWrap>(args.Holder());
+  TCPWrap* wrap;
+  ASSIGN_OR_RETURN_UNWRAP(&wrap,
+                          args.Holder(),
+                          args.GetReturnValue().Set(UV_EBADF));
   int enable = static_cast<int>(args[0]->BooleanValue());
   int err = uv_tcp_nodelay(&wrap->handle_, enable);
   args.GetReturnValue().Set(err);
@@ -172,7 +169,10 @@ void TCPWrap::SetNoDelay(const FunctionCallbackInfo<Value>& args) {
 
 
 void TCPWrap::SetKeepAlive(const FunctionCallbackInfo<Value>& args) {
-  TCPWrap* wrap = Unwrap<TCPWrap>(args.Holder());
+  TCPWrap* wrap;
+  ASSIGN_OR_RETURN_UNWRAP(&wrap,
+                          args.Holder(),
+                          args.GetReturnValue().Set(UV_EBADF));
   int enable = args[0]->Int32Value();
   unsigned int delay = args[1]->Uint32Value();
   int err = uv_tcp_keepalive(&wrap->handle_, enable, delay);
@@ -182,7 +182,10 @@ void TCPWrap::SetKeepAlive(const FunctionCallbackInfo<Value>& args) {
 
 #ifdef _WIN32
 void TCPWrap::SetSimultaneousAccepts(const FunctionCallbackInfo<Value>& args) {
-  TCPWrap* wrap = Unwrap<TCPWrap>(args.Holder());
+  TCPWrap* wrap;
+  ASSIGN_OR_RETURN_UNWRAP(&wrap,
+                          args.Holder(),
+                          args.GetReturnValue().Set(UV_EBADF));
   bool enable = args[0]->BooleanValue();
   int err = uv_tcp_simultaneous_accepts(&wrap->handle_, enable);
   args.GetReturnValue().Set(err);
@@ -191,14 +194,20 @@ void TCPWrap::SetSimultaneousAccepts(const FunctionCallbackInfo<Value>& args) {
 
 
 void TCPWrap::Open(const FunctionCallbackInfo<Value>& args) {
-  TCPWrap* wrap = Unwrap<TCPWrap>(args.Holder());
+  TCPWrap* wrap;
+  ASSIGN_OR_RETURN_UNWRAP(&wrap,
+                          args.Holder(),
+                          args.GetReturnValue().Set(UV_EBADF));
   int fd = static_cast<int>(args[0]->IntegerValue());
   uv_tcp_open(&wrap->handle_, fd);
 }
 
 
 void TCPWrap::Bind(const FunctionCallbackInfo<Value>& args) {
-  TCPWrap* wrap = Unwrap<TCPWrap>(args.Holder());
+  TCPWrap* wrap;
+  ASSIGN_OR_RETURN_UNWRAP(&wrap,
+                          args.Holder(),
+                          args.GetReturnValue().Set(UV_EBADF));
   node::Utf8Value ip_address(args.GetIsolate(), args[0]);
   int port = args[1]->Int32Value();
   sockaddr_in addr;
@@ -213,7 +222,10 @@ void TCPWrap::Bind(const FunctionCallbackInfo<Value>& args) {
 
 
 void TCPWrap::Bind6(const FunctionCallbackInfo<Value>& args) {
-  TCPWrap* wrap = Unwrap<TCPWrap>(args.Holder());
+  TCPWrap* wrap;
+  ASSIGN_OR_RETURN_UNWRAP(&wrap,
+                          args.Holder(),
+                          args.GetReturnValue().Set(UV_EBADF));
   node::Utf8Value ip6_address(args.GetIsolate(), args[0]);
   int port = args[1]->Int32Value();
   sockaddr_in6 addr;
@@ -228,48 +240,15 @@ void TCPWrap::Bind6(const FunctionCallbackInfo<Value>& args) {
 
 
 void TCPWrap::Listen(const FunctionCallbackInfo<Value>& args) {
-  TCPWrap* wrap = Unwrap<TCPWrap>(args.Holder());
+  TCPWrap* wrap;
+  ASSIGN_OR_RETURN_UNWRAP(&wrap,
+                          args.Holder(),
+                          args.GetReturnValue().Set(UV_EBADF));
   int backlog = args[0]->Int32Value();
   int err = uv_listen(reinterpret_cast<uv_stream_t*>(&wrap->handle_),
                       backlog,
                       OnConnection);
   args.GetReturnValue().Set(err);
-}
-
-
-void TCPWrap::OnConnection(uv_stream_t* handle, int status) {
-  TCPWrap* tcp_wrap = static_cast<TCPWrap*>(handle->data);
-  CHECK_EQ(&tcp_wrap->handle_, reinterpret_cast<uv_tcp_t*>(handle));
-  Environment* env = tcp_wrap->env();
-
-  HandleScope handle_scope(env->isolate());
-  Context::Scope context_scope(env->context());
-
-  // We should not be getting this callback if someone as already called
-  // uv_close() on the handle.
-  CHECK_EQ(tcp_wrap->persistent().IsEmpty(), false);
-
-  Local<Value> argv[2] = {
-    Integer::New(env->isolate(), status),
-    Undefined(env->isolate())
-  };
-
-  if (status == 0) {
-    // Instantiate the client javascript object and handle.
-    Local<Object> client_obj =
-        Instantiate(env, static_cast<AsyncWrap*>(tcp_wrap));
-
-    // Unwrap the client javascript object.
-    TCPWrap* wrap = Unwrap<TCPWrap>(client_obj);
-    uv_stream_t* client_handle = reinterpret_cast<uv_stream_t*>(&wrap->handle_);
-    if (uv_accept(handle, client_handle))
-      return;
-
-    // Successful accept. Call the onconnection callback in JavaScript land.
-    argv[1] = client_obj;
-  }
-
-  tcp_wrap->MakeCallback(env->onconnection_string(), arraysize(argv), argv);
 }
 
 
@@ -304,7 +283,10 @@ void TCPWrap::AfterConnect(uv_connect_t* req, int status) {
 void TCPWrap::Connect(const FunctionCallbackInfo<Value>& args) {
   Environment* env = Environment::GetCurrent(args);
 
-  TCPWrap* wrap = Unwrap<TCPWrap>(args.Holder());
+  TCPWrap* wrap;
+  ASSIGN_OR_RETURN_UNWRAP(&wrap,
+                          args.Holder(),
+                          args.GetReturnValue().Set(UV_EBADF));
 
   CHECK(args[0]->IsObject());
   CHECK(args[1]->IsString());
@@ -335,7 +317,10 @@ void TCPWrap::Connect(const FunctionCallbackInfo<Value>& args) {
 void TCPWrap::Connect6(const FunctionCallbackInfo<Value>& args) {
   Environment* env = Environment::GetCurrent(args);
 
-  TCPWrap* wrap = Unwrap<TCPWrap>(args.Holder());
+  TCPWrap* wrap;
+  ASSIGN_OR_RETURN_UNWRAP(&wrap,
+                          args.Holder(),
+                          args.GetReturnValue().Set(UV_EBADF));
 
   CHECK(args[0]->IsObject());
   CHECK(args[1]->IsString());

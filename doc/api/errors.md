@@ -231,7 +231,7 @@ function MyError() {
 }
 
 // Without passing MyError to captureStackTrace, the MyError
-// frame would should up in the .stack property. by passing
+// frame would show up in the .stack property. By passing
 // the constructor, we omit that frame and all frames above it.
 new MyError().stack
 ```
@@ -268,7 +268,7 @@ instantiated.
 
 For example:
 
-```
+```txt
 Error: Things keep happening!
    at /home/gbusey/file.js:525:2
    at Frobnicator.refrobulate (/home/gbusey/business-logic.js:424:21)

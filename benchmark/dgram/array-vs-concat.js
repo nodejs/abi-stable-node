@@ -41,7 +41,6 @@ var dgram = require('dgram');
 
 function server() {
   var sent = 0;
-  var received = 0;
   var socket = dgram.createSocket('udp4');
 
   var onsend = type === 'concat' ? onsendConcat : onsendMulti;
@@ -68,11 +67,8 @@ function server() {
       var bytes = sent * len;
       var gbits = (bytes * 8) / (1024 * 1024 * 1024);
       bench.end(gbits);
+      process.exit(0);
     }, dur * 1000);
-  });
-
-  socket.on('message', function(buf, rinfo) {
-    received++;
   });
 
   socket.bind(PORT);

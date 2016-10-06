@@ -1,6 +1,13 @@
 'use strict';
 
 const common = require('../common');
+
+if (!common.enoughTestMem) {
+  const skipMessage = 'intensive toString tests due to memory confinements';
+  common.skip(skipMessage);
+  return;
+}
+
 const assert = require('assert');
 const fs = require('fs');
 const path = require('path');
@@ -14,7 +21,8 @@ const stream = fs.createWriteStream(file, {
 });
 
 const size = kStringMaxLength / 200;
-const a = Buffer.alloc(size, 'a');
+const a = Buffer.alloc(
+  common.isChakraEngine ? Math.trunc(size) : size).fill('a');
 
 for (var i = 0; i < 201; i++) {
   stream.write(a);
@@ -24,6 +32,9 @@ stream.end();
 stream.on('finish', common.mustCall(function() {
   // make sure that the toString does not throw an error
   fs.readFile(file, 'utf8', common.mustCall(function(err, buf) {
+    if (common.isChakraEngine) { // chakra does not fail at this limit
+      return;
+    }
     assert.ok(err instanceof Error);
     assert.strictEqual('"toString()" failed', err.message);
   }));

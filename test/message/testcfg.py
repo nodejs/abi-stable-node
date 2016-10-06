@@ -27,7 +27,7 @@
 
 import test
 import os
-from os.path import join, dirname, exists, basename, isdir
+from os.path import join, exists, basename, isdir
 import re
 
 FLAGS_PATTERN = re.compile(r"//\s+Flags:(.*)")
@@ -119,6 +119,7 @@ class MessageTestConfiguration(test.TestConfiguration):
         return []
 
   def ListTests(self, current_path, path, arch, mode):
+    engine = self.context.GetEngine(arch, mode)
     all_tests = [current_path + [t] for t in self.Ls(self.root)]
     result = []
     for test in all_tests:
@@ -126,9 +127,13 @@ class MessageTestConfiguration(test.TestConfiguration):
         file_prefix = join(self.root, reduce(join, test[1:], ""))
         file_path = file_prefix + ".js"
         output_path = file_prefix + ".out"
-        if not exists(output_path):
-          print "Could not find %s" % output_path
-          continue
+        engine_output_path = file_prefix + (".%s.out" % engine)
+        if exists(engine_output_path):
+          output_path = engine_output_path
+        else:
+          if not exists(output_path):
+            print "Could not find %s or %s" % (output_path, engine_output_path)
+            continue
         result.append(MessageTestCase(test, file_path, output_path,
                                       arch, mode, self.context, self))
     return result

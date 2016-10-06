@@ -11,13 +11,16 @@ process.on('exit', () => {
 });
 
 common.ArrayStream.prototype.write = function(output) {
-  if (/var foo bar;/.test(output))
+  if (common.engineSpecificMessage({
+    v8: /var foo bar;/,
+    chakracore: /Expected ';'/  // chakra does not show source
+  }).test(output))
     found = true;
 };
 
 const putIn = new common.ArrayStream();
 repl.start('', putIn);
-let file = path.resolve(__dirname, '../fixtures/syntax/bad_syntax');
+let file = path.join(common.fixturesDir, 'syntax', 'bad_syntax');
 
 if (common.isWindows)
   file = file.replace(/\\/g, '\\\\');

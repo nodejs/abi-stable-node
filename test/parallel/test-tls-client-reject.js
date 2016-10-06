@@ -16,21 +16,18 @@ var options = {
   cert: fs.readFileSync(path.join(common.fixturesDir, 'test_cert.pem'))
 };
 
-var connectCount = 0;
-
-var server = tls.createServer(options, function(socket) {
-  ++connectCount;
+var server = tls.createServer(options, common.mustCall(function(socket) {
   socket.on('data', function(data) {
     console.error(data.toString());
     assert.equal(data, 'ok');
   });
-}).listen(common.PORT, function() {
+}, 3)).listen(0, function() {
   unauthorized();
 });
 
 function unauthorized() {
   var socket = tls.connect({
-    port: common.PORT,
+    port: server.address().port,
     servername: 'localhost',
     rejectUnauthorized: false
   }, function() {
@@ -38,18 +35,14 @@ function unauthorized() {
     socket.end();
     rejectUnauthorized();
   });
-  socket.on('error', function(err) {
-    assert(false);
-  });
+  socket.on('error', common.fail);
   socket.write('ok');
 }
 
 function rejectUnauthorized() {
-  var socket = tls.connect(common.PORT, {
+  var socket = tls.connect(server.address().port, {
     servername: 'localhost'
-  }, function() {
-    assert(false);
-  });
+  }, common.fail);
   socket.on('error', function(err) {
     console.error(err);
     authorized();
@@ -58,7 +51,7 @@ function rejectUnauthorized() {
 }
 
 function authorized() {
-  var socket = tls.connect(common.PORT, {
+  var socket = tls.connect(server.address().port, {
     ca: [fs.readFileSync(path.join(common.fixturesDir, 'test_cert.pem'))],
     servername: 'localhost'
   }, function() {
@@ -66,12 +59,6 @@ function authorized() {
     socket.end();
     server.close();
   });
-  socket.on('error', function(err) {
-    assert(false);
-  });
+  socket.on('error', common.fail);
   socket.write('ok');
 }
-
-process.on('exit', function() {
-  assert.equal(connectCount, 3);
-});

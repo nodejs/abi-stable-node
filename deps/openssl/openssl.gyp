@@ -68,7 +68,7 @@
         }, {
           # "else if" was supported in https://codereview.chromium.org/601353002
           'conditions': [
-            ['target_arch=="arm"', {
+            ['target_arch=="arm" and OS=="linux"', {
               'defines': ['<@(openssl_defines_asm)'],
               'sources': ['<@(openssl_sources_arm_void_gas)'],
             }, 'target_arch=="ia32" and OS=="mac"', {
@@ -121,10 +121,17 @@
         }], # end of conditions of openssl_no_asm
         ['OS=="win"', {
           'defines' : ['<@(openssl_defines_all_win)'],
-          'includes': ['masm_compile.gypi',],
         }, {
           'defines' : ['<@(openssl_defines_all_non_win)']
-        }]
+        }],
+        ['target_arch=="ia32" and OS=="win"', {
+          'msvs_settings': {
+            'MASM': {
+              # Use /safeseh, see commit: 01fa5ee
+              'UseSafeExceptionHandlers': 'true',
+            },
+          },
+        }],
       ],
       'include_dirs': ['<@(openssl_include_dirs)'],
       'direct_dependent_settings': {
