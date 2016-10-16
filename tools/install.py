@@ -133,6 +133,8 @@ def headers(action):
     'common.gypi',
     'config.gypi',
     'src/node.h',
+    'src/node_jsvmapi.h',
+    'src/node_jsvmapi_types.h',
     'src/node_buffer.h',
     'src/node_internals.h',
     'src/node_object_wrap.h',
