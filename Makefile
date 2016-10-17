@@ -112,10 +112,20 @@ build-addons:
 					--directory="$(shell pwd)/$(dir)" \
 					--nodedir="$(shell pwd)" && ) echo "build done"
 
+build-addons-abi:
+	@if [ ! -f node ]; then make all; fi
+	rm -rf test/addons/doc-*/
+	./node tools/doc/addon-verify.js
+	$(foreach dir, \
+			$(sort $(dir $(wildcard test/addons-abi/*/*.gyp))), \
+			./node deps/npm/node_modules/node-gyp/bin/node-gyp rebuild \
+					--directory="$(shell pwd)/$(dir)" \
+					--nodedir="$(shell pwd)" && ) echo "build done"
+
 test-gc: all test/gc/node_modules/weak/build/Release/weakref.node
 	$(PYTHON) tools/test.py --mode=release gc
 
-test-build: all build-addons
+test-build: all build-addons build-addons-abi
 
 test-all: test-build test/gc/node_modules/weak/build/Release/weakref.node
 	$(PYTHON) tools/test.py --mode=debug,release
@@ -169,6 +179,10 @@ test-npm-publish: node
 
 test-addons: test-build
 	$(PYTHON) tools/test.py --mode=release addons
+
+test-addons-abi: test-build
+	$(PYTHON) tools/test.py --mode=release addons-abi
+
 
 test-timers:
 	$(MAKE) --directory=tools faketime
@@ -439,4 +453,4 @@ cpplint:
 
 lint: jslint cpplint
 
-.PHONY: lint cpplint jslint bench clean docopen docclean doc dist distclean check uninstall install install-includes install-bin all staticlib dynamiclib test test-all test-addons build-addons website-upload pkg blog blogclean tar binary release-only bench-http-simple bench-idle bench-all bench bench-misc bench-array bench-buffer bench-net bench-http bench-fs bench-tls
+.PHONY: lint cpplint jslint bench clean docopen docclean doc dist distclean check uninstall install install-includes install-bin all staticlib dynamiclib test test-all test-addons test-addons-abi build-addons build-addons-abi website-upload pkg blog blogclean tar binary release-only bench-http-simple bench-idle bench-all bench bench-misc bench-array bench-buffer bench-net bench-http bench-fs bench-tls
