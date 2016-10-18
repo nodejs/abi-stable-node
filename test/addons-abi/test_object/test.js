@@ -17,9 +17,9 @@ var object = {
 };
 
 assert.equal(test_object.Get(object, 'hello'), 'world');
-assert.deepStrictEqual(test_object.Get(object, 'array'),
+assert.deepEqual(test_object.Get(object, 'array'),
                        [ 1, 94, 'str', 12.321, { test: 'obj in arr' } ]);
-assert.deepStrictEqual(test_object.Get(object, 'newObject'),
+assert.deepEqual(test_object.Get(object, 'newObject'),
                        { test: 'obj in obj' });
 
 assert(test_object.Has(object, 'hello'));
@@ -38,9 +38,9 @@ var cube = {
   z: 10
 };
 
-assert.deepStrictEqual(test_object.Inflate(cube), {x: 11, y: 11, z: 11});
-assert.deepStrictEqual(test_object.Inflate(cube), {x: 12, y: 12, z: 12});
-assert.deepStrictEqual(test_object.Inflate(cube), {x: 13, y: 13, z: 13});
+assert.deepEqual(test_object.Inflate(cube), {x: 11, y: 11, z: 11});
+assert.deepEqual(test_object.Inflate(cube), {x: 12, y: 12, z: 12});
+assert.deepEqual(test_object.Inflate(cube), {x: 13, y: 13, z: 13});
 cube.t = 13;
-assert.deepStrictEqual(test_object.Inflate(cube), {x: 14, y: 14, z: 14, t: 14});
+assert.deepEqual(test_object.Inflate(cube), {x: 14, y: 14, z: 14, t: 14});
 
