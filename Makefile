@@ -87,6 +87,8 @@ distclean:
 
 test: all
 	$(PYTHON) tools/test.py --mode=release simple message
+	$(MAKE) test-addons
+	$(MAKE) test-addons-abi
 	$(MAKE) jslint
 	$(MAKE) cpplint
 
@@ -114,7 +116,7 @@ build-addons:
 
 build-addons-abi:
 	@if [ ! -f node ]; then make all; fi
-	rm -rf test/addons/doc-*/
+	rm -rf test/addons-abi/doc-*/
 	./node tools/doc/addon-verify.js
 	$(foreach dir, \
 			$(sort $(dir $(wildcard test/addons-abi/*/*.gyp))), \
