@@ -393,8 +393,7 @@ typedef void (*addon_context_register_func)(
 typedef void (*addon_abi_register_func)(
     napi_env env,
     napi_value exports,
-    napi_value module,
-    void* priv);
+    napi_value module);
 
 #define NM_F_BUILTIN 0x01
 #define NM_F_LINKED  0x02
@@ -406,7 +405,6 @@ struct node_module {
   const char* nm_filename;
   node::addon_register_func nm_register_func;
   node::addon_context_register_func nm_context_register_func;
-  node::addon_abi_register_func nm_abi_register_func;
   const char* nm_modname;
   void* nm_priv;
   struct node_module* nm_link;
@@ -452,7 +450,6 @@ extern "C" NODE_EXTERN void node_module_register(void* mod);
       __FILE__,                                                       \
       (node::addon_register_func) (regfunc),                          \
       NULL,                                                           \
-      NULL,                                                           \
       NODE_STRINGIFY(modname),                                        \
       priv,                                                           \
       NULL                                                            \
@@ -472,7 +469,6 @@ extern "C" NODE_EXTERN void node_module_register(void* mod);
       __FILE__,                                                       \
       NULL,                                                           \
       (node::addon_context_register_func) (regfunc),                  \
-      NULL,                                                           \
       NODE_STRINGIFY(modname),                                        \
       priv,                                                           \
       NULL                                                            \
@@ -486,13 +482,12 @@ extern "C" NODE_EXTERN void node_module_register(void* mod);
   extern "C" {                                                        \
     static node::node_module _module =                                \
     {                                                                 \
-      NODE_MODULE_VERSION,                                            \
+      -1,                                                             \
       flags,                                                          \
       NULL,                                                           \
       __FILE__,                                                       \
+      (node::addon_register_func) (regfunc),                          \
       NULL,                                                           \
-      NULL,                                                           \
-      (node::addon_abi_register_func) (regfunc),                      \
       NODE_STRINGIFY(modname),                                        \
       priv,                                                           \
       NULL                                                            \
@@ -513,7 +508,7 @@ extern "C" NODE_EXTERN void node_module_register(void* mod);
   NODE_MODULE_CONTEXT_AWARE_X(modname, regfunc, NULL, NM_F_BUILTIN)
 
 #define NODE_MODULE_ABI(modname, regfunc)                             \
-  NODE_MODULE_ABI_X(modname, regfunc, NULL, 0)                        \
+  NODE_MODULE_ABI_X(modname, regfunc, NULL, 0)
 
 /*
  * For backward compatibility in add-on modules.
