@@ -2027,7 +2027,7 @@ void DLOpen(const FunctionCallbackInfo<Value>& args) {
     env->ThrowError("Module did not self-register.");
     return;
   }
-  if (mp->nm_version != NODE_MODULE_VERSION) {
+  if (mp->nm_version != NODE_MODULE_VERSION && mp->nm_version != -1) {
     char errmsg[1024];
     snprintf(errmsg,
              sizeof(errmsg),
@@ -2048,12 +2048,14 @@ void DLOpen(const FunctionCallbackInfo<Value>& args) {
   if (mp->nm_context_register_func != NULL) {
     mp->nm_context_register_func(exports, module, env->context(), mp->nm_priv);
   } else if (mp->nm_register_func != NULL) {
-    mp->nm_register_func(exports, module, mp->nm_priv);
-  } else if (mp->abi_register_func != NULL) {
-    mp->abi_register_func(
-      v8impl::JsEnvFromV8Isolate(v8::Isolate::GetCurrent()),
-      v8impl::JsValueFromV8LocalValue(exports),
-      v8impl::JsValueFromV8LocalValue(module));
+    if (mp->nm_version != -1) {
+      mp->nm_register_func(exports, module, mp->nm_priv);
+    } else {
+      reinterpret_cast<node::addon_abi_register_func>(mp->nm_register_func)(
+          v8impl::JsEnvFromV8Isolate(v8::Isolate::GetCurrent()),
+          v8impl::JsValueFromV8LocalValue(exports),
+          v8impl::JsValueFromV8LocalValue(module));
+    }
   } else {
     env->ThrowError("Module has no declared entry point.");
     return;
@@ -2171,11 +2173,6 @@ static void Binding(const FunctionCallbackInfo<Value>& args) {
     if (mod->nm_context_register_func != NULL) {
       mod->nm_context_register_func(exports, unused,
         env->context(), mod->nm_priv);
-    } else if (mod->abi_register_func != NULL) {
-      mod->abi_register_func(
-        v8impl::JsEnvFromV8Isolate(v8::Isolate::GetCurrent()),
-        v8impl::JsValueFromV8LocalValue(exports),
-        v8impl::JsValueFromV8LocalValue(module));
     }
     cache->Set(module, exports);
   } else if (!strcmp(*module_v, "constants")) {
@@ -2229,12 +2226,14 @@ static void LinkedBinding(const FunctionCallbackInfo<Value>& args) {
                                   env->context(),
                                   mod->nm_priv);
   } else if (mod->nm_register_func != NULL) {
-    mod->nm_register_func(exports, module, mod->nm_priv);
-  } else if (mod->abi_register_func != NULL) {
-    mod->abi_register_func(
-      v8impl::JsEnvFromV8Isolate(v8::Isolate::GetCurrent()),
-      v8impl::JsValueFromV8LocalValue(exports),
-      v8impl::JsValueFromV8LocalValue(module));
+    if (mod->nm_version != -1) {
+      mod->nm_register_func(exports, module, mod->nm_priv);
+    } else {
+       reinterpret_cast<node::addon_abi_register_func>(mod->nm_register_func)(
+          v8impl::JsEnvFromV8Isolate(v8::Isolate::GetCurrent()),
+          v8impl::JsValueFromV8LocalValue(exports),
+          v8impl::JsValueFromV8LocalValue(module));
+    }
   } else {
     return env->ThrowError("Linked module has no declared entry point.");
   }
