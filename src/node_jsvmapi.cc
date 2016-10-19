@@ -89,13 +89,13 @@ namespace v8impl {
 
   napi_value JsValueFromV8LocalValue(v8::Local<v8::Value> local) {
     // This is awkward, better way? memcpy but don't want that dependency?
-     union U {
-       napi_value v;
-       v8::Local<v8::Value> l;
-       U(v8::Local<v8::Value> _l) : l(_l) { }
-     } u(local);
-     assert(sizeof(u.v) == sizeof(u.l));
-     return u.v;
+    union U {
+      napi_value v;
+      v8::Local<v8::Value> l;
+      U(v8::Local<v8::Value> _l) : l(_l) { }
+    } u(local);
+    assert(sizeof(u.v) == sizeof(u.l));
+    return u.v;
   }
 
   v8::Local<v8::Value> V8LocalValueFromJsValue(napi_value v) {
