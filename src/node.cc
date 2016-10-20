@@ -1909,7 +1909,7 @@ Handle<Value> DLOpen(const v8::Arguments& args) {
     return ThrowError(errmsg);
   }
 
-  if (mod->version != NODE_MODULE_VERSION) {
+  if (mod->version != NODE_MODULE_VERSION && mod->version != -1) {
     char errmsg[1024];
     snprintf(errmsg,
              sizeof(errmsg),
@@ -1920,12 +1920,14 @@ Handle<Value> DLOpen(const v8::Arguments& args) {
 
   // Execute the C++ module
   if (mod->register_func != NULL) {
-    mod->register_func(exports, module);
-  } else if (mod->abi_register_func != NULL) {
-    mod->abi_register_func(
-      v8impl::JsEnvFromV8Isolate(v8::Isolate::GetCurrent()),
-      v8impl::JsValueFromV8LocalValue(exports),
-      v8impl::JsValueFromV8LocalValue(module));
+    if (mod->version != -1) {
+      mod->register_func(exports, module);
+    } else {
+      reinterpret_cast<node::addon_abi_register_func>(mod->register_func)(
+          v8impl::JsEnvFromV8Isolate(v8::Isolate::GetCurrent()),
+          v8impl::JsValueFromV8LocalValue(exports),
+          v8impl::JsValueFromV8LocalValue(module));
+    }
   }
   // Tell coverity that 'handle' should not be freed when we return.
   // coverity[leaked_storage]
@@ -2012,12 +2014,14 @@ static Handle<Value> Binding(const Arguments& args) {
     // Internal bindings don't have a "module" object,
     // only exports.
     if (modp->register_func != NULL) {
-      modp->register_func(exports, Undefined());
-    } else if (modp->abi_register_func != NULL) {
-      modp->abi_register_func(
-        v8impl::JsEnvFromV8Isolate(v8::Isolate::GetCurrent()),
-        v8impl::JsValueFromV8LocalValue(exports),
-        v8impl::JsValueFromV8LocalValue(Local<Value>(*Undefined())));
+      if (modp->version != -1) {
+        modp->register_func(exports, Undefined());
+      } else {
+        reinterpret_cast<node::addon_abi_register_func>(modp->register_func)(
+            v8impl::JsEnvFromV8Isolate(v8::Isolate::GetCurrent()),
+            v8impl::JsValueFromV8LocalValue(exports),
+            v8impl::JsValueFromV8LocalValue(Local<Value>(*Undefined())));
+      }
     }
     binding_cache->Set(module, exports);
 

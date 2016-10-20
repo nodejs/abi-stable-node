@@ -191,10 +191,10 @@ NODE_EXTERN v8::Local<v8::Value> WinapiErrnoException(int errorno,
 const char *signo_string(int errorno);
 
 
-NODE_EXTERN typedef void (* addon_register_func)(
+NODE_EXTERN typedef void (*addon_register_func)(
     v8::Handle<v8::Object> exports, v8::Handle<v8::Value> module);
 
-typedef void (*addon_abi_register_func)(
+NODE_EXTERN typedef void (*addon_abi_register_func)(
     napi_env env,
     napi_value exports,
     napi_value module);
@@ -204,7 +204,6 @@ struct node_module_struct {
   void *dso_handle;
   const char *filename;
   node::addon_register_func register_func;
-  node::addon_abi_register_func abi_register_func;
   const char *modname;
 };
 
@@ -235,18 +234,18 @@ node_module_struct* get_builtin_module(const char *name);
     {                                                                 \
       NODE_STANDARD_MODULE_STUFF,                                     \
       (node::addon_register_func)regfunc,                             \
-      NULL,                                                           \
       NODE_STRINGIFY(modname)                                         \
     };                                                                \
   }
 
-#define NODE_MODULE_ABI(modname, regfunc)              \
+#define NODE_MODULE_ABI(modname, regfunc)                             \
   extern "C" {                                                        \
     NODE_MODULE_EXPORT node::node_module_struct modname ## _module =  \
     {                                                                 \
-      NODE_STANDARD_MODULE_STUFF,                                     \
+      -1,                                                             \
       NULL,                                                           \
-      (node::addon_abi_register_func)regfunc,                         \
+      __FILE__,                                                       \
+      (node::addon_register_func)regfunc,                             \
       NODE_STRINGIFY(modname)                                         \
     };                                                                \
   }
