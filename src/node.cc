@@ -2023,6 +2023,64 @@ void DLOpen(const FunctionCallbackInfo<Value>& args) {
   mp = modpending;
   modpending = NULL;
 
+  // try loading with node 0.10 manner in case of node 0.10
+  struct node_module_old* mod;
+  char symbol[1024], *base, *pos;
+  int r;
+  if (mp == NULL) {
+    node::Utf8Value path(args[1]);
+    base = *path;
+
+    /* Find the shared library filename within the full path. */
+#ifdef __POSIX__
+    pos = strrchr(base, '/');
+    if (pos != NULL) {
+      base = pos + 1;
+    }
+#else // Windows
+    for (;;) {
+      pos = strpbrk(base, "\\/:");
+      if (pos == NULL) {
+        break;
+      }
+      base = pos + 1;
+    }
+#endif
+
+    /* Strip the .node extension. */
+    pos = strrchr(base, '.');
+    if (pos != NULL) {
+      *pos = '\0';
+    }
+    /* Add the `_module` suffix to the extension name. */
+    r = snprintf(symbol, sizeof symbol, "%s_module", base);
+    if (r <= 0 || static_cast<size_t>(r) >= sizeof symbol) {
+      env->ThrowError("Out of memory.");
+    }
+
+    /* Replace dashes with underscores. When loading foo-bar.node,
+     * look for foo_bar_module, not foo-bar_module.
+     */
+    for (pos = symbol; *pos != '\0'; ++pos) {
+      if (*pos == '-') *pos = '_';
+    }
+
+    if (uv_dlsym(&lib, symbol, reinterpret_cast<void**>(&mod))) {
+      char errmsg[1024];
+      snprintf(errmsg, sizeof(errmsg), "Symbol %s not found.", symbol);
+      env->ThrowError(errmsg);
+      return;
+    }
+    mp = new struct node_module;
+    mp->nm_version = mod->version;
+    mp->nm_flags = 0;
+    mp->nm_filename = mod->filename;
+    mp->nm_register_func =
+        reinterpret_cast<node::addon_register_func>(mod->register_func);
+    mp->nm_context_register_func = NULL;
+    mp->nm_modname = mod->modname;
+  }
+
   if (mp == NULL) {
     env->ThrowError("Module did not self-register.");
     return;

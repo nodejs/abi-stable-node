@@ -335,7 +335,6 @@ NODE_DEPRECATED("Use WinapiErrnoException(isolate, ...)",
 
 const char *signo_string(int errorno);
 
-
 typedef void (*addon_register_func)(
     v8::Handle<v8::Object> exports,
     v8::Handle<v8::Value> module,
@@ -354,6 +353,14 @@ typedef void (*addon_abi_register_func)(
 
 #define NM_F_BUILTIN 0x01
 #define NM_F_LINKED  0x02
+
+struct node_module_old {
+  int version;
+  void* dso_handle;
+  const char* filename;
+  node::addon_register_func register_func;
+  const char* modname;
+};
 
 struct node_module {
   int nm_version;
@@ -437,7 +444,7 @@ extern "C" NODE_EXTERN void node_module_register(void* mod);
       flags,                                                          \
       NULL,                                                           \
       __FILE__,                                                       \
-      (node::addon_register_func) (regfunc),                      \
+      (node::addon_register_func) (regfunc),                          \
       NULL,                                                           \
       NODE_STRINGIFY(modname),                                        \
       priv,                                                           \
