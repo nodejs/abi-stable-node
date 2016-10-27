@@ -244,8 +244,8 @@ NODE_EXTERN size_t napi_buffer_length(napi_env e, napi_value v);
   void operator=(CLASS&&) = delete;
 
 #define NAPI_DISALLOW_ASSIGN_COPY_MOVE(CLASS)                                  \
-  NAPI_DISALLOW_ASSIGN(CLASS)                                                \
-  NAPI_DISALLOW_COPY(CLASS)                                                  \
+  NAPI_DISALLOW_ASSIGN(CLASS)                                                  \
+  NAPI_DISALLOW_COPY(CLASS)                                                    \
   NAPI_DISALLOW_MOVE(CLASS)
 
 namespace Napi {
@@ -253,7 +253,7 @@ namespace Napi {
   // Mirror Nan versions for easy conversion
   // Ensure scopes are closed in the correct order on the stack
   class HandleScope {
-  public:
+   public:
     HandleScope() {
       env = napi_get_current_env();
       scope = napi_open_handle_scope(env);
@@ -265,13 +265,13 @@ namespace Napi {
       napi_close_handle_scope(env, scope);
     }
 
-  private:
+   private:
     napi_env env;
     napi_handle_scope scope;
   };
 
   class EscapableHandleScope {
-  public:
+   public:
     EscapableHandleScope() {
       env = napi_get_current_env();
       scope = napi_open_escapable_handle_scope(env);
@@ -287,13 +287,13 @@ namespace Napi {
       return napi_escape_handle(env, scope, escapee);
     }
 
-  private:
+   private:
     napi_env env;
     napi_escapable_handle_scope scope;
   };
 
   class Utf8String {
-  public:
+   public:
     inline explicit Utf8String(napi_value from) :
         length_(0), str_(str_st_) {
       if (from != nullptr) {
@@ -551,7 +551,7 @@ namespace Napi {
         delete this;
     }
 
-  protected:
+   protected:
     napi_persistent persistentHandle;
     Callback *callback;
 
@@ -581,7 +581,7 @@ namespace Napi {
       return errmsg_;
     }
 
-  private:
+   private:
     NAPI_DISALLOW_ASSIGN_COPY_MOVE(AsyncWorker)
     char *errmsg_;
   };
