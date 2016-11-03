@@ -213,7 +213,14 @@ NODE_EXTERN napi_value napi_buffer_copy(napi_env e,
 NODE_EXTERN bool napi_buffer_has_instance(napi_env e, napi_value v);
 NODE_EXTERN char* napi_buffer_data(napi_env e, napi_value v);
 NODE_EXTERN size_t napi_buffer_length(napi_env e, napi_value v);
+} // extern "C"
 
+
+#include <uv.h>
+
+extern "C" {
+NODE_EXTERN uv_work_t* napi_create_uv_work_t();
+NODE_EXTERN void napi_delete_uv_work_t(uv_work_t* w);
 }  // extern "C"
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -227,7 +234,6 @@ NODE_EXTERN size_t napi_buffer_length(napi_env e, napi_value v);
 ////////////////////////////////////////////////////////////////////////////////
 #include <limits.h>
 #include <string.h>
-#include <uv.h>
 
 #define NAPI_METHOD(name)                                                      \
   void name(napi_env env, napi_func_cb_info info)
@@ -455,13 +461,15 @@ namespace Napi {
     }
   };
 
+
   // TODO(ianhall): This class uses napi_get_current_env() extensively
   // See comment above on class Callback
   /* abstract */ class AsyncWorker {
    public:
     explicit AsyncWorker(Callback *callback_)
         : callback(callback_), errmsg_(NULL) {
-      request.data = this;
+      request = napi_create_uv_work_t();
+      request->data = this;
       napi_env env = napi_get_current_env();
 
       HandleScope scope;
@@ -479,6 +487,8 @@ namespace Napi {
       }
       delete callback;
       delete[] errmsg_;
+
+      napi_delete_uv_work_t(request);
     }
 
     virtual void WorkComplete() {
@@ -545,7 +555,7 @@ namespace Napi {
 
     virtual void Execute() = 0;
 
-    uv_work_t request;
+    uv_work_t* request;
 
     virtual void Destroy() {
         delete this;
@@ -586,25 +596,11 @@ namespace Napi {
     char *errmsg_;
   };
 
-  inline void AsyncExecute(uv_work_t* req) {
-    AsyncWorker *worker = static_cast<AsyncWorker*>(req->data);
-    worker->Execute();
-  }
+  void AsyncExecute(uv_work_t* req);
+  void AsyncExecuteComplete(uv_work_t* req);
+  void AsyncQueueWorker(AsyncWorker* worker);
+} // namespace Napi
 
-  inline void AsyncExecuteComplete(uv_work_t* req) {
-    AsyncWorker* worker = static_cast<AsyncWorker*>(req->data);
-    worker->WorkComplete();
-    worker->Destroy();
-  }
-
-  inline void AsyncQueueWorker(AsyncWorker* worker) {
-    uv_queue_work(
-      uv_default_loop(),
-      &worker->request,
-      AsyncExecute,
-      reinterpret_cast<uv_after_work_cb>(AsyncExecuteComplete));
-  }
-}  // namespace Napi
 
 ////////////////////////////////////////////////////////////////////////////////
 // WILL GO AWAY (these can't be extern "C" because they work with C++ types)
