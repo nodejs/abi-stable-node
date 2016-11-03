@@ -863,6 +863,43 @@ size_t napi_buffer_length(napi_env e, napi_value v) {
   return node::Buffer::Length(v8impl::V8LocalValueFromJsValue(v));
 }
 
+uv_work_t* napi_create_uv_work_t() {
+  uv_work_t* req = (uv_work_t*) malloc(sizeof(uv_work_t));
+  return req;
+}
+
+void napi_delete_uv_work_t(uv_work_t* w) {
+  if (w != NULL) {
+    delete w;
+    w = NULL;
+  }
+}
+
+
+///////////////////////////////////////////
+// AsyncWorker Methods
+///////////////////////////////////////////
+namespace Napi {
+void AsyncExecute(uv_work_t* req) {
+  AsyncWorker *worker = static_cast<AsyncWorker*>(req->data);
+  worker->Execute();
+}
+
+void AsyncExecuteComplete(uv_work_t* req) {
+  AsyncWorker* worker = static_cast<AsyncWorker*>(req->data);
+  worker->WorkComplete();
+  worker->Destroy();
+}
+
+void AsyncQueueWorker(AsyncWorker* worker) {
+  uv_queue_work(
+    uv_default_loop(),
+    worker->request,
+    AsyncExecute,
+    reinterpret_cast<uv_after_work_cb>(AsyncExecuteComplete));
+}
+} // namespace Napi
+
 
 ///////////////////////////////////////////
 // WILL GO AWAY
