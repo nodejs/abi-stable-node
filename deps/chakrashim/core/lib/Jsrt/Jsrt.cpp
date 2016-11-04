@@ -3434,34 +3434,33 @@ CHAKRA_API JsStringFree(_In_ char* stringValue)
 }
 
 CHAKRA_API JsCreateWeakReference(
-		_In_ JsValueRef strongRef,
-		_Out_ JsWeakRef weakRef)
+    _In_ JsValueRef strongRef,
+    _Out_ JsWeakRef* weakRef)
 {
-		VALIDATE_JSREF(strongRef);
-		ThreadContext* threadContext = ThreadContext::GetContextForCurrentThread();
-		if (threadContext == nullptr)
-		{
-			return JsErrorNoCurrentContext;
-		}
-		Recycler * recycler = threadContext->GetRecycler();
-		Js::RecyclableObject* obj = Js::RecyclableObject::FromVar(strongRef);
-		Memory::RecyclerWeakReference<Js::RecyclableObject>* recyclerWeakReference = recycler->CreateWeakReferenceHandle<Js::RecyclableObject>(obj);
-		weakRef = reinterpret_cast<JsWeakRef>(recyclerWeakReference);
-		return JsNoError;
+    VALIDATE_JSREF(strongRef);
+
+    ThreadContext* threadContext = ThreadContext::GetContextForCurrentThread();
+    if (threadContext == nullptr)
+    {
+        return JsErrorNoCurrentContext;
+    }
+
+    Recycler* recycler = threadContext->GetRecycler();
+    Memory::RecyclerWeakReference<char>* recyclerWeakReference = recycler->CreateWeakReferenceHandle<char>(reinterpret_cast<char*>(strongRef));
+    *weakRef = reinterpret_cast<JsWeakRef>(recyclerWeakReference);
+    return JsNoError;
 }
 
 CHAKRA_API JsGetWeakReferenceValue(
-		_In_ JsWeakRef weakRef,
-		_Out_opt_ JsValueRef value)
+    _In_ JsWeakRef weakRef,
+    _Out_ JsValueRef* value)
 {
-		VALIDATE_JSREF(weakRef);
-		Js::RecyclableObject *var;
-		Memory::RecyclerWeakReference<Js::RecyclableObject> *recyclerWeakRef = reinterpret_cast<Memory::RecyclerWeakReference<Js::RecyclableObject>*>(weakRef);
-		var = recyclerWeakRef->Get();
-		value = reinterpret_cast<JsValueRef>(var);
-		return JsNoError;
-}
+    VALIDATE_JSREF(weakRef);
 
+    Memory::RecyclerWeakReference<char>* recyclerWeakReference = reinterpret_cast<Memory::RecyclerWeakReference<char>*>(weakRef);
+    *value = reinterpret_cast<JsValueRef>(recyclerWeakReference->Get());
+    return JsNoError;
+}
 
 // -------- Experimental new String APIs ----------------------------------
 

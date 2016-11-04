@@ -121,6 +121,8 @@ NODE_EXTERN napi_value napi_call_function(napi_env e, napi_value scope,
 NODE_EXTERN napi_value napi_new_instance(napi_env e, napi_value cons,
                                          int argc, napi_value* argv);
 
+NODE_EXTERN napi_value napi_make_external(napi_env e, napi_value v);
+
 // Napi version of node::MakeCallback(...)
 NODE_EXTERN napi_value napi_make_callback(napi_env e, napi_value recv,
                                           napi_value func,
@@ -190,6 +192,7 @@ NODE_EXTERN bool napi_try_catch(napi_env e, napi_try_callback t,
 
 
 // Methods to provide node::Buffer functionality with napi types
+NODE_EXTERN napi_value napi_buffer_new(napi_env e, char* data, uint32_t size);
 NODE_EXTERN napi_value napi_buffer_copy(napi_env e,
                                         const char* data, uint32_t size);
 NODE_EXTERN bool napi_buffer_has_instance(napi_env e, napi_value v);

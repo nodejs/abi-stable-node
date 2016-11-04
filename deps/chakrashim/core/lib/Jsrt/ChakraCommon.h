@@ -377,13 +377,13 @@ typedef UINT32 DWORD;
     /// </remarks>
     typedef JsRef JsPropertyIdRef;
 
-		///	<summary>
-		///			A weakref identifier.
-		///	</summary>
-		///	<remarks>
-		///			To-Do need to write remarks here.
-		///	</remarks>
-		typedef JsRef JsWeakRef;
+    ///	<summary>
+    ///     A weakref identifier.
+    ///	</summary>
+    ///	<remarks>
+    ///     To-Do need to write remarks here.
+    ///	</remarks>
+    typedef JsRef JsWeakRef;
 
     /// <summary>
     ///     Attributes of a runtime.
@@ -2654,42 +2654,41 @@ typedef UINT32 DWORD;
         JsStringFree(
             _In_ char* stringValue);
 
-		/// <summary>
-		///			Create a weak reference out of a passed strong reference
-		/// </summary>
-		/// <remarks>
-		///     <para>
-		///     To-Do
-		///     </para>
-		/// </remarks>
-		/// <param name="strongRef">Passed strong reference of a handle.</param>
-		/// <param name="weakRef">Weak reference of the handle.</param>
-		/// <returns>
-		///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
-		/// </returns>
-		CHAKRA_API
-				JsCreateWeakReference(
-						_In_ JsValueRef strongRef,
-						_Out_ JsWeakRef weakRef);
+    /// <summary>
+    ///			Create a weak reference out of a passed strong reference
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///     To-Do
+    ///     </para>
+    /// </remarks>
+    /// <param name="strongRef">Passed strong reference of a handle.</param>
+    /// <param name="weakRef">Weak reference of the handle.</param>
+    /// <returns>
+    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+    /// </returns>
+    CHAKRA_API
+        JsCreateWeakReference(
+            _In_ JsValueRef strongRef,
+            _Out_ JsWeakRef* weakRef);
 
-		/// <summary>
-		///			To-Do
-		/// </summary>
-		/// <remarks>
-		///     <para>
-		///     To-Do
-		///     </para>
-		/// </remarks>
-		/// <param name="weakRef">To-Do</param>
-		/// <param name="value">To-Do</param>
-		/// <returns>
-		///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
-		/// </returns>
-
-		CHAKRA_API
-			JsGetWeakReferenceValue(
-				_In_ JsWeakRef weakRef,
-				_Out_opt_ JsValueRef value);
+    /// <summary>
+    ///			To-Do
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///     To-Do
+    ///     </para>
+    /// </remarks>
+    /// <param name="weakRef">To-Do</param>
+    /// <param name="value">To-Do</param>
+    /// <returns>
+    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
+    /// </returns>
+    CHAKRA_API
+        JsGetWeakReferenceValue(
+            _In_ JsWeakRef weakRef,
+            _Out_ JsValueRef* value);
 
     // -------- Experimental new String APIs ----------------------------------
 

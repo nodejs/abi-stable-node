@@ -20,8 +20,11 @@
 #include "node_jsvmapi_internal.h"
 #include <node_buffer.h>
 #include <node_object_wrap.h>
+#include <env.h>
 #include <vector>
 #include "ChakraCore.h"
+
+#include "src\jsrtutils.h"
 
 typedef void napi_destruct(void* v);
 
@@ -197,40 +200,53 @@ namespace v8impl {
     info.GetReturnValue().Set(V8LocalValueFromJsValue(cbInfo.returnValue));
   }
 
-  class ObjectWrapWrapper : public node::ObjectWrap {
-  public:
-    ObjectWrapWrapper(napi_value jsObject, void* nativeObj,
-      napi_destruct* destructor) {
-      _destructor = destructor;
-      _nativeObj = nativeObj;
-      Wrap(V8LocalValueFromJsValue(jsObject)->ToObject());
-    }
-
-    void* getValue() {
-      return _nativeObj;
-    }
-
-    static void* Unwrap(napi_value jsObject) {
-      ObjectWrapWrapper* wrapper =
-        ObjectWrap::Unwrap<ObjectWrapWrapper>(
-          V8LocalValueFromJsValue(jsObject)->ToObject());
-      return wrapper->getValue();
-    }
-
-    virtual ~ObjectWrapWrapper() {
-      if (_destructor != nullptr) {
-        _destructor(_nativeObj);
-      }
-    }
-
-  private:
-    napi_destruct* _destructor;
-    void* _nativeObj;
-  };
-
-
 }  // end of namespace v8impl
 
+void CHAKRA_CALLBACK JsObjectWrapWrapperBeforeCollectCallback(JsRef ref, void* callbackState);
+
+class ObjectWrapWrapper : public node::ObjectWrap {
+public:
+  ObjectWrapWrapper(napi_value jsObject, void* nativeObj, napi_destruct* destructor) {
+    _destructor = destructor;
+    _nativeObj = nativeObj;
+
+    ObjectWrapWrapper::Wrap(jsObject, this);
+
+    JsSetObjectBeforeCollectCallback(reinterpret_cast<JsRef>(jsObject), this, JsObjectWrapWrapperBeforeCollectCallback);
+  }
+
+  void* getValue() {
+    return _nativeObj;
+  }
+
+  static void Wrap(napi_value jsObject, void* externalData) {
+    JsSetExternalData(jsObject, externalData);
+  }
+
+  static void* Unwrap(napi_value jsObject) {
+    ObjectWrapWrapper* wrapper = nullptr;
+
+    JsGetExternalData(reinterpret_cast<JsValueRef>(jsObject), reinterpret_cast<void**>(&wrapper));
+
+    return wrapper->getValue();
+  }
+
+  virtual ~ObjectWrapWrapper() {
+    if (_destructor != nullptr) {
+      _destructor(_nativeObj);
+    }
+  }
+
+private:
+  napi_destruct* _destructor;
+  void* _nativeObj;
+};
+
+void CHAKRA_CALLBACK JsObjectWrapWrapperBeforeCollectCallback(JsRef ref, void* callbackState)
+{
+  ObjectWrapWrapper* wrapper = reinterpret_cast<ObjectWrapWrapper*>(callbackState);
+  delete wrapper;
+}
 
 //Stub for now
 napi_env napi_get_current_env() {
@@ -248,6 +264,7 @@ _Ret_maybenull_ JsValueRef CALLBACK CallbackWrapper(JsValueRef callee, bool isCo
   cbInfo._arguments = arguments;
   cbInfo.returnValue = reinterpret_cast<napi_value>(undefinedValue);
   napi_callback cb = reinterpret_cast<napi_callback>(callbackState);
+  // TODO(tawoll): get environment pointer instead of nullptr?
   cb(nullptr, reinterpret_cast<napi_func_cb_info>(&cbInfo));
   return reinterpret_cast<JsValueRef>(cbInfo.returnValue);
 }
@@ -260,20 +277,8 @@ napi_value napi_create_function(napi_env e, napi_callback cb) {
 }
 
 napi_value napi_create_constructor_for_wrap(napi_env e, napi_callback cb) {
-  v8::Isolate *isolate = v8impl::V8IsolateFromJsEnv(e);
-  v8::Local<v8::Object> retval;
-
-  v8::EscapableHandleScope scope(isolate);
-  v8::Local<v8::FunctionTemplate> tpl =
-    v8::FunctionTemplate::New(isolate, v8impl::FunctionCallbackWrapper,
-      v8::External::New(isolate,
-        reinterpret_cast<void*>(cb)));
-
-  // we need an internal field to stash the wrapped object
-  tpl->InstanceTemplate()->SetInternalFieldCount(1);
-
-  retval = scope.Escape(tpl->GetFunction());
-  return v8impl::JsValueFromV8LocalValue(retval);
+  // TODO(tawoll): evaluate if we need to do something special here (I don't think so)
+  return napi_create_function(e, cb);
 }
 
 napi_value napi_create_constructor_for_wrap_with_methods(
@@ -282,38 +287,33 @@ napi_value napi_create_constructor_for_wrap_with_methods(
   char* utf8name,
   int methodcount,
   napi_method_descriptor* methods) {
-  v8::Isolate *isolate = v8impl::V8IsolateFromJsEnv(e);
-  v8::Local<v8::Object> retval;
 
-  v8::EscapableHandleScope scope(isolate);
-  v8::Local<v8::FunctionTemplate> tpl =
-    v8::FunctionTemplate::New(isolate, v8impl::FunctionCallbackWrapper,
-      v8::External::New(isolate,
-        reinterpret_cast<void*>(cb)));
+  napi_value namestring = napi_create_string(e, utf8name);
+  JsValueRef constructor = nullptr;
+  JsCreateNamedFunction(namestring, CallbackWrapper, cb, &constructor);
 
-  // we need an internal field to stash the wrapped object
-  tpl->InstanceTemplate()->SetInternalFieldCount(1);
+  JsPropertyIdRef pid = nullptr;
+  JsValueRef prototype = nullptr;
+  JsGetPropertyIdFromNameUtf8("prototype", &pid);
+  //JsGetPrototype(constructor, &prototype);
+  JsGetProperty(constructor, pid, &prototype);
 
-  v8::Local<v8::String> namestring =
-    v8::String::NewFromUtf8(isolate, utf8name,
-      v8::NewStringType::kInternalized).ToLocalChecked();
-  tpl->SetClassName(namestring);
+  JsGetPropertyIdFromNameUtf8("constructor", &pid);
+  JsSetProperty(prototype, pid, constructor, false);
 
   for (int i = 0; i < methodcount; i++) {
-    v8::Local<v8::FunctionTemplate> t =
-      v8::FunctionTemplate::New(isolate, v8impl::FunctionCallbackWrapper,
-        v8::External::New(isolate,
-          reinterpret_cast<void*>(methods[i].callback)),
-        v8::Signature::New(isolate, tpl));
-    v8::Local<v8::String> fn_name =
-      v8::String::NewFromUtf8(isolate, methods[i].utf8name,
-        v8::NewStringType::kInternalized).ToLocalChecked();
-    tpl->PrototypeTemplate()->Set(fn_name, t);
-    t->SetClassName(fn_name);
+    namestring = napi_create_string(e, methods[i].utf8name);
+    JsValueRef function = nullptr;
+    JsCreateNamedFunction(namestring, CallbackWrapper, methods[i].callback, &function);
+    //JsCreateFunction(CallbackWrapper, methods[i].callback, &function);
+
+    JsGetPropertyIdFromNameUtf8(methods[i].utf8name, &pid);
+    // TODO(tawoll): always use strict rules?
+    JsSetProperty(prototype, pid, function, false);
+    //JsSetProperty(constructor, pid, function, true);
   }
 
-  retval = scope.Escape(tpl->GetFunction());
-  return v8impl::JsValueFromV8LocalValue(retval);
+  return reinterpret_cast<napi_value>(constructor);
 }
 
 //Need to re-look as to create property descriptor correctly or not, cached property thing!!!
@@ -784,102 +784,77 @@ napi_value napi_coerce_to_string(napi_env e, napi_value v) {
   return reinterpret_cast<napi_value>(stringValue);
 }
 
-
 void napi_wrap(napi_env e, napi_value jsObject, void* nativeObj,
   napi_destruct* destructor, napi_weakref* handle) {
-  // object wrap api needs more thought
-  // e.g. who deletes this object?
-  v8impl::ObjectWrapWrapper* wrap =
-    new v8impl::ObjectWrapWrapper(jsObject, nativeObj, destructor);
-  if (handle != nullptr) {
-    *handle = napi_create_weakref(
-      e,
-      v8impl::JsValueFromV8LocalValue(wrap->handle()));
+  ObjectWrapWrapper* wrap = new ObjectWrapWrapper(jsObject, nativeObj, destructor);
+
+  if (handle != nullptr)
+  {
+    *handle = napi_create_weakref(e, jsObject);
   }
 }
 
 void* napi_unwrap(napi_env e, napi_value jsObject) {
-  return v8impl::ObjectWrapWrapper::Unwrap(jsObject);
+  return ObjectWrapWrapper::Unwrap(jsObject);
 }
 
 napi_persistent napi_create_persistent(napi_env e, napi_value v) {
-	JsErrorCode error = JsNoError;
-	JsValueRef value = reinterpret_cast<JsValueRef>(v);
-	if (value) {
-		error = JsAddRef(static_cast<JsRef>(value), nullptr);
-	}
-	return reinterpret_cast<napi_persistent>(value);
+    JsErrorCode error = JsNoError;
+    JsValueRef value = reinterpret_cast<JsValueRef>(v);
+    if (value) {
+        error = JsAddRef(static_cast<JsRef>(value), nullptr);
+    }
+    return reinterpret_cast<napi_persistent>(value);
 }
 
 void napi_release_persistent(napi_env e, napi_persistent p) {
-	JsErrorCode error = JsNoError;
-	JsValueRef thePersistent = reinterpret_cast<JsValueRef>(p);
-	error = JsRelease(static_cast<JsRef>(thePersistent), nullptr);
-	thePersistent = nullptr;
+    JsErrorCode error = JsNoError;
+    JsValueRef thePersistent = reinterpret_cast<JsValueRef>(p);
+    error = JsRelease(static_cast<JsRef>(thePersistent), nullptr);
+    thePersistent = nullptr;
 }
 
 napi_value napi_get_persistent_value(napi_env e, napi_persistent p) {
-	JsValueRef value = reinterpret_cast<JsValueRef>(p);
-	return reinterpret_cast<napi_value>(value);
+    JsValueRef value = reinterpret_cast<JsValueRef>(p);
+    return reinterpret_cast<napi_value>(value);
 }
 
-napi_weakref napi_create_weakref(napi_env e, napi_value v) {
-	JsValueRef value = reinterpret_cast<JsValueRef>(v);
-	return reinterpret_cast<napi_weakref>(value);
+napi_weakref napi_create_weakref(napi_env e, napi_value v)
+{  
+  //JsErrorCode error = JsNoError;
+  JsValueRef strongRef = reinterpret_cast<JsValueRef>(v);
+  JsWeakRef weakRef = nullptr;
+
+  JsCreateWeakReference(strongRef, &weakRef);
+  JsAddRef(weakRef, nullptr);
+
+  return reinterpret_cast<napi_weakref>(weakRef);
 }
 
-bool napi_get_weakref_value(napi_env e, napi_weakref w, napi_value* pv) {
-	JsValueRef value = reinterpret_cast<JsValueRef>(w);
-	if (nullptr == value) {
-		*pv = nullptr;
-		return false;
-	}
-	*pv = reinterpret_cast<napi_value>(value);
-	return true;
+bool napi_get_weakref_value(napi_env e, napi_weakref w, napi_value* pv)
+{
+    //JsErrorCode error = JsNoError;
+    JsWeakRef weakRef = reinterpret_cast<JsWeakRef>(w);
+    JsValueRef value = nullptr;
+
+    JsGetWeakReferenceValue(weakRef, &value);
+    if (value == nullptr)
+    {
+        *pv = nullptr;
+        return false;
+    }
+    *pv = reinterpret_cast<napi_value>(value);
+    return true;
 }
-
-/*Below APIs' needs to work with the JSRT APIs' JsCreateWeakReference & JsGetWeakReferenceValue
-Right now leveldown test fails and exits from running. When we fix that we need to delete the above 2 apis' and 
-uncomment the below 2*/
-
-//napi_weakref napi_create_weakref(napi_env e, napi_value v)
-//{
-//	JsErrorCode error = JsNoError;
-//	JsValueRef undefinedValue;
-//	error = JsGetUndefinedValue(&undefinedValue);
-//	JsWeakRef weakRef = undefinedValue;
-//	JsValueRef strongRef = reinterpret_cast<JsValueRef>(v);
-//	error = JsCreateWeakReference(strongRef, weakRef);
-//	return reinterpret_cast<napi_weakref>(weakRef);
-//}
-//
-//bool napi_get_weakref_value(napi_env e, napi_weakref w, napi_value* pv)
-//{
-//	JsErrorCode error = JsNoError;
-//	JsValueRef undefinedValue;
-//	error = JsGetUndefinedValue(&undefinedValue);
-//	JsWeakRef weakRef = reinterpret_cast<JsWeakRef>(w);
-//	JsValueRef value = undefinedValue;
-//	error = JsGetWeakReferenceValue(weakRef, value);
-//	if (nullptr == value)
-//	{
-//		*pv = nullptr;
-//		return false;
-//	}
-//	*pv = reinterpret_cast<napi_value>(value);
-//	return true;
-//}
 
 void napi_release_weakref(napi_env e, napi_weakref w) {
-	JsErrorCode error = JsNoError;
-	JsValueRef theWeakref = reinterpret_cast<JsValueRef>(w);
-	error = JsSetObjectBeforeCollectCallback(static_cast<JsRef>(theWeakref), nullptr, nullptr);
-	theWeakref = nullptr;
+  JsRef weakRef = reinterpret_cast<JsRef>(w);
+  JsRelease(weakRef, nullptr);
 }
 
 /*********Stub implementation of handle scope apis' for JSRT***********/
 napi_handle_scope napi_open_handle_scope(napi_env) {
-  return nullptr;;
+  return nullptr;
 }
 
 void napi_close_handle_scope(napi_env, napi_handle_scope) {}
@@ -914,6 +889,13 @@ napi_value napi_new_instance(napi_env e, napi_value cons,
   }
   error = JsConstructObject(function, args.data(), argc + 1, &result);
   return reinterpret_cast<napi_value>(result);
+}
+
+napi_value napi_make_external(napi_env e, napi_value v) {
+  JsValueRef externalObj = nullptr;
+  JsCreateExternalObject(NULL, NULL, &externalObj);
+  JsSetPrototype(externalObj, reinterpret_cast<JsValueRef>(v));
+  return reinterpret_cast<napi_value>(externalObj);
 }
 
 napi_value napi_make_callback(napi_env e, napi_value recv,
@@ -989,7 +971,17 @@ void CALLBACK ExternalArrayBufferFinalizeCallback(void *data)
 	static_cast<ArrayBufferFinalizeInfo*>(data)->Free();
 }
 
+napi_value napi_buffer_new(napi_env e, char* data, uint32_t size) {
+  // TODO(tawoll): Replace v8impl with jsrt-based version.
+
+  return v8impl::JsValueFromV8LocalValue(
+    node::Buffer::New(
+      v8impl::V8IsolateFromJsEnv(e), data, size).ToLocalChecked());
+}
+
 napi_value napi_buffer_copy(napi_env e, const char* data, uint32_t size) {
+  // TODO(tawoll): Implement node::Buffer in terms of napi to avoid using chakra shim here.
+
   return v8impl::JsValueFromV8LocalValue(
     node::Buffer::Copy(
       v8impl::V8IsolateFromJsEnv(e), data, size).ToLocalChecked());
