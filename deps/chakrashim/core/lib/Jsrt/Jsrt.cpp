@@ -3443,6 +3443,35 @@ CHAKRA_API JsTTDNotifyContextDestroy(_In_ JsContextRef context)
 #endif
 }
 
+CHAKRA_API JsCreateWeakReference(
+    _In_ JsValueRef strongRef,
+    _Out_ JsWeakRef* weakRef)
+{
+    VALIDATE_JSREF(strongRef);
+
+    ThreadContext* threadContext = ThreadContext::GetContextForCurrentThread();
+    if (threadContext == nullptr)
+    {
+        return JsErrorNoCurrentContext;
+    }
+
+    Recycler* recycler = threadContext->GetRecycler();
+    Memory::RecyclerWeakReference<char>* recyclerWeakReference = recycler->CreateWeakReferenceHandle<char>(reinterpret_cast<char*>(strongRef));
+    *weakRef = reinterpret_cast<JsWeakRef>(recyclerWeakReference);
+    return JsNoError;
+}
+
+CHAKRA_API JsGetWeakReferenceValue(
+    _In_ JsWeakRef weakRef,
+    _Out_ JsValueRef* value)
+{
+    VALIDATE_JSREF(weakRef);
+
+    Memory::RecyclerWeakReference<char>* recyclerWeakReference = reinterpret_cast<Memory::RecyclerWeakReference<char>*>(weakRef);
+    *value = reinterpret_cast<JsValueRef>(recyclerWeakReference->Get());
+    return JsNoError;
+}
+
 CHAKRA_API JsTTDStart()
 {
 #if !ENABLE_TTD
