@@ -810,6 +810,10 @@ napi_value napi_new_instance(napi_env e, napi_value cons,
   return v8impl::JsValueFromV8LocalValue(result);
 }
 
+napi_value napi_make_external(napi_env e, napi_value v) {
+    return v;
+}
+
 napi_value napi_make_callback(napi_env e, napi_value recv,
                               napi_value func, int argc, napi_value* argv) {
   v8::Isolate *isolate = v8impl::V8IsolateFromJsEnv(e);
