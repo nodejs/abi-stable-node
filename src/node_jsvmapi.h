@@ -227,6 +227,10 @@ NODE_EXTERN size_t napi_buffer_length(napi_env e, napi_value v);
 extern "C" {
 NODE_EXTERN uv_work_t* napi_create_uv_work_t();
 NODE_EXTERN void napi_delete_uv_work_t(uv_work_t* w);
+
+NODE_EXTERN void napi_async_execute(uv_work_t* req);
+NODE_EXTERN void napi_async_execute_complete(uv_work_t* req);
+NODE_EXTERN void napi_async_queue_worker(void* worker);
 }  // extern "C"
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -601,9 +605,17 @@ namespace Napi {
     char *errmsg_;
   };
 
-  void AsyncExecute(uv_work_t* req);
-  void AsyncExecuteComplete(uv_work_t* req);
-  void AsyncQueueWorker(AsyncWorker* worker);
+  inline void AsyncExecute(uv_work_t* req) {
+    napi_async_execute(req);
+  }
+
+  inline void AsyncExecuteComplete(uv_work_t* req) {
+    napi_async_execute_complete(req);
+  }
+
+  inline void AsyncQueueWorker(AsyncWorker* worker) {
+    napi_async_queue_worker(static_cast<void*>(worker));
+  }
 } // namespace Napi
 
 
