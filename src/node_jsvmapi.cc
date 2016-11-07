@@ -879,30 +879,25 @@ void napi_delete_uv_work_t(uv_work_t* w) {
   }
 }
 
-
-///////////////////////////////////////////
-// AsyncWorker Methods
-///////////////////////////////////////////
-namespace Napi {
-void AsyncExecute(uv_work_t* req) {
-  AsyncWorker *worker = static_cast<AsyncWorker*>(req->data);
+void napi_async_execute(uv_work_t* req) {
+  Napi::AsyncWorker* worker = static_cast<Napi::AsyncWorker*>(req->data);
   worker->Execute();
 }
 
-void AsyncExecuteComplete(uv_work_t* req) {
-  AsyncWorker* worker = static_cast<AsyncWorker*>(req->data);
+void napi_async_execute_complete(uv_work_t* req) {
+  Napi::AsyncWorker* worker = static_cast<Napi::AsyncWorker*>(req->data);
   worker->WorkComplete();
   worker->Destroy();
+
 }
 
-void AsyncQueueWorker(AsyncWorker* worker) {
+void napi_async_queue_worker(void* worker) {
   uv_queue_work(
     uv_default_loop(),
-    worker->request,
-    AsyncExecute,
-    reinterpret_cast<uv_after_work_cb>(AsyncExecuteComplete));
+    static_cast<Napi::AsyncWorker*>(worker)->request,
+    Napi::AsyncExecute,
+    reinterpret_cast<uv_after_work_cb>(Napi::AsyncExecuteComplete));
 }
-} // namespace Napi
 
 
 ///////////////////////////////////////////
