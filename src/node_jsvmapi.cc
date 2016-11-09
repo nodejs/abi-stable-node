@@ -21,6 +21,7 @@
 #include <node_buffer.h>
 #include <node_object_wrap.h>
 #include <vector>
+#include <string.h>
 
 typedef void napi_destruct(void* v);
 
@@ -865,52 +866,4 @@ char* napi_buffer_data(napi_env e, napi_value v) {
 
 size_t napi_buffer_length(napi_env e, napi_value v) {
   return node::Buffer::Length(v8impl::V8LocalValueFromJsValue(v));
-}
-
-uv_work_t* napi_create_uv_work_t() {
-  uv_work_t* req = (uv_work_t*) malloc(sizeof(uv_work_t));
-  return req;
-}
-
-void napi_delete_uv_work_t(uv_work_t* w) {
-  if (w != NULL) {
-    delete w;
-    w = NULL;
-  }
-}
-
-void napi_async_execute(uv_work_t* req) {
-  Napi::AsyncWorker* worker = static_cast<Napi::AsyncWorker*>(req->data);
-  worker->Execute();
-}
-
-void napi_async_execute_complete(uv_work_t* req) {
-  Napi::AsyncWorker* worker = static_cast<Napi::AsyncWorker*>(req->data);
-  worker->WorkComplete();
-  worker->Destroy();
-
-}
-
-void napi_async_queue_worker(void* worker) {
-  uv_queue_work(
-    uv_default_loop(),
-    static_cast<Napi::AsyncWorker*>(worker)->request,
-    Napi::AsyncExecute,
-    reinterpret_cast<uv_after_work_cb>(Napi::AsyncExecuteComplete));
-}
-
-
-///////////////////////////////////////////
-// WILL GO AWAY
-///////////////////////////////////////////
-v8::Local<v8::Value> V8LocalValue(napi_value v) {
-  return v8impl::V8LocalValueFromJsValue(v);
-}
-
-napi_value JsValue(v8::Local<v8::Value> v) {
-  return v8impl::JsValueFromV8LocalValue(v);
-}
-
-v8::Persistent<v8::Value>* V8PersistentValue(napi_persistent p) {
-  return v8impl::V8PersistentValueFromJsPersistentValue(p);
 }
