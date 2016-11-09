@@ -11,5 +11,4 @@ namespace v8impl {
   v8::Local<v8::Value> V8LocalValueFromJsValue(napi_value v);
 }
 
-
 #endif  // SRC_NODE_JSVMAPI_INTERNAL_H_

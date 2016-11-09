@@ -1,6 +1,8 @@
 #ifndef SRC_NODE_JSVMAPI_TYPES_H_
 #define SRC_NODE_JSVMAPI_TYPES_H_
 
+#define nullptr NULL
+
 // JSVM API types are all opaque pointers for ABI stability
 // typedef undefined structs instead of void* for compile time type safety
 typedef struct napi_env__ *napi_env;
@@ -20,6 +22,5 @@ struct napi_method_descriptor {
   char* utf8name;
 };
 
-#define nullptr NULL
 
 #endif  // SRC_NODE_JSVMAPI_TYPES_H_
