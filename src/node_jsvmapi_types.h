@@ -23,5 +23,4 @@ struct napi_method_descriptor {
 };
 
 
-
 #endif  // SRC_NODE_JSVMAPI_TYPES_H_

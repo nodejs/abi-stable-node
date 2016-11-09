@@ -79,6 +79,7 @@
         'src/cares_wrap.cc',
         'src/handle_wrap.cc',
         'src/node.cc',
+        'src/node_asyncapi.cc',
         'src/node_buffer.cc',
         'src/node_constants.cc',
         'src/node_extensions.cc',
@@ -106,6 +107,10 @@
         # headers to make for a more pleasant IDE experience
         'src/handle_wrap.h',
         'src/node.h',
+        'src/node_api_helpers.h',
+        'src/node_asyncapi.h',
+        'src/node_asyncapi_internal.h',
+        'src/node_asyncapi_types.h',
         'src/node_buffer.h',
         'src/node_constants.h',
         'src/node_crypto.h',
