@@ -2,6 +2,7 @@
 #define SRC_NODE_ASYNCAPI_INTERNAL_H_
 
 #include "node_asyncapi.h"
+#include "uv.h"
 
 typedef struct napi_work_impl__ {
   uv_work_t* work;
