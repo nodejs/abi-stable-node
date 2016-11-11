@@ -23,6 +23,10 @@
 #include <vector>
 #include <string.h>
 
+void napi_module_register(void* mod) {
+  node::node_module_register(mod);
+}
+
 typedef void napi_destruct(void* v);
 
 namespace v8impl {
