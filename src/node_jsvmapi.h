@@ -39,7 +39,8 @@ namespace node {
 NODE_EXTERN typedef void (*addon_abi_register_func)(
   napi_env env,
   napi_value exports,
-  napi_value module);
+  napi_value module,
+  void* priv);
 }  // namespace node
 
 struct napi_module_struct {
@@ -85,7 +86,7 @@ NODE_EXTERN void napi_module_register(void* mod);
       flags,                                                          \
       NULL,                                                           \
       __FILE__,                                                       \
-      regfunc,                                                        \
+      (node::addon_abi_register_func)regfunc,                         \
       NULL,                                                           \
       #modname,                                                       \
       priv,                                                           \
