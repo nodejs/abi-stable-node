@@ -402,7 +402,6 @@ struct node_module {
   const char* nm_filename;
   node::addon_register_func nm_register_func;
   node::addon_context_register_func nm_context_register_func;
-  node::addon_abi_register_func nm_abi_register_func;
   const char* nm_modname;
   void* nm_priv;
   struct node_module* nm_link;
@@ -448,7 +447,6 @@ extern "C" NODE_EXTERN void node_module_register(void* mod);
       __FILE__,                                                       \
       (node::addon_register_func) (regfunc),                          \
       NULL,                                                           \
-      NULL,                                                           \
       NODE_STRINGIFY(modname),                                        \
       priv,                                                           \
       NULL                                                            \
@@ -468,7 +466,6 @@ extern "C" NODE_EXTERN void node_module_register(void* mod);
       __FILE__,                                                       \
       NULL,                                                           \
       (node::addon_context_register_func) (regfunc),                  \
-      NULL,                                                           \
       NODE_STRINGIFY(modname),                                        \
       priv,                                                           \
       NULL                                                            \
@@ -482,19 +479,18 @@ extern "C" NODE_EXTERN void node_module_register(void* mod);
   extern "C" {                                                        \
     static node::node_module _module =                                \
     {                                                                 \
-      NODE_MODULE_VERSION,                                            \
+      -1,                                                             \
       flags,                                                          \
       NULL,                                                           \
       __FILE__,                                                       \
+      (node::addon_register_func) (regfunc),                          \
       NULL,                                                           \
-      NULL,                                                           \
-      (node::addon_abi_register_func) (regfunc),                      \
       NODE_STRINGIFY(modname),                                        \
       priv,                                                           \
       NULL                                                            \
     };                                                                \
     NODE_C_CTOR(_register_ ## modname) {                              \
-    node_module_register(&_module);                                   \
+      node_module_register(&_module);                                 \
     }                                                                 \
   }
 
