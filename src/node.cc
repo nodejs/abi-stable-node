@@ -2443,7 +2443,7 @@ void DLOpen(const FunctionCallbackInfo<Value>& args) {
     env->ThrowError("Module did not self-register.");
     return;
   }
-  if (mp->nm_version != NODE_MODULE_VERSION) {
+  if (mp->nm_version != NODE_MODULE_VERSION && mp->nm_version != -1) {
     char errmsg[1024];
     snprintf(errmsg,
              sizeof(errmsg),
