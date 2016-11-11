@@ -20,7 +20,56 @@
 #define SRC_NODE_JSVMAPI_H_
 
 #include "node_jsvmapi_types.h"
-#include "node.h"
+#include <stdlib.h>
+#include <stdint.h>
+
+#ifndef NODE_EXTERN
+# ifdef _WIN32
+#   ifndef BUILDING_NODE_EXTENSION
+#     define NODE_EXTERN __declspec(dllexport)
+#   else
+#     define NODE_EXTERN __declspec(dllimport)
+#   endif
+# else
+#   define NODE_EXTERN /* nothing */
+# endif
+#endif
+
+namespace node {
+NODE_EXTERN typedef void (*addon_abi_register_func)(
+  napi_env env,
+  napi_value exports,
+  napi_value module);
+}  // namespace node
+
+struct napi_module_struct {
+  int version;
+  void *dso_handle;
+  const char *filename;
+  node::addon_abi_register_func register_func;
+  const char *modname;
+};
+
+#ifndef NODE_MODULE_EXPORT
+# ifdef _WIN32
+#   define NODE_MODULE_EXPORT __declspec(dllexport)
+# else
+#   define NODE_MODULE_EXPORT __attribute__((visibility("default")))
+# endif
+#endif
+
+#define NODE_MODULE_ABI(modname, regfunc)                             \
+  extern "C" {                                                        \
+    NODE_MODULE_EXPORT napi_module_struct modname ## _module =        \
+    {                                                                 \
+      -1,                                                             \
+      NULL,                                                           \
+      __FILE__,                                                       \
+      regfunc,                                                        \
+      #modname                                                        \
+    };                                                                \
+  }
+
 
 // TODO(ianhall): We're using C linkage for the API but we're also using the
 // bool type in these exports.  Is that safe and stable?

@@ -71,7 +71,7 @@
 # include "node_internals.h"
 #endif
 
-#include "node_jsvmapi_types.h"
+#include "node_jsvmapi.h"
 
 #ifndef NODE_STRINGIFY
 #define NODE_STRINGIFY(n) NODE_STRINGIFY_HELPER(n)
@@ -194,11 +194,6 @@ const char *signo_string(int errorno);
 NODE_EXTERN typedef void (*addon_register_func)(
     v8::Handle<v8::Object> exports, v8::Handle<v8::Value> module);
 
-NODE_EXTERN typedef void (*addon_abi_register_func)(
-    napi_env env,
-    napi_value exports,
-    napi_value module);
-
 struct node_module_struct {
   int version;
   void *dso_handle;
@@ -233,18 +228,6 @@ node_module_struct* get_builtin_module(const char *name);
     NODE_MODULE_EXPORT node::node_module_struct modname ## _module =  \
     {                                                                 \
       NODE_STANDARD_MODULE_STUFF,                                     \
-      (node::addon_register_func)regfunc,                             \
-      NODE_STRINGIFY(modname)                                         \
-    };                                                                \
-  }
-
-#define NODE_MODULE_ABI(modname, regfunc)                             \
-  extern "C" {                                                        \
-    NODE_MODULE_EXPORT node::node_module_struct modname ## _module =  \
-    {                                                                 \
-      -1,                                                             \
-      NULL,                                                           \
-      __FILE__,                                                       \
       (node::addon_register_func)regfunc,                             \
       NODE_STRINGIFY(modname)                                         \
     };                                                                \

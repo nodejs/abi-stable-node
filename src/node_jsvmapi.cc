@@ -18,6 +18,7 @@
  ******************************************************************************/
 
 #include "node_jsvmapi_internal.h"
+#include <node.h>
 #include <node_buffer.h>
 #include <node_object_wrap.h>
 #include <vector>

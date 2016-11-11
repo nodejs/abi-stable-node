@@ -2,7 +2,19 @@
 #define SRC_NODE_ASYNCAPI_H_
 
 #include "node_asyncapi_types.h"
-#include "node.h"
+#include <stdlib.h>
+
+#ifndef NODE_EXTERN
+# ifdef _WIN32
+#   ifndef BUILDING_NODE_EXTENSION
+#     define NODE_EXTERN __declspec(dllexport)
+#   else
+#     define NODE_EXTERN __declspec(dllimport)
+#   endif
+# else
+#   define NODE_EXTERN /* nothing */
+# endif
+#endif
 
 extern "C" {
 NODE_EXTERN napi_work napi_create_async_work();
