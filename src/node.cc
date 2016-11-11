@@ -2728,12 +2728,6 @@ static void Binding(const FunctionCallbackInfo<Value>& args) {
     if (mod->nm_context_register_func != nullptr) {
       mod->nm_context_register_func(exports, unused,
         env->context(), mod->nm_priv);
-    } else if (mod->nm_abi_register_func != nullptr) {
-      mod->nm_abi_register_func(
-        v8impl::JsEnvFromV8Isolate(v8::Isolate::GetCurrent()),
-        v8impl::JsValueFromV8LocalValue(exports),
-        v8impl::JsValueFromV8LocalValue(module),
-        mod->nm_priv);
     }
     cache->Set(module, exports);
   } else if (!strcmp(*module_v, "constants")) {
