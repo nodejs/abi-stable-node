@@ -2443,7 +2443,10 @@ void DLOpen(const FunctionCallbackInfo<Value>& args) {
     env->ThrowError("Module did not self-register.");
     return;
   }
-  if (mp->nm_version != NODE_MODULE_VERSION && mp->nm_version != -1) {
+
+  bool isNapiModule = mp->nm_version == -1;
+
+  if (mp->nm_version != NODE_MODULE_VERSION && !isNapiModule) {
     char errmsg[1024];
     snprintf(errmsg,
              sizeof(errmsg),
@@ -2474,20 +2477,28 @@ void DLOpen(const FunctionCallbackInfo<Value>& args) {
   Local<String> exports_string = env->exports_string();
   Local<Object> exports = module->Get(exports_string)->ToObject(env->isolate());
 
-  if (mp->nm_context_register_func != nullptr) {
-    mp->nm_context_register_func(exports, module, env->context(), mp->nm_priv);
-  } else if (mp->nm_register_func != nullptr) {
-    mp->nm_register_func(exports, module, mp->nm_priv);
-  } else if (mp->nm_abi_register_func != nullptr) {
-    mp->nm_abi_register_func(
-      v8impl::JsEnvFromV8Isolate(v8::Isolate::GetCurrent()),
-      v8impl::JsValueFromV8LocalValue(exports),
-      v8impl::JsValueFromV8LocalValue(module),
-      mp->nm_priv);
+  if (isNapiModule) {
+    if (mp->nm_register_func != nullptr) {
+      reinterpret_cast<node::addon_abi_register_func>(mp->nm_register_func)(
+        v8impl::JsEnvFromV8Isolate(v8::Isolate::GetCurrent()),
+        v8impl::JsValueFromV8LocalValue(exports),
+        v8impl::JsValueFromV8LocalValue(module),
+        mp->nm_priv);
+    } else {
+      uv_dlclose(&lib);
+      env->ThrowError("Module has no declared entry point.");
+      return;
+    }
   } else {
-    uv_dlclose(&lib);
-    env->ThrowError("Module has no declared entry point.");
-    return;
+    if (mp->nm_context_register_func != nullptr) {
+      mp->nm_context_register_func(exports, module, env->context(), mp->nm_priv);
+    } else if (mp->nm_register_func != nullptr) {
+      mp->nm_register_func(exports, module, mp->nm_priv);
+    } else {
+      uv_dlclose(&lib);
+      env->ThrowError("Module has no declared entry point.");
+      return;
+    }
   }
 
   // Tell coverity that 'handle' should not be freed when we return.
@@ -2721,14 +2732,15 @@ static void LinkedBinding(const FunctionCallbackInfo<Value>& args) {
                                   env->context(),
                                   mod->nm_priv);
   } else if (mod->nm_register_func != nullptr) {
-    mod->nm_register_func(exports, module, mod->nm_priv);
-  } else if (mod->nm_abi_register_func != nullptr) {
-    mod->nm_abi_register_func(
-      v8impl::JsEnvFromV8Isolate(v8::Isolate::GetCurrent()),
-      v8impl::JsValueFromV8LocalValue(exports),
-      v8impl::JsValueFromV8LocalValue(module),
-      mod->nm_priv);
-  } else {
+    if (mod->nm_version != -1) {
+      mod->nm_register_func(exports, module, mod->nm_priv);
+    } else {
+      reinterpret_cast<node::addon_abi_register_func>(mod->nm_register_func)(
+        v8impl::JsEnvFromV8Isolate(v8::Isolate::GetCurrent()),
+        v8impl::JsValueFromV8LocalValue(exports),
+        v8impl::JsValueFromV8LocalValue(module),
+        mod->nm_priv);
+    }
     return env->ThrowError("Linked module has no declared entry point.");
   }
 
