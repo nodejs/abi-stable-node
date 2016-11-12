@@ -129,6 +129,10 @@ test-gc: all test/gc/node_modules/weak/build/Release/weakref.node
 
 test-build: all build-addons build-addons-abi
 
+test-build-addons: all build-addons
+
+test-build-addons-abi: all build-addons-abi
+
 test-all: test-build test/gc/node_modules/weak/build/Release/weakref.node
 	$(PYTHON) tools/test.py --mode=debug,release
 	make test-npm
@@ -179,10 +183,10 @@ test-npm: node
 test-npm-publish: node
 	npm_package_config_publishtest=true ./node deps/npm/test/run.js
 
-test-addons: test-build
+test-addons: test-build-addons
 	$(PYTHON) tools/test.py --mode=release addons
 
-test-addons-abi: test-build
+test-addons-abi: test-build-addons-abi
 	$(PYTHON) tools/test.py --mode=release addons-abi
 
 
