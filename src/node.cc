@@ -1909,7 +1909,9 @@ Handle<Value> DLOpen(const v8::Arguments& args) {
     return ThrowError(errmsg);
   }
 
-  if (mod->version != NODE_MODULE_VERSION && mod->version != -1) {
+  bool isNapiModule = mod->version == -1;
+
+  if (mod->version != NODE_MODULE_VERSION && !isNapiModule) {
     char errmsg[1024];
     snprintf(errmsg,
              sizeof(errmsg),
@@ -1919,16 +1921,26 @@ Handle<Value> DLOpen(const v8::Arguments& args) {
   }
 
   // Execute the C++ module
-  if (mod->register_func != NULL) {
-    if (mod->version != -1) {
-      mod->register_func(exports, module);
-    } else {
+  if (isNapiModule) {
+    if (mod->register_func != NULL) {
       reinterpret_cast<node::addon_abi_register_func>(mod->register_func)(
           v8impl::JsEnvFromV8Isolate(v8::Isolate::GetCurrent()),
           v8impl::JsValueFromV8LocalValue(exports),
-          v8impl::JsValueFromV8LocalValue(module));
+          v8impl::JsValueFromV8LocalValue(module),
+          NULL);
+    } else {
+      uv_dlclose(&lib);
+      return ThrowError("Module has no declared entry point.");
+    }
+  } else {
+    if (mod->register_func != NULL) {
+        mod->register_func(exports, module);
+    } else {
+      uv_dlclose(&lib);
+      return ThrowError("Module has no declared entry point.");
     }
   }
+
   // Tell coverity that 'handle' should not be freed when we return.
   // coverity[leaked_storage]
   return Undefined();
@@ -2020,7 +2032,8 @@ static Handle<Value> Binding(const Arguments& args) {
         reinterpret_cast<node::addon_abi_register_func>(modp->register_func)(
             v8impl::JsEnvFromV8Isolate(v8::Isolate::GetCurrent()),
             v8impl::JsValueFromV8LocalValue(exports),
-            v8impl::JsValueFromV8LocalValue(Local<Value>(*Undefined())));
+            v8impl::JsValueFromV8LocalValue(Local<Value>(*Undefined())),
+            NULL);
       }
     }
     binding_cache->Set(module, exports);
