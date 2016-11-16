@@ -5,15 +5,13 @@
 #ifndef V8StackTrace_h
 #define V8StackTrace_h
 
-#include "platform/inspector_protocol/Platform.h"
-#include "platform/inspector_protocol/String16.h"
-#include "platform/v8_inspector/protocol/Runtime.h"
+#include "platform/inspector_protocol/InspectorProtocol.h"
+#include "platform/v8_inspector/public/protocol/Runtime.h"
 
 #include <v8.h>
 
-namespace blink {
+namespace v8_inspector {
 
-// TODO(dgozman): migrate to V8SourceLocation.
 class V8StackTrace {
 public:
     virtual bool isEmpty() const = 0;
@@ -24,12 +22,13 @@ public:
     virtual String16 topFunctionName() const = 0;
 
     virtual ~V8StackTrace() { }
-    virtual std::unique_ptr<protocol::Runtime::StackTrace> buildInspectorObject() const = 0;
+    virtual std::unique_ptr<blink::protocol::Runtime::API::StackTrace> buildInspectorObject() const = 0;
     virtual String16 toString() const = 0;
+
+    // Safe to pass between threads, drops async chain.
     virtual std::unique_ptr<V8StackTrace> clone() = 0;
-    virtual std::unique_ptr<V8StackTrace> isolatedCopy() = 0; // Safe to pass between threads.
 };
 
-} // namespace blink
+} // namespace v8_inspector
 
 #endif // V8StackTrace_h

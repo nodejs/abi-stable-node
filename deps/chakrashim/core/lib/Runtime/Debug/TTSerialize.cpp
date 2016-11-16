@@ -10,25 +10,23 @@ namespace TTD
 {
     namespace NSTokens
     {
-        void InitKeyNamesArray(LPCWSTR** names, size_t** lengths)
+        void InitKeyNamesArray(const char16*** names, size_t** lengths)
         {
-            LPCWSTR* nameArray = TT_HEAP_ALLOC_ARRAY(LPCWSTR, (uint32)Key::Count);
+            const char16** nameArray = TT_HEAP_ALLOC_ARRAY(const char16*, (uint32)Key::Count);
             size_t* lengthArray = TT_HEAP_ALLOC_ARRAY(size_t, (uint32)Key::Count);
 
-#define __STEXT(X) ((const char16*)__TEXT(X))
-#define ENTRY_SERIALIZE_ENUM(K) { nameArray[(uint32)Key::##K] = __STEXT(#K); lengthArray[(uint32)Key::##K] = wcslen(__STEXT(#K)); }
+#define ENTRY_SERIALIZE_ENUM(K) { nameArray[(uint32)Key::##K] = _u(#K); lengthArray[(uint32)Key::##K] = wcslen(_u(#K)); }
 #include "TTSerializeEnum.h"
-#undef __STEXT
 
             *names = nameArray;
             *lengths = lengthArray;
         }
 
-        void CleanupKeyNamesArray(LPCWSTR** names, size_t** lengths)
+        void CleanupKeyNamesArray(const char16*** names, size_t** lengths)
         {
             if(*names != nullptr)
             {
-                TT_HEAP_FREE_ARRAY(LPCWSTR, *names, (uint32)NSTokens::Key::Count);
+                TT_HEAP_FREE_ARRAY(char16*, *names, (uint32)NSTokens::Key::Count);
                 *names = nullptr;
             }
 
@@ -44,14 +42,14 @@ namespace TTD
 
     void FileWriter::WriteBlock(const byte* buff, size_t bufflen)
     {
-        AssertMsg(bufflen != 0, "Shouldn't be writing empty blocks");
-        AssertMsg(this->m_hfile != INVALID_HANDLE_VALUE, "Trying to write to closed file.");
+        TTDAssert(bufflen != 0, "Shouldn't be writing empty blocks");
+        TTDAssert(this->m_hfile != nullptr, "Trying to write to closed file.");
 
-        DWORD bwp = 0;
-        this->m_pfWrite(this->m_hfile, (byte*)this->m_buffer, (DWORD)this->m_cursor, &bwp);
+        size_t bwp = 0;
+        this->m_pfWrite(this->m_hfile, buff, bufflen, &bwp);
     }
 
-    FileWriter::FileWriter(HANDLE handle, bool doCompression, TTDWriteBytesToStreamCallback pfWrite, TTDFlushAndCloseStreamCallback pfClose)
+    FileWriter::FileWriter(JsTTDStreamHandle handle, bool doCompression, TTDWriteBytesToStreamCallback pfWrite, TTDFlushAndCloseStreamCallback pfClose)
         : m_hfile(handle), m_pfWrite(pfWrite), m_pfClose(pfClose), m_doCompression(doCompression), m_cursor(0), m_buffer(nullptr)
     {
         this->m_buffer = TT_HEAP_ALLOC_ARRAY(byte, TTD_SERIALIZATION_BUFFER_SIZE);
@@ -64,7 +62,7 @@ namespace TTD
 
     void FileWriter::FlushAndClose()
     {
-        if(this->m_hfile != INVALID_HANDLE_VALUE)
+        if(this->m_hfile != nullptr)
         {
             if(this->m_cursor != 0)
             {
@@ -73,7 +71,7 @@ namespace TTD
             }
 
             this->m_pfClose(this->m_hfile, false, true);
-            this->m_hfile = INVALID_HANDLE_VALUE;
+            this->m_hfile = nullptr;
         }
 
         if(this->m_buffer != nullptr)
@@ -165,7 +163,7 @@ namespace TTD
 
     //////////////////
 
-    TextFormatWriter::TextFormatWriter(HANDLE handle, bool doCompression, TTDWriteBytesToStreamCallback pfWrite, TTDFlushAndCloseStreamCallback pfClose)
+    TextFormatWriter::TextFormatWriter(JsTTDStreamHandle handle, bool doCompression, TTDWriteBytesToStreamCallback pfWrite, TTDFlushAndCloseStreamCallback pfClose)
         : FileWriter(handle, doCompression, pfWrite, pfClose), m_keyNameArray(nullptr), m_keyNameLengthArray(nullptr), m_indentSize(0)
     {
         byte byteOrderMarker[2] = { 0xFF, 0xFE };
@@ -215,8 +213,8 @@ namespace TTD
     {
         this->WriteSeperator(separator);
 
-        AssertMsg(1 <= (uint32)key && (uint32)key < (uint32)NSTokens::Key::Count, "Key not in valid range!");
-        LPCWSTR kname = this->m_keyNameArray[(uint32)key];
+        TTDAssert(1 <= (uint32)key && (uint32)key < (uint32)NSTokens::Key::Count, "Key not in valid range!");
+        const char16* kname = this->m_keyNameArray[(uint32)key];
         size_t ksize = this->m_keyNameLengthArray[(uint32)key];
 
         this->WriteRawCharBuff(kname, ksize);
@@ -231,7 +229,7 @@ namespace TTD
 
     void TextFormatWriter::WriteSequenceEnd(NSTokens::Separator separator)
     {
-        AssertMsg(separator == NSTokens::Separator::NoSeparator || separator == NSTokens::Separator::BigSpaceSeparator, "Shouldn't be anything else!!!");
+        TTDAssert(separator == NSTokens::Separator::NoSeparator || separator == NSTokens::Separator::BigSpaceSeparator, "Shouldn't be anything else!!!");
 
         this->WriteSeperator(separator);
         this->WriteRawChar(_u(']'));
@@ -245,7 +243,7 @@ namespace TTD
 
     void TextFormatWriter::WriteRecordEnd(NSTokens::Separator separator)
     {
-        AssertMsg(separator == NSTokens::Separator::NoSeparator || separator == NSTokens::Separator::BigSpaceSeparator, "Shouldn't be anything else!!!");
+        TTDAssert(separator == NSTokens::Separator::NoSeparator || separator == NSTokens::Separator::BigSpaceSeparator, "Shouldn't be anything else!!!");
 
         this->WriteSeperator(separator);
         this->WriteRawChar(_u('}'));
@@ -389,9 +387,9 @@ namespace TTD
         {
             this->WriteFormattedCharData(_u("@%I32u"), val.Length);
 
-            this->WriteRawChar('\"');
+            this->WriteRawChar(_u('\"'));
             this->WriteRawCharBuff(val.Contents, val.Length);
-            this->WriteRawChar('\"');
+            this->WriteRawChar(_u('\"'));
         }
     }
 
@@ -399,12 +397,23 @@ namespace TTD
     {
         this->WriteSeperator(separator);
 
-        this->WriteRawChar('~');
+        this->WriteRawChar(_u('~'));
         this->WriteRawCharBuff(val, wcslen(val));
-        this->WriteRawChar('~');
+        this->WriteRawChar(_u('~'));
     }
 
-    BinaryFormatWriter::BinaryFormatWriter(HANDLE handle, bool doCompression, TTDWriteBytesToStreamCallback pfWrite, TTDFlushAndCloseStreamCallback pfClose)
+    void TextFormatWriter::WriteInlineCode(_In_reads_(length) char16* code, uint32 length, NSTokens::Separator separator)
+    {
+        this->WriteSeperator(separator);
+
+        this->WriteFormattedCharData(_u("@%I32u"), length);
+
+        this->WriteRawChar(_u('\"'));
+        this->WriteRawCharBuff(code, length);
+        this->WriteRawChar(_u('\"'));
+    }
+
+    BinaryFormatWriter::BinaryFormatWriter(JsTTDStreamHandle handle, bool doCompression, TTDWriteBytesToStreamCallback pfWrite, TTDFlushAndCloseStreamCallback pfClose)
         : FileWriter(handle, doCompression, pfWrite, pfClose)
     {
         ;
@@ -553,27 +562,27 @@ namespace TTD
         this->WriteRawByteBuff((const byte*)val, charLen * sizeof(char16));
     }
 
+    void BinaryFormatWriter::WriteInlineCode(_In_reads_(length) char16* code, uint32 length, NSTokens::Separator separator)
+    {
+        this->WriteSeperator(separator);
+
+        this->WriteRawByteBuff_Fixed<uint32>(length);
+        this->WriteRawByteBuff((const byte*)code, length * sizeof(char16));
+    }
+
     //////////////////
 
     void FileReader::ReadBlock(byte* buff, size_t* readSize)
     {
-        AssertMsg(this->m_hfile != INVALID_HANDLE_VALUE, "Trying to read a invalid file.");
+        TTDAssert(this->m_hfile != nullptr, "Trying to read a invalid file.");
 
-        DWORD bwp = 0;
+        size_t bwp = 0;
         this->m_pfRead(this->m_hfile, buff, TTD_SERIALIZATION_BUFFER_SIZE, &bwp);
 
         *readSize = (size_t)bwp;
     }
 
-    void FileReader::FileReadAssert(bool ok)
-    {
-        //
-        //TODO: we probably want to make this a special exception so we can abort cleanly when reading an invalid data
-        //
-        AssertMsg(ok, "Unexpected event in file reading!");
-    }
-
-    FileReader::FileReader(HANDLE handle, bool doDecompress, TTDReadBytesFromStreamCallback pfRead, TTDFlushAndCloseStreamCallback pfClose)
+    FileReader::FileReader(JsTTDStreamHandle handle, bool doDecompress, TTDReadBytesFromStreamCallback pfRead, TTDFlushAndCloseStreamCallback pfClose)
         : m_hfile(handle), m_pfRead(pfRead), m_pfClose(pfClose), m_peekChar(-1), m_doDecompress(doDecompress), m_cursor(0), m_buffCount(0), m_buffer(nullptr)
     {
         this->m_buffer = TT_HEAP_ALLOC_ARRAY(byte, TTD_SERIALIZATION_BUFFER_SIZE);
@@ -581,10 +590,10 @@ namespace TTD
 
     FileReader::~FileReader()
     {
-        if(this->m_hfile != INVALID_HANDLE_VALUE)
+        if(this->m_hfile != nullptr)
         {
             this->m_pfClose(this->m_hfile, true, false);
-            this->m_hfile = INVALID_HANDLE_VALUE;
+            this->m_hfile = nullptr;
         }
 
         if(this->m_buffer != nullptr)
@@ -662,7 +671,7 @@ namespace TTD
 
     //////////////////
 
-    NSTokens::ParseTokenKind TextFormatReader::Scan(JsUtil::List<wchar, HeapAllocator>& charList)
+    NSTokens::ParseTokenKind TextFormatReader::Scan(JsUtil::List<char16, HeapAllocator>& charList)
     {
         char16 c = _u('\0');
         charList.Clear();
@@ -733,7 +742,7 @@ namespace TTD
         return NSTokens::ParseTokenKind::Error;
     }
 
-    NSTokens::ParseTokenKind TextFormatReader::ScanKey(JsUtil::List<wchar, HeapAllocator>& charList)
+    NSTokens::ParseTokenKind TextFormatReader::ScanKey(JsUtil::List<char16, HeapAllocator>& charList)
     {
         charList.Clear();
 
@@ -854,7 +863,7 @@ namespace TTD
         }
     }
 
-    NSTokens::ParseTokenKind TextFormatReader::ScanNumber(JsUtil::List<wchar, HeapAllocator>& charList)
+    NSTokens::ParseTokenKind TextFormatReader::ScanNumber(JsUtil::List<char16, HeapAllocator>& charList)
     {
         char16 c = _u('\0');
         while(this->PeekRawChar(&c) && ((_u('0') <= c && c <= _u('9')) || (c == _u('.'))))
@@ -864,19 +873,19 @@ namespace TTD
         }
 
         bool likelyint; //we don't care about this just want to know that it is convertable to a number
-        const wchar* end;
-        const wchar* start = charList.GetBuffer();
-        double val = Js::NumberUtilities::StrToDbl<wchar>(start, &end, likelyint);
+        const char16* end;
+        const char16* start = charList.GetBuffer();
+        double val = Js::NumberUtilities::StrToDbl<char16>(start, &end, likelyint);
         if(start == end)
         {
             return NSTokens::ParseTokenKind::Error;
         }
-        AssertMsg(!Js::JavascriptNumber::IsNan(val), "Bad result from string to double conversion");
+        TTDAssert(!Js::JavascriptNumber::IsNan(val), "Bad result from string to double conversion");
 
         return NSTokens::ParseTokenKind::Number;
     }
 
-    NSTokens::ParseTokenKind TextFormatReader::ScanAddress(JsUtil::List<wchar, HeapAllocator>& charList)
+    NSTokens::ParseTokenKind TextFormatReader::ScanAddress(JsUtil::List<char16, HeapAllocator>& charList)
     {
         NSTokens::ParseTokenKind okNumber = this->ScanNumber(charList);
         if(okNumber != NSTokens::ParseTokenKind::Number)
@@ -887,7 +896,7 @@ namespace TTD
         return NSTokens::ParseTokenKind::Address;
     }
 
-    NSTokens::ParseTokenKind TextFormatReader::ScanLogTag(JsUtil::List<wchar, HeapAllocator>& charList)
+    NSTokens::ParseTokenKind TextFormatReader::ScanLogTag(JsUtil::List<char16, HeapAllocator>& charList)
     {
         NSTokens::ParseTokenKind okNumber = this->ScanNumber(charList);
         if(okNumber != NSTokens::ParseTokenKind::Number)
@@ -898,7 +907,7 @@ namespace TTD
         return NSTokens::ParseTokenKind::LogTag;
     }
 
-    NSTokens::ParseTokenKind TextFormatReader::ScanEnumTag(JsUtil::List<wchar, HeapAllocator>& charList)
+    NSTokens::ParseTokenKind TextFormatReader::ScanEnumTag(JsUtil::List<char16, HeapAllocator>& charList)
     {
         NSTokens::ParseTokenKind okNumber = this->ScanNumber(charList);
         if(okNumber != NSTokens::ParseTokenKind::Number)
@@ -909,7 +918,7 @@ namespace TTD
         return NSTokens::ParseTokenKind::EnumTag;
     }
 
-    NSTokens::ParseTokenKind TextFormatReader::ScanWellKnownToken(JsUtil::List<wchar, HeapAllocator>& charList)
+    NSTokens::ParseTokenKind TextFormatReader::ScanWellKnownToken(JsUtil::List<char16, HeapAllocator>& charList)
     {
         char16 c = _u('\0');
         bool endFound = false;
@@ -942,7 +951,7 @@ namespace TTD
         return NSTokens::ParseTokenKind::WellKnownToken;
     }
 
-    NSTokens::ParseTokenKind TextFormatReader::ScanString(JsUtil::List<wchar, HeapAllocator>& charList)
+    NSTokens::ParseTokenKind TextFormatReader::ScanString(JsUtil::List<char16, HeapAllocator>& charList)
     {
         bool ok = false;
         char16 c = _u('\0');
@@ -986,7 +995,7 @@ namespace TTD
         return NSTokens::ParseTokenKind::String;
     }
 
-    NSTokens::ParseTokenKind TextFormatReader::ScanNakedString(wchar leadChar)
+    NSTokens::ParseTokenKind TextFormatReader::ScanNakedString(char16 leadChar)
     {
         bool ok = false;
         char16 c = _u('\0');
@@ -1075,7 +1084,7 @@ namespace TTD
         }
     }
 
-    int64 TextFormatReader::ReadIntFromCharArray(const wchar* buff)
+    int64 TextFormatReader::ReadIntFromCharArray(const char16* buff)
     {
         int64 value = 0;
         int64 multiplier = 1;
@@ -1091,7 +1100,7 @@ namespace TTD
         int32 digitCount = (int32)wcslen(buff);
         for(int32 i = digitCount - 1; i >= lastIdx; --i)
         {
-            wchar digit = buff[i];
+            char16 digit = buff[i];
             uint32 digitValue = (digit - _u('0'));
 
             value += (multiplier * digitValue);
@@ -1101,7 +1110,7 @@ namespace TTD
         return value * sign;
     }
 
-    uint64 TextFormatReader::ReadUIntFromCharArray(const wchar* buff)
+    uint64 TextFormatReader::ReadUIntFromCharArray(const char16* buff)
     {
         uint64 value = 0;
         uint64 multiplier = 1;
@@ -1109,7 +1118,7 @@ namespace TTD
         int32 digitCount = (int32)wcslen(buff);
         for(int32 i = digitCount - 1; i >= 0; --i)
         {
-            wchar digit = buff[i];
+            char16 digit = buff[i];
             uint32 digitValue = (digit - _u('0'));
 
             value += (multiplier * digitValue);
@@ -1119,22 +1128,22 @@ namespace TTD
         return value;
     }
 
-    double TextFormatReader::ReadDoubleFromCharArray(const wchar* buff)
+    double TextFormatReader::ReadDoubleFromCharArray(const char16* buff)
     {
         bool likelytInt; //we don't care about this as we already know it is a double
-        const wchar* end;
-        double val = Js::NumberUtilities::StrToDbl<wchar>(buff, &end, likelytInt);
-        FileReader::FileReadAssert((buff != end) && !Js::JavascriptNumber::IsNan(val));
+        const char16* end;
+        double val = Js::NumberUtilities::StrToDbl<char16>(buff, &end, likelytInt);
+        TTDAssert((buff != end) && !Js::JavascriptNumber::IsNan(val), "Error in parse.");
 
         return val;
     }
 
-    TextFormatReader::TextFormatReader(HANDLE handle, bool doDecompress, TTDReadBytesFromStreamCallback pfRead, TTDFlushAndCloseStreamCallback pfClose)
+    TextFormatReader::TextFormatReader(JsTTDStreamHandle handle, bool doDecompress, TTDReadBytesFromStreamCallback pfRead, TTDFlushAndCloseStreamCallback pfClose)
         : FileReader(handle, doDecompress, pfRead, pfClose), m_charListPrimary(&HeapAllocator::Instance), m_charListOpt(&HeapAllocator::Instance), m_charListDiscard(&HeapAllocator::Instance), m_keyNameArray(nullptr), m_keyNameLengthArray(nullptr)
     {
         byte byteOrderMarker[2] = { 0x0, 0x0 };
         this->ReadBytesInto(byteOrderMarker, 2);
-        AssertMsg(byteOrderMarker[0] == 0xFF && byteOrderMarker[1] == 0xFE, "Byte Order Marker is incorrect!");
+        TTDAssert(byteOrderMarker[0] == 0xFF && byteOrderMarker[1] == 0xFE, "Byte Order Marker is incorrect!");
 
         NSTokens::InitKeyNamesArray(&(this->m_keyNameArray), &(this->m_keyNameLengthArray));
     }
@@ -1149,7 +1158,7 @@ namespace TTD
         if(readSeparator)
         {
             NSTokens::ParseTokenKind tok = this->Scan(this->m_charListDiscard);
-            FileReader::FileReadAssert(tok == NSTokens::ParseTokenKind::Comma);
+            TTDAssert(tok == NSTokens::ParseTokenKind::Comma, "Error in parse.");
         }
     }
 
@@ -1159,20 +1168,19 @@ namespace TTD
 
         //We do a special scan here for a key (instead of the more general scan we call elsewhere)
         NSTokens::ParseTokenKind tok = this->ScanKey(this->m_charListPrimary);
-        FileReader::FileReadAssert(tok == NSTokens::ParseTokenKind::String);
+        TTDAssert(tok == NSTokens::ParseTokenKind::String, "Error in parse.");
 
         this->m_charListPrimary.Add(_u('\0'));
-        LPCWSTR keystr = this->m_charListPrimary.GetBuffer();
+        const char16* keystr = this->m_charListPrimary.GetBuffer();
 
         //check key strings are the same
-        FileReader::FileReadAssert(1 <= (uint32)keyCheck && (uint32)keyCheck < (uint32)NSTokens::Key::Count);
-        LPCWSTR kname = this->m_keyNameArray[(uint32)keyCheck];
-        FileReader::FileReadAssert(kname != nullptr);
-
-        FileReader::FileReadAssert(wcscmp(keystr, kname) == 0);
+        TTDAssert(1 <= (uint32)keyCheck && (uint32)keyCheck < (uint32)NSTokens::Key::Count, "Error in parse.");
+        const char16* kname = this->m_keyNameArray[(uint32)keyCheck];
+        TTDAssert(kname != nullptr, "Error in parse.");
+        TTDAssert(wcscmp(keystr, kname) == 0, "Error in parse.");
 
         NSTokens::ParseTokenKind toksep = this->Scan(this->m_charListDiscard);
-        FileReader::FileReadAssert(toksep == NSTokens::ParseTokenKind::Colon);
+        TTDAssert(toksep == NSTokens::ParseTokenKind::Colon, "Error in parse.");
     }
 
     void TextFormatReader::ReadSequenceStart(bool readSeparator)
@@ -1180,13 +1188,13 @@ namespace TTD
         this->ReadSeperator(readSeparator);
 
         NSTokens::ParseTokenKind tok = this->Scan(this->m_charListDiscard);
-        FileReader::FileReadAssert(tok == NSTokens::ParseTokenKind::LBrack);
+        TTDAssert(tok == NSTokens::ParseTokenKind::LBrack, "Error in parse.");
     }
 
     void TextFormatReader::ReadSequenceEnd()
     {
         NSTokens::ParseTokenKind tok = this->Scan(this->m_charListDiscard);
-        FileReader::FileReadAssert(tok == NSTokens::ParseTokenKind::RBrack);
+        TTDAssert(tok == NSTokens::ParseTokenKind::RBrack, "Error in parse.");
     }
 
     void TextFormatReader::ReadRecordStart(bool readSeparator)
@@ -1194,13 +1202,13 @@ namespace TTD
         this->ReadSeperator(readSeparator);
 
         NSTokens::ParseTokenKind tok = this->Scan(this->m_charListDiscard);
-        FileReader::FileReadAssert(tok == NSTokens::ParseTokenKind::LCurly);
+        TTDAssert(tok == NSTokens::ParseTokenKind::LCurly, "Error in parse.");
     }
 
     void TextFormatReader::ReadRecordEnd()
     {
         NSTokens::ParseTokenKind tok = this->Scan(this->m_charListDiscard);
-        FileReader::FileReadAssert(tok == NSTokens::ParseTokenKind::RCurly);
+        TTDAssert(tok == NSTokens::ParseTokenKind::RCurly, "Error in parse.");
     }
 
     void TextFormatReader::ReadNakedNull(bool readSeparator)
@@ -1208,7 +1216,7 @@ namespace TTD
         this->ReadSeperator(readSeparator);
 
         NSTokens::ParseTokenKind tok = this->Scan(this->m_charListDiscard);
-        FileReader::FileReadAssert(tok == NSTokens::ParseTokenKind::Null);
+        TTDAssert(tok == NSTokens::ParseTokenKind::Null, "Error in parse.");
     }
 
     byte TextFormatReader::ReadNakedByte(bool readSeparator)
@@ -1216,11 +1224,12 @@ namespace TTD
         this->ReadSeperator(readSeparator);
 
         NSTokens::ParseTokenKind tok = this->Scan(this->m_charListOpt);
-        FileReader::FileReadAssert(tok == NSTokens::ParseTokenKind::Number);
+        TTDAssert(tok == NSTokens::ParseTokenKind::Number, "Error in parse.");
 
         this->m_charListOpt.Add(_u('\0'));
-        uint64 uval = this->ReadUIntFromCharArray(m_charListOpt.GetBuffer());
-        FileReader::FileReadAssert(uval <= BYTE_MAX);
+        uint64 uval = this->ReadUIntFromCharArray(this->m_charListOpt.GetBuffer());
+        TTDAssert(uval <= BYTE_MAX, "Error in parse.");
+
         return (byte)uval;
     }
 
@@ -1229,7 +1238,7 @@ namespace TTD
         this->ReadKey(keyCheck, readSeparator);
 
         NSTokens::ParseTokenKind tok = this->Scan(this->m_charListOpt);
-        FileReader::FileReadAssert(tok == NSTokens::ParseTokenKind::True || tok == NSTokens::ParseTokenKind::False);
+        TTDAssert(tok == NSTokens::ParseTokenKind::True || tok == NSTokens::ParseTokenKind::False, "Error in parse.");
 
         return (tok == NSTokens::ParseTokenKind::True);
     }
@@ -1239,11 +1248,11 @@ namespace TTD
         this->ReadSeperator(readSeparator);
 
         NSTokens::ParseTokenKind tok = this->Scan(this->m_charListOpt);
-        FileReader::FileReadAssert(tok == NSTokens::ParseTokenKind::Number);
+        TTDAssert(tok == NSTokens::ParseTokenKind::Number, "Error in parse.");
 
         this->m_charListOpt.Add(_u('\0'));
         int64 ival = this->ReadIntFromCharArray(this->m_charListOpt.GetBuffer());
-        FileReader::FileReadAssert(INT32_MIN <= ival && ival <= INT32_MAX);
+        TTDAssert(INT32_MIN <= ival && ival <= INT32_MAX, "Error in parse.");
 
         return (int32)ival;
     }
@@ -1253,11 +1262,11 @@ namespace TTD
         this->ReadSeperator(readSeparator);
 
         NSTokens::ParseTokenKind tok = this->Scan(this->m_charListOpt);
-        FileReader::FileReadAssert(tok == NSTokens::ParseTokenKind::Number);
+        TTDAssert(tok == NSTokens::ParseTokenKind::Number, "Error in parse.");
 
         this->m_charListOpt.Add(_u('\0'));
-        uint64 uval = this->ReadUIntFromCharArray(m_charListOpt.GetBuffer());
-        FileReader::FileReadAssert(uval <= UINT32_MAX);
+        uint64 uval = this->ReadUIntFromCharArray(this->m_charListOpt.GetBuffer());
+        TTDAssert(uval <= UINT32_MAX, "Error in parse.");
 
         return (uint32)uval;
     }
@@ -1267,7 +1276,7 @@ namespace TTD
         this->ReadSeperator(readSeparator);
 
         NSTokens::ParseTokenKind tok = this->Scan(this->m_charListOpt);
-        FileReader::FileReadAssert(tok == NSTokens::ParseTokenKind::Number);
+        TTDAssert(tok == NSTokens::ParseTokenKind::Number, "Error in parse.");
 
         this->m_charListOpt.Add(_u('\0'));
         return this->ReadIntFromCharArray(this->m_charListOpt.GetBuffer());
@@ -1278,7 +1287,7 @@ namespace TTD
         this->ReadSeperator(readSeparator);
 
         NSTokens::ParseTokenKind tok = this->Scan(this->m_charListOpt);
-        FileReader::FileReadAssert(tok == NSTokens::ParseTokenKind::Number);
+        TTDAssert(tok == NSTokens::ParseTokenKind::Number, "Error in parse.");
 
         this->m_charListOpt.Add(_u('\0'));
         return this->ReadUIntFromCharArray(this->m_charListOpt.GetBuffer());
@@ -1313,7 +1322,7 @@ namespace TTD
             break;
         default:
         {
-            FileReader::FileReadAssert(tok == NSTokens::ParseTokenKind::Number);
+            TTDAssert(tok == NSTokens::ParseTokenKind::Number, "Error in parse.");
 
             this->m_charListOpt.Add(_u('\0'));
             res = this->ReadDoubleFromCharArray(this->m_charListOpt.GetBuffer());
@@ -1330,7 +1339,7 @@ namespace TTD
         this->ReadSeperator(readSeparator);
 
         NSTokens::ParseTokenKind tok = this->Scan(this->m_charListOpt);
-        FileReader::FileReadAssert(tok == NSTokens::ParseTokenKind::Address);
+        TTDAssert(tok == NSTokens::ParseTokenKind::Address, "Error in parse.");
 
         this->m_charListOpt.Add(_u('\0')); //add terminator
         return (TTD_PTR_ID)this->ReadUIntFromCharArray(this->m_charListOpt.GetBuffer());
@@ -1341,7 +1350,7 @@ namespace TTD
         this->ReadSeperator(readSeparator);
 
         NSTokens::ParseTokenKind tok = this->Scan(this->m_charListOpt);
-        FileReader::FileReadAssert(tok == NSTokens::ParseTokenKind::LogTag);
+        TTDAssert(tok == NSTokens::ParseTokenKind::LogTag, "Error in parse.");
 
         this->m_charListOpt.Add(_u('\0')); //add terminator
         return (TTD_LOG_PTR_ID)this->ReadUIntFromCharArray(this->m_charListOpt.GetBuffer());
@@ -1352,11 +1361,11 @@ namespace TTD
         this->ReadSeperator(readSeparator);
 
         NSTokens::ParseTokenKind tok = this->Scan(this->m_charListOpt);
-        FileReader::FileReadAssert(tok == NSTokens::ParseTokenKind::EnumTag);
+        TTDAssert(tok == NSTokens::ParseTokenKind::EnumTag, "Error in parse.");
 
         this->m_charListOpt.Add(_u('\0')); //add terminator
         uint64 tval = this->ReadUIntFromCharArray(this->m_charListOpt.GetBuffer());
-        FileReader::FileReadAssert(tval <= UINT32_MAX);
+        TTDAssert(tval <= UINT32_MAX, "Error in parse.");
 
         return (uint32)tval;
     }
@@ -1368,7 +1377,7 @@ namespace TTD
         this->ReadSeperator(readSeparator);
 
         NSTokens::ParseTokenKind tok = this->Scan(this->m_charListOpt);
-        FileReader::FileReadAssert(tok == NSTokens::ParseTokenKind::String || tok == NSTokens::ParseTokenKind::Null);
+        TTDAssert(tok == NSTokens::ParseTokenKind::String || tok == NSTokens::ParseTokenKind::Null, "Error in parse.");
 
         if(tok == NSTokens::ParseTokenKind::Null)
         {
@@ -1385,7 +1394,7 @@ namespace TTD
         this->ReadSeperator(readSeparator);
 
         NSTokens::ParseTokenKind tok = this->Scan(this->m_charListOpt);
-        FileReader::FileReadAssert(tok == NSTokens::ParseTokenKind::String || tok == NSTokens::ParseTokenKind::Null);
+        TTDAssert(tok == NSTokens::ParseTokenKind::String || tok == NSTokens::ParseTokenKind::Null, "Error in parse.");
 
         if(tok == NSTokens::ParseTokenKind::Null)
         {
@@ -1402,7 +1411,7 @@ namespace TTD
         this->ReadSeperator(readSeparator);
 
         NSTokens::ParseTokenKind tok = this->Scan(this->m_charListOpt);
-        FileReader::FileReadAssert(tok == NSTokens::ParseTokenKind::WellKnownToken);
+        TTDAssert(tok == NSTokens::ParseTokenKind::WellKnownToken, "Error in parse.");
 
         this->m_charListOpt.Add(_u('\0')); //add null terminator
         return alloc.CopyRawNullTerminatedStringInto(this->m_charListOpt.GetBuffer());
@@ -1413,13 +1422,23 @@ namespace TTD
         this->ReadSeperator(readSeparator);
 
         NSTokens::ParseTokenKind tok = this->Scan(this->m_charListOpt);
-        FileReader::FileReadAssert(tok == NSTokens::ParseTokenKind::WellKnownToken);
+        TTDAssert(tok == NSTokens::ParseTokenKind::WellKnownToken, "Error in parse.");
 
         this->m_charListOpt.Add(_u('\0')); //add null terminator
         return alloc.CopyRawNullTerminatedStringInto(this->m_charListOpt.GetBuffer() + 1);
     }
 
-    BinaryFormatReader::BinaryFormatReader(HANDLE handle, bool doDecompress, TTDReadBytesFromStreamCallback pfRead, TTDFlushAndCloseStreamCallback pfClose)
+    void TextFormatReader::ReadInlineCode(_Out_writes_(length) char16* code, uint32 length, bool readSeparator)
+    {
+        this->ReadSeperator(readSeparator);
+
+        NSTokens::ParseTokenKind tok = this->Scan(this->m_charListOpt);
+        TTDAssert(tok == NSTokens::ParseTokenKind::String, "Error in parse.");
+
+        js_memcpy_s(code, length * sizeof(char16), this->m_charListOpt.GetBuffer(), this->m_charListOpt.Count() * sizeof(char16));
+    }
+
+    BinaryFormatReader::BinaryFormatReader(JsTTDStreamHandle handle, bool doDecompress, TTDReadBytesFromStreamCallback pfRead, TTDFlushAndCloseStreamCallback pfClose)
         : FileReader(handle, doDecompress, pfRead, pfClose)
     {
         ;
@@ -1437,7 +1456,7 @@ namespace TTD
             byte sep;
             this->ReadBytesInto_Fixed<byte>(sep);
 
-            FileReadAssert((NSTokens::Separator)sep == NSTokens::Separator::CommaSeparator);
+            TTDAssert((NSTokens::Separator)sep == NSTokens::Separator::CommaSeparator, "Error in parse.");
         }
     }
 
@@ -1448,7 +1467,7 @@ namespace TTD
         byte key;
         this->ReadBytesInto_Fixed<byte>(key);
 
-        FileReadAssert((NSTokens::Key)key == keyCheck);
+        TTDAssert((NSTokens::Key)key == keyCheck, "Error in parse.");
     }
 
     void BinaryFormatReader::ReadSequenceStart(bool readSeparator)
@@ -1458,7 +1477,7 @@ namespace TTD
         byte tok;
         this->ReadBytesInto_Fixed<byte>(tok);
 
-        FileReadAssert(tok == '[');
+        TTDAssert(tok == '[', "Error in parse.");
     }
 
     void BinaryFormatReader::ReadSequenceEnd()
@@ -1466,7 +1485,7 @@ namespace TTD
         byte tok;
         this->ReadBytesInto_Fixed<byte>(tok);
 
-        FileReadAssert(tok == ']');
+        TTDAssert(tok == ']', "Error in parse.");
     }
 
     void BinaryFormatReader::ReadRecordStart(bool readSeparator)
@@ -1476,7 +1495,7 @@ namespace TTD
         byte tok;
         this->ReadBytesInto_Fixed<byte>(tok);
 
-        FileReadAssert(tok == '{');
+        TTDAssert(tok == '{', "Error in parse.");
     }
 
     void BinaryFormatReader::ReadRecordEnd()
@@ -1484,7 +1503,7 @@ namespace TTD
         byte tok;
         this->ReadBytesInto_Fixed<byte>(tok);
 
-        FileReadAssert(tok == '}');
+        TTDAssert(tok == '}', "Error in parse.");
     }
 
     void BinaryFormatReader::ReadNakedNull(bool readSeparator)
@@ -1494,7 +1513,7 @@ namespace TTD
         byte tok;
         this->ReadBytesInto_Fixed<byte>(tok);
 
-        FileReadAssert(tok == 0);
+        TTDAssert(tok == 0, "Error in parse.");
     }
 
     byte BinaryFormatReader::ReadNakedByte(bool readSeparator)
@@ -1514,7 +1533,7 @@ namespace TTD
         byte b;
         this->ReadBytesInto_Fixed<byte>(b);
 
-        return b ? true : false;
+        return !!b;
     }
 
     int32 BinaryFormatReader::ReadNakedInt32(bool readSeparator)
@@ -1659,6 +1678,15 @@ namespace TTD
         cbuff[charLen] = _u('\0');
 
         return cbuff;
+    }
+
+    void BinaryFormatReader::ReadInlineCode(_Out_writes_(length) char16* code, uint32 length, bool readSeparator)
+    {
+        uint32 wlen = 0;
+        this->ReadBytesInto_Fixed<uint32>(wlen);
+        TTDAssert(wlen == length, "Not exepcted string length!!!");
+
+        this->ReadBytesInto((byte*)code, length * sizeof(char16));
     }
 
     //////////////////
@@ -1822,7 +1850,27 @@ namespace TTD
         fflush(this->m_outfile);
     }
 
-    void TraceLogger::WriteVar(Js::Var var)
+    void TraceLogger::WriteEnumAction(int64 eTime, BOOL returnCode, Js::PropertyId pid, Js::PropertyAttributes attrib, Js::JavascriptString* pname)
+    {
+        this->AppendLiteral("EnumAction(time: ");
+        this->AppendInteger(eTime);
+        this->AppendLiteral(", rCode: ");
+        this->AppendInteger(returnCode);
+        this->AppendLiteral(", pid: ");
+        this->AppendInteger(pid);
+
+        if(returnCode)
+        {
+            this->AppendLiteral(", attrib: ");
+            this->AppendInteger(attrib);
+            this->AppendLiteral(", name: ");
+            this->AppendText(pname->GetSz(), (uint32)pname->GetLength());
+        }
+
+        this->AppendLiteral(")\n");
+    }
+
+    void TraceLogger::WriteVar(Js::Var var, bool skipStringContents)
     {
         if(var == nullptr)
         {
@@ -1840,7 +1888,7 @@ namespace TTD
                 this->AppendLiteral("null");
                 break;
             case Js::TypeIds_Boolean:
-                this->AppendBool(Js::JavascriptBoolean::FromVar(var)->GetValue() ? true : false);
+                this->AppendBool(!!Js::JavascriptBoolean::FromVar(var)->GetValue());
                 break;
             case Js::TypeIds_Integer:
                 this->AppendInteger(Js::TaggedInt::ToInt64(var));
@@ -1856,7 +1904,25 @@ namespace TTD
                 break;
             case Js::TypeIds_String:
                 this->AppendLiteral("'");
-                this->AppendText(Js::JavascriptString::FromVar(var)->GetSz(), Js::JavascriptString::FromVar(var)->GetLength());
+                if(!skipStringContents)
+                {
+                    if(Js::JavascriptString::FromVar(var)->GetLength() <= 40)
+                    {
+                        this->AppendText(Js::JavascriptString::FromVar(var)->GetSz(), Js::JavascriptString::FromVar(var)->GetLength());
+                    }
+                    else
+                    {
+                        this->AppendText(Js::JavascriptString::FromVar(var)->GetSz(), 40);
+                        this->AppendLiteral("...");
+                        this->AppendInteger(Js::JavascriptString::FromVar(var)->GetLength());
+                    }
+                }
+                else
+                {
+                    this->AppendLiteral("string@length=");
+                    this->AppendInteger(Js::JavascriptString::FromVar(var)->GetLength());
+                    this->AppendLiteral("...");
+                }
                 this->AppendLiteral("'");
                 break;
             default:
@@ -1899,7 +1965,7 @@ namespace TTD
         Js::JavascriptString* displayName = function->GetDisplayName();
 
         this->AppendIndent();
-        LPCWSTR nameStr = displayName->GetSz();
+        const char16* nameStr = displayName->GetSz();
         uint32 nameLength = displayName->GetLength();
         this->AppendText(nameStr, nameLength);
 
@@ -1979,6 +2045,12 @@ namespace TTD
         this->ForceFlush();
         //
         ////
+    }
+
+    void TraceLogger::WriteTraceValue(Js::Var var)
+    {
+        this->WriteVar(var, true);
+        this->WriteLiteralMsg("\n");
     }
 #endif
 }

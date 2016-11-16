@@ -385,7 +385,7 @@ typedef void (*addon_context_register_func)(
     v8::Local<v8::Value> module,
     v8::Local<v8::Context> context,
     void* priv);
-
+    
 typedef void(*addon_abi_register_func)(
   napi_env env,
   napi_value exports,
@@ -474,7 +474,7 @@ extern "C" NODE_EXTERN void node_module_register(void* mod);
       node_module_register(&_module);                                 \
     }                                                                 \
   }
-
+  
 #define NODE_MODULE_ABI_X(modname, regfunc, priv, flags)              \
   extern "C" {                                                        \
     static node::node_module _module =                                \
@@ -501,10 +501,10 @@ extern "C" NODE_EXTERN void node_module_register(void* mod);
   NODE_MODULE_CONTEXT_AWARE_X(modname, regfunc, NULL, 0)
 
 #define NODE_MODULE_CONTEXT_AWARE_BUILTIN(modname, regfunc)           \
-  NODE_MODULE_CONTEXT_AWARE_X(modname, regfunc, NULL, NM_F_BUILTIN)
-
+  NODE_MODULE_CONTEXT_AWARE_X(modname, regfunc, NULL, NM_F_BUILTIN)   
+  
 #define NODE_MODULE_ABI(modname, regfunc)                             \
-  NODE_MODULE_ABI_X(modname, regfunc, NULL, 0)                        \
+  NODE_MODULE_ABI_X(modname, regfunc, NULL, 0)                        
 
 /*
  * For backward compatibility in add-on modules.

@@ -31,26 +31,22 @@
 #ifndef V8RuntimeAgentImpl_h
 #define V8RuntimeAgentImpl_h
 
-#include "platform/inspector_protocol/Allocator.h"
-#include "platform/inspector_protocol/String16.h"
+#include "platform/inspector_protocol/InspectorProtocol.h"
 #include "platform/v8_inspector/protocol/Runtime.h"
 
 #include <v8.h>
 
-namespace blink {
+namespace v8_inspector {
 
 class InjectedScript;
 class InspectedContext;
 class RemoteObjectIdBase;
 class V8ConsoleMessage;
-class V8DebuggerImpl;
+class V8InspectorImpl;
 class V8InspectorSessionImpl;
 
-namespace protocol {
-class DictionaryValue;
-}
-
-using protocol::Maybe;
+namespace protocol = blink::protocol;
+using blink::protocol::Maybe;
 
 class V8RuntimeAgentImpl : public protocol::Runtime::Backend {
     PROTOCOL_DISALLOW_COPY(V8RuntimeAgentImpl);
@@ -62,28 +58,32 @@ public:
     // Part of the protocol.
     void enable(ErrorString*) override;
     void disable(ErrorString*) override;
-    void evaluate(ErrorString*,
+    void evaluate(
         const String16& expression,
         const Maybe<String16>& objectGroup,
         const Maybe<bool>& includeCommandLineAPI,
-        const Maybe<bool>& doNotPauseOnExceptionsAndMuteConsole,
+        const Maybe<bool>& silent,
         const Maybe<int>& executionContextId,
         const Maybe<bool>& returnByValue,
         const Maybe<bool>& generatePreview,
         const Maybe<bool>& userGesture,
-        std::unique_ptr<protocol::Runtime::RemoteObject>* result,
-        Maybe<bool>* wasThrown,
-        Maybe<protocol::Runtime::ExceptionDetails>*) override;
-    void callFunctionOn(ErrorString*,
+        const Maybe<bool>& awaitPromise,
+        std::unique_ptr<EvaluateCallback>) override;
+    void awaitPromise(
+        const String16& promiseObjectId,
+        const Maybe<bool>& returnByValue,
+        const Maybe<bool>& generatePreview,
+        std::unique_ptr<AwaitPromiseCallback>) override;
+    void callFunctionOn(
         const String16& objectId,
         const String16& expression,
         const Maybe<protocol::Array<protocol::Runtime::CallArgument>>& optionalArguments,
-        const Maybe<bool>& doNotPauseOnExceptionsAndMuteConsole,
+        const Maybe<bool>& silent,
         const Maybe<bool>& returnByValue,
         const Maybe<bool>& generatePreview,
         const Maybe<bool>& userGesture,
-        std::unique_ptr<protocol::Runtime::RemoteObject>* result,
-        Maybe<bool>* wasThrown) override;
+        const Maybe<bool>& awaitPromise,
+        std::unique_ptr<CallFunctionOnCallback>) override;
     void releaseObject(ErrorString*, const String16& objectId) override;
     void getProperties(ErrorString*,
         const String16& objectId,
@@ -94,24 +94,26 @@ public:
         Maybe<protocol::Array<protocol::Runtime::InternalPropertyDescriptor>>* internalProperties,
         Maybe<protocol::Runtime::ExceptionDetails>*) override;
     void releaseObjectGroup(ErrorString*, const String16& objectGroup) override;
-    void run(ErrorString*) override;
+    void runIfWaitingForDebugger(ErrorString*) override;
     void setCustomObjectFormatterEnabled(ErrorString*, bool) override;
     void discardConsoleEntries(ErrorString*) override;
     void compileScript(ErrorString*,
         const String16& expression,
         const String16& sourceURL,
         bool persistScript,
-        int executionContextId,
+        const Maybe<int>& executionContextId,
         Maybe<String16>*,
         Maybe<protocol::Runtime::ExceptionDetails>*) override;
-    void runScript(ErrorString*,
+    void runScript(
         const String16&,
-        int executionContextId,
+        const Maybe<int>& executionContextId,
         const Maybe<String16>& objectGroup,
-        const Maybe<bool>& doNotPauseOnExceptionsAndMuteConsole,
+        const Maybe<bool>& silent,
         const Maybe<bool>& includeCommandLineAPI,
-        std::unique_ptr<protocol::Runtime::RemoteObject>* result,
-        Maybe<protocol::Runtime::ExceptionDetails>*) override;
+        const Maybe<bool>& returnByValue,
+        const Maybe<bool>& generatePreview,
+        const Maybe<bool>& awaitPromise,
+        std::unique_ptr<RunScriptCallback>) override;
 
     void reset();
     void reportExecutionContextCreated(InspectedContext*);
@@ -126,11 +128,11 @@ private:
     V8InspectorSessionImpl* m_session;
     protocol::DictionaryValue* m_state;
     protocol::Runtime::Frontend m_frontend;
-    V8DebuggerImpl* m_debugger;
+    V8InspectorImpl* m_inspector;
     bool m_enabled;
     protocol::HashMap<String16, std::unique_ptr<v8::Global<v8::Script>>> m_compiledScripts;
 };
 
-} // namespace blink
+} // namespace v8_inspector
 
 #endif // V8RuntimeAgentImpl_h

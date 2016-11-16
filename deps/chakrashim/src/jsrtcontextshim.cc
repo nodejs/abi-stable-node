@@ -23,6 +23,11 @@
 #include <algorithm>
 #include <memory>
 
+namespace v8 {
+  extern bool g_trace_debug_json;
+  extern THREAD_LOCAL JsSourceContext currentContext;
+}
+
 namespace jsrt {
 
 using jsrt::chakra_shim_native;
@@ -420,17 +425,14 @@ bool ContextShim::ExposeGc() {
 }
 
 bool ContextShim::ExecuteChakraShimJS() {
-  // xplat-todo: Currently chakra_shim_native is not null-terminated, but JSRT
-  // API requires null-terminator. Make a copy and null-terminate it.
-  // Remove this when new API signature available.
-  char buffer[_countof(jsrt::chakra_shim_native) + 1];
-  memmove(buffer, chakra_shim_native, _countof(chakra_shim_native));
-  buffer[_countof(chakra_shim_native)] = '\0';
-
   JsValueRef getInitFunction;
-  if (JsParseScriptUtf8(buffer,
-                    JS_SOURCE_CONTEXT_NONE,
-                    "chakra_shim.js",
+  JsValueRef url;
+  CHAKRA_VERIFY(JsCreateString("chakra_shim.js", strlen("chakra_shim.js"),
+                               &url) == JsNoError);
+  if (JsParse(GetIsolateShim()->GetChakraShimJsArrayBuffer(),
+                    v8::currentContext++,
+                    url,
+                    JsParseScriptAttributeNone,
                     &getInitFunction) != JsNoError) {
     return false;
   }
@@ -442,6 +444,37 @@ bool ContextShim::ExecuteChakraShimJS() {
   JsValueRef arguments[] = { this->globalObject, this->keepAliveObject };
   return JsCallFunction(initFunction, arguments, _countof(arguments),
                         &result) == JsNoError;
+}
+
+bool ContextShim::ExecuteChakraDebugShimJS(JsValueRef * chakraDebugObject) {
+  JsValueRef getInitFunction;
+  JsValueRef url;
+  CHAKRA_VERIFY(JsCreateString("chakra_debug.js", strlen("chakra_debug.js"),
+                               &url) == JsNoError);
+  if (JsParse(GetIsolateShim()->GetChakraDebugShimJsArrayBuffer(),
+    v8::currentContext++,
+    url,
+    JsParseScriptAttributeNone,
+    &getInitFunction) != JsNoError) {
+    return false;
+  }
+
+  JsValueRef initFunction;
+  if (CallFunction(getInitFunction, &initFunction) != JsNoError) {
+    return false;
+  }
+
+  JsValueRef traceDebugJsonRef;
+  JsBoolToBoolean(v8::g_trace_debug_json, &traceDebugJsonRef);
+
+  JsValueRef arguments[] = { this->globalObject, this->globalObject,
+      this->keepAliveObject, traceDebugJsonRef };
+  JsErrorCode errorCode = JsCallFunction(initFunction, arguments,
+      _countof(arguments), chakraDebugObject);
+
+  CHAKRA_VERIFY_NOERROR(errorCode);
+
+  return true;
 }
 
 void ContextShim::SetAlignedPointerInEmbedderData(int index, void * value) {

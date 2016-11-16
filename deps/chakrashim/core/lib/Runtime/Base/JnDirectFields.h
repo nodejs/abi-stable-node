@@ -181,6 +181,7 @@ ENTRY(decodeURI)
 ENTRY(decodeURIComponent)
 ENTRY2(default_, _u("default"))
 ENTRY2(delete_, _u("delete")) // "delete" cannot be an identifier in C++ so using "delete_" instead
+ENTRY2(star_, _u("*"))
 ENTRY(deleteProperty)
 ENTRY(description)
 ENTRY(done)
@@ -272,6 +273,29 @@ ENTRY(localeCompare)
 ENTRY(map)
 ENTRY(Map)
 ENTRY(Math)
+
+// Wasm
+
+ENTRY(WebAssembly)
+ENTRY(Module)
+ENTRY(Instance)
+ENTRY(Memory)
+ENTRY(Table)
+ENTRY(CompileError)
+ENTRY(RuntimeError)
+ENTRY(validate)
+ENTRY(instantiate)
+ENTRY(grow)
+ENTRY(nativeTypeCallTest)
+ENTRY(module)
+ENTRY(instance)
+ENTRY(kind)
+ENTRY(exports)
+ENTRY(imports)
+ENTRY(initial)
+ENTRY(maximum)
+ENTRY(element)
+// End Wasm
 
 // SIMD_JS
 ENTRY(SIMD)
@@ -695,6 +719,14 @@ ENTRY(screen)
 
 ENTRY(padStart)
 ENTRY(padEnd)
+
+ENTRY(SharedArrayBuffer)
+ENTRY(Atomics)
+ENTRY(compareExchange)
+ENTRY(exchange)
+ENTRY(isLockFree)
+ENTRY(wait)
+ENTRY(wake)
 
 // Note: Do not add fields for conditionally-compiled PropertyIds into this file.
 //       The bytecode for internal javascript libraries is built on chk but re-used in fre builds.

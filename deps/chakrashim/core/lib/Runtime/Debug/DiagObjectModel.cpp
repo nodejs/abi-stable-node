@@ -24,9 +24,8 @@
 #include "Library/JavascriptWeakSet.h"
 #include "Library/ArgumentsObject.h"
 
-#include "Types/DynamicObjectEnumerator.h"
-#include "Types/DynamicObjectSnapshotEnumerator.h"
-#include "Types/DynamicObjectSnapshotEnumeratorWPCache.h"
+#include "Types/DynamicObjectPropertyEnumerator.h"
+#include "Types/JavascriptStaticEnumerator.h"
 #include "Library/ForInObjectEnumerator.h"
 #include "Library/ES5Array.h"
 #include "Library/SimdLib.h"
@@ -485,7 +484,7 @@ namespace Js
         *isConst = false;
 
 
-        if (!allowLexicalThis && propertyId == Js::PropertyIds::_lexicalThisSlotSymbol)
+        if (!allowLexicalThis && (propertyId == Js::PropertyIds::_lexicalThisSlotSymbol || propertyId == Js::PropertyIds::_lexicalNewTargetSymbol))
         {
             return false;
         }
@@ -1831,10 +1830,30 @@ namespace Js
             ScriptContext* requestContext = obj->GetScriptContext();
             Var objValue = nullptr;
 
+#if ENABLE_TTD
+            bool suppressGetterForTTDebug = requestContext->GetThreadContext()->IsRuntimeInTTDMode() && requestContext->GetThreadContext()->TTDLog->ShouldDoGetterInvocationSupression();
+            if(suppressGetterForTTDebug)
+            {
+                requestContext->GetThreadContext()->TTDLog->PushMode(TTD::TTDMode::DebuggerSuppressGetter);
+            }
+
+            BOOL success = Js::JavascriptOperators::GetProperty(obj, propId, &objValue, requestContext);
+
+            if(suppressGetterForTTDebug)
+            {
+                requestContext->GetThreadContext()->TTDLog->PopMode(TTD::TTDMode::DebuggerSuppressGetter);
+            }
+
+            if(success)
+            {
+                return objValue;
+            }
+#else
             if (Js::JavascriptOperators::GetProperty(obj, propId, &objValue, requestContext))
             {
                 return objValue;
             }
+#endif
         }
 
         return nullptr;
@@ -2063,7 +2082,8 @@ namespace Js
                         if (object->CanHaveInterceptors())
                         {
                             Js::ForInObjectEnumerator enumerator(object, object->GetScriptContext(), /* enumSymbols */ true);
-                            if (enumerator.MoveNext())
+                            Js::PropertyId propertyId;
+                            if (enumerator.MoveAndGetNext(propertyId))
                             {
                                 enumerator.Clear();
                                 return TRUE;
@@ -2097,10 +2117,10 @@ namespace Js
                         return TRUE;
                     }
                 }
-                catch (Js::JavascriptExceptionObject* exception)
+                catch (const JavascriptException& err)
                 {
                     // The For in enumerator can throw an exception and we will use the error object as a child in that case.
-                    Var error = exception->GetThrownObject(scriptContext);
+                    Var error = err.GetAndClear()->GetThrownObject(scriptContext);
                     if (error != nullptr && Js::JavascriptError::Is(error))
                     {
                         return TRUE;
@@ -2174,6 +2194,15 @@ namespace Js
     BOOL RecyclableObjectDisplay::GetPropertyWithScriptEnter(RecyclableObject* originalInstance, RecyclableObject* instance, PropertyId propertyId, Var* value, ScriptContext* scriptContext)
     {
         BOOL retValue = FALSE;
+
+#if ENABLE_TTD
+        bool suppressGetterForTTDebug = scriptContext->GetThreadContext()->IsRuntimeInTTDMode() && scriptContext->GetThreadContext()->TTDLog->ShouldDoGetterInvocationSupression();
+        if(suppressGetterForTTDebug)
+        {
+            instance->GetScriptContext()->GetThreadContext()->TTDLog->PushMode(TTD::TTDMode::DebuggerSuppressGetter);
+        }
+#endif
+
         if(!scriptContext->GetThreadContext()->IsScriptActive())
         {
             BEGIN_JS_RUNTIME_CALL_EX(scriptContext, false)
@@ -2187,6 +2216,14 @@ namespace Js
         {
             retValue = Js::JavascriptOperators::GetProperty(originalInstance, instance, propertyId, value, scriptContext);
         }
+
+#if ENABLE_TTD
+        if(suppressGetterForTTDebug)
+        {
+            instance->GetScriptContext()->GetThreadContext()->TTDLog->PopMode(TTD::TTDMode::DebuggerSuppressGetter);
+        }
+#endif
+
         return retValue;
     }
 
@@ -2372,13 +2409,14 @@ namespace Js
                     {
                         try
                         {
-                            JavascriptEnumerator* enumerator;
-                            if (object->GetEnumerator(true/*enumNonEnumable*/, (Var*)&enumerator, scriptContext, false/*preferSnapshotSyntax*/, true/*enumSymbols*/))
+                            ScriptContext * objectContext = object->GetScriptContext();
+                            JavascriptStaticEnumerator enumerator;
+                            if (object->GetEnumerator(&enumerator, EnumeratorFlags::EnumNonEnumerable | EnumeratorFlags::EnumSymbols, objectContext))
                             {
                                 Js::PropertyId propertyId;
                                 Var obj;
 
-                                while ((obj = enumerator->GetCurrentAndMoveNext(propertyId)) != nullptr)
+                                while ((obj = enumerator.MoveAndGetNext(propertyId)) != nullptr)
                                 {
                                     if (!JavascriptString::Is(obj))
                                     {
@@ -2398,16 +2436,16 @@ namespace Js
                                         else
                                         {
                                             const PropertyRecord* propertyRecord;
-                                            scriptContext->GetOrAddPropertyRecord(pString->GetSz(), pString->GetLength(), &propertyRecord);
+                                            objectContext->GetOrAddPropertyRecord(pString->GetSz(), pString->GetLength(), &propertyRecord);
                                             propertyId = propertyRecord->GetPropertyId();
                                         }
                                     }
-                                    // GetCurrentAndMoveNext shouldn't return an internal property id
+                                    // MoveAndGetNext shouldn't return an internal property id
                                     Assert(!Js::IsInternalPropertyId(propertyId));
 
                                     uint32 indexVal;
                                     Var varValue;
-                                    if (scriptContext->IsNumericPropertyId(propertyId, &indexVal) && object->GetItem(object, indexVal, &varValue, scriptContext))
+                                    if (objectContext->IsNumericPropertyId(propertyId, &indexVal) && object->GetItem(object, indexVal, &varValue, objectContext))
                                     {
                                         InsertItem(propertyId, false /*isConst*/, false /*isUnscoped*/, varValue, &pMethodsGroupWalker, true /*shouldPinProperty*/);
                                     }
@@ -2418,9 +2456,9 @@ namespace Js
                                 }
                             }
                         }
-                        catch (JavascriptExceptionObject* exception)
+                        catch (const JavascriptException& err)
                         {
-                            Var error = exception->GetThrownObject(scriptContext);
+                            Var error = err.GetAndClear()->GetThrownObject(scriptContext);
                             if (error != nullptr && Js::JavascriptError::Is(error))
                             {
                                 Js::PropertyId propertyId = scriptContext->GetOrAddPropertyIdTracked(_u("{error}"));
@@ -2711,7 +2749,7 @@ namespace Js
                 DebuggerPropertyDisplayInfo *info = Anew(arena, DebuggerPropertyDisplayInfo, propertyId, itemObj, DebuggerPropertyDisplayInfoFlags_Const);
                 pMembersList->Add(info);
             }
-            else 
+            else
             {
                 EnsureFakeGroupObjectWalkerList();
 
@@ -2750,9 +2788,9 @@ namespace Js
                 return instance->GetScriptContext()->GetMissingPropertyResult();
             }
         }
-        catch(Js::JavascriptExceptionObject * exceptionObject)
+        catch(const JavascriptException& err)
         {
-            Var error = exceptionObject->GetThrownObject(instance->GetScriptContext());
+            Var error = err.GetAndClear()->GetThrownObject(instance->GetScriptContext());
             if (error != nullptr && Js::JavascriptError::Is(error))
             {
                 obj = error;
@@ -3996,10 +4034,9 @@ namespace Js
                     }
                 }
             }
-            catch(Js::JavascriptExceptionObject *exceptionObject)
+            catch(const JavascriptException& err)
             {
-                exceptionObject;
-                // Not doing anything over here.
+                err.GetAndClear();  // discard exception object
             }
 
             return _u("");
@@ -4244,7 +4281,7 @@ namespace Js
         pResolvedObject->objectDisplay = pResolvedObject->CreateDisplay();
         pResolvedObject->objectDisplay->SetDefaultTypeAttribute(DBGPROP_ATTRIB_VALUE_READONLY | DBGPROP_ATTRIB_VALUE_IS_FAKE);
         pResolvedObject->address = nullptr;
-        
+
         return TRUE;
     }
 
@@ -4294,7 +4331,7 @@ namespace Js
         SIMDValue value = simd->GetValue();
 
         char16* stringBuffer = AnewArray(GetArenaFromContext(scriptContext), char16, SIMD_STRING_BUFFER_MAX);
-        
+
         simdType::ToStringBuffer(value, stringBuffer, SIMD_STRING_BUFFER_MAX, scriptContext);
 
         builder->AppendSz(stringBuffer);

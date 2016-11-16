@@ -7,30 +7,6 @@
 
 #include "Core/ConfigParser.h"
 
-// TODO: REMOVE
-void js_memcpy_s(__bcount(sizeInBytes) void *dst, size_t sizeInBytes, __in_bcount(count) const void *src, size_t count)
-{
-    Assert((count) <= (sizeInBytes));
-    if ((count) <= (sizeInBytes))
-        memcpy((dst), (src), (count));
-    else
-        ReportFatalException(NULL, E_FAIL, Fatal_Internal_Error, 2);
-}
-
-void js_wmemcpy_s(__ecount(sizeInWords) char16 *dst, size_t sizeInWords, __in_ecount(count) const char16 *src, size_t count)
-{
-    //Multiplication Overflow check
-    Assert(count <= sizeInWords && count <= SIZE_MAX/sizeof(char16));
-    if(!(count <= sizeInWords && count <= SIZE_MAX/sizeof(char16)))
-    {
-        ReportFatalException((ULONG_PTR) NULL, E_FAIL, Fatal_Internal_Error, 2);
-    }
-    else
-    {
-        memcpy(dst, src, count * sizeof(char16));
-    }
-}
-
 bool ConfigParserAPI::FillConsoleTitle(__ecount(cchBufferSize) LPWSTR buffer, size_t cchBufferSize, __in LPWSTR moduleName)
 {
     swprintf_s(buffer, cchBufferSize, _u("Chakra GC: %d - %s"), GetCurrentProcessId(), moduleName);
@@ -134,12 +110,4 @@ HRESULT MemProtectHeapSynchronizeWithCollector(void * heapHandle) { return E_NOT
 
 #if DBG && defined(INTERNAL_MEM_PROTECT_HEAP_ALLOC)
 void MemProtectHeapSetDisableConcurrentThreadExitedCheck(void * heapHandle) {};
-#endif
-
-#ifdef ENABLE_BASIC_TELEMETRY
-namespace Js
-{
-    void GCTelemetry::LogGCPauseStartTime() {};
-    void GCTelemetry::LogGCPauseEndTime() {};
-};
 #endif

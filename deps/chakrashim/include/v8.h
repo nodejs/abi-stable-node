@@ -55,6 +55,13 @@
 #define USE_EDGEMODE_JSRT     // Only works with edge JSRT
 #endif
 
+#if !defined(OSX_SDK_TR1) && defined(__APPLE__)
+#include <AvailabilityMacros.h>
+#if __ENVIRONMENT_MAC_OS_X_VERSION_MIN_REQUIRED__ < MAC_OS_X_VERSION_10_9
+#define OSX_SDK_TR1
+#endif
+#endif
+
 #include <memory>
 #include "ChakraCore.h"
 #include "v8-version.h"
@@ -446,10 +453,6 @@ struct WeakReferenceCallbackWrapper {
   };
   bool isWeakCallbackInfo;
 };
-#ifdef _WIN32
-// xplat-todo: Is this still needed? Fail to compile xplat.
-template class V8_EXPORT std::shared_ptr<WeakReferenceCallbackWrapper>;
-#endif
 
 // A helper method for setting an object with a WeakReferenceCallback. The
 // callback will be called before the object is released.
@@ -457,12 +460,12 @@ V8_EXPORT void SetObjectWeakReferenceCallback(
   JsValueRef object,
   WeakCallbackInfo<void>::Callback callback,
   void* parameters,
-  std::shared_ptr<WeakReferenceCallbackWrapper>* weakWrapper);
+  WeakReferenceCallbackWrapper** weakWrapper);
 V8_EXPORT void SetObjectWeakReferenceCallback(
   JsValueRef object,
   WeakCallbackData<Value, void>::Callback callback,
   void* parameters,
-  std::shared_ptr<WeakReferenceCallbackWrapper>* weakWrapper);
+  WeakReferenceCallbackWrapper** weakWrapper);
 // A helper method for turning off the WeakReferenceCallback that was set using
 // the previous method
 V8_EXPORT void ClearObjectWeakReferenceCallback(JsValueRef object, bool revive);
@@ -530,7 +533,7 @@ class PersistentBase {
   template<class F> friend class Local;
   template<class F1, class F2> friend class Persistent;
 
-  explicit V8_INLINE PersistentBase(T* val) : val_(val) {}
+  explicit V8_INLINE PersistentBase(T* val) : val_(val), _weakWrapper(nullptr) {}
   PersistentBase(PersistentBase& other) = delete;  // NOLINT
   void operator=(PersistentBase&) = delete;
   V8_INLINE static T* New(Isolate* isolate, T* that);
@@ -539,7 +542,7 @@ class PersistentBase {
   void SetWeakCommon(P* parameter, Callback callback);
 
   T* val_;
-  std::shared_ptr<chakrashim::WeakReferenceCallbackWrapper> _weakWrapper;
+  chakrashim::WeakReferenceCallbackWrapper* _weakWrapper;
 };
 
 
@@ -674,7 +677,7 @@ class Global : public PersistentBase<T> {
   V8_INLINE Global(Global&& other) : PersistentBase<T>(other.val_) {
     this->_weakWrapper = other._weakWrapper;
     other.val_ = nullptr;
-    other._weakWrapper.reset();
+    other._weakWrapper = nullptr;
   }
 
   V8_INLINE ~Global() { this->Reset(); }
@@ -687,7 +690,7 @@ class Global : public PersistentBase<T> {
       this->val_ = rhs.val_;
       this->_weakWrapper = rhs._weakWrapper;
       rhs.val_ = nullptr;
-      rhs._weakWrapper.reset();
+      rhs._weakWrapper = nullptr;
     }
     return *this;
   }
@@ -1600,6 +1603,8 @@ class PropertyCallbackInfo {
   Local<Value> Data() const { return _data; }
   Local<Object> This() const { return _thisObject; }
   Local<Object> Holder() const { return _holder; }
+  // CHAKRA-TODO
+  bool ShouldThrowOnError() const { return true; }
   ReturnValue<T> GetReturnValue() const {
     return ReturnValue<T>(
       &(const_cast<PropertyCallbackInfo<T>*>(this)->_returnValue));
@@ -2274,7 +2279,6 @@ class V8_EXPORT StartupData {
 
 class V8_EXPORT V8 {
  public:
-  static void SetArrayBufferAllocator(ArrayBuffer::Allocator* allocator);
   static bool IsDead();
   static void SetFlagsFromString(const char* str, int length);
   static void SetFlagsFromCommandLine(
@@ -2495,10 +2499,11 @@ void PersistentBase<T>::Reset() {
   if (this->IsEmpty() || V8::IsDead()) return;
 
   if (IsWeak()) {
-    if (_weakWrapper.unique()) {
+    if (_weakWrapper) {
       chakrashim::ClearObjectWeakReferenceCallback(val_, /*revive*/false);
+      delete _weakWrapper;
+      _weakWrapper = nullptr;
     }
-    _weakWrapper.reset();
   } else {
     JsRelease(val_, nullptr);
   }
@@ -2562,10 +2567,11 @@ P* PersistentBase<T>::ClearWeak() {
   if (!IsWeak()) return nullptr;
 
   P* parameters = reinterpret_cast<P*>(_weakWrapper->parameters);
-  if (_weakWrapper.unique()) {
+  if (_weakWrapper) {
     chakrashim::ClearObjectWeakReferenceCallback(val_, /*revive*/true);
+    delete _weakWrapper;
+    _weakWrapper = nullptr;
   }
-  _weakWrapper.reset();
 
   JsAddRef(val_, nullptr);
   return parameters;

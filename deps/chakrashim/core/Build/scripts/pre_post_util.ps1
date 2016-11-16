@@ -4,7 +4,6 @@
 #-------------------------------------------------------------------------------------------------------
 
 . "$PSScriptRoot\util.ps1"
-. "$PSScriptRoot\locate_msbuild.ps1"
 
 function WriteCommonArguments() {
     WriteMessage "  Source Path: $srcpath"
@@ -12,16 +11,27 @@ function WriteCommonArguments() {
     WriteMessage "Binaries Path: $binpath"
 }
 
-function GetBuildInfo($oauth, $commitHash) {
-    # Get the git remote path and construct the rest API URI
+function GetVersionField($fieldname) {
     $gitExe = GetGitPath
-    $remote = (iex "$gitExe remote -v")[0].split()[1].replace("_git", "_apis/git/repositories")
+    $query = "#define ${fieldname} (\d+)"
+    $line = (iex "${gitExe} grep -P ""${query}"" :/")
+    $matches = $line | Select-String $query
+    if ($matches) {
+        return $matches[0].Matches.Groups[1].Value
+    }
+    return ""
+}
+
+function GetBuildInfo($oauth, $commitHash) {
+    # Get the git remote path and construct the REST API URI
+    $gitExe = GetGitPath
+    $remote = (iex "$gitExe remote -v" | ? { $_.contains("_git") })[0].split()[1].replace("_git", "_apis/git/repositories")
     $remote = $remote.replace("mshttps", "https")
 
     # Get the pushId and push date time to use that for build number and build date time
     $uri = ("{0}/commits/{1}?api-version=1.0" -f $remote, $commitHash)
     $oauthToken = Get-Content $oauth
-    $header = @{Authorization=("Basic {0}" -f $oauthToken) }
+    $header = @{ Authorization=("Basic {0}" -f $oauthToken) }
     $info = Invoke-RestMethod -Headers $header -Uri $uri -Method GET
 
     return $info

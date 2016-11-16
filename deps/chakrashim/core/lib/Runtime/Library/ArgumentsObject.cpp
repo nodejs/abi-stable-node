@@ -4,17 +4,15 @@
 //-------------------------------------------------------------------------------------------------------
 #include "RuntimeLibraryPch.h"
 
+#include "Library/ArgumentsObjectEnumerator.h"
+
 namespace Js
 {
-    BOOL ArgumentsObject::GetEnumerator(BOOL enumNonEnumerable, Var* enumerator, ScriptContext * requestContext, bool preferSnapshotSemantics, bool enumSymbols)
+    BOOL ArgumentsObject::GetEnumerator(JavascriptStaticEnumerator * enumerator, EnumeratorFlags flags, ScriptContext* requestContext, ForInCache * forInCache)
     {
-        if (!this->GetTypeHandler()->EnsureObjectReady(this))
-        {
-            *enumerator = nullptr;
-            return false;
-        }
-        *enumerator = RecyclerNew(GetScriptContext()->GetRecycler(), ArgumentsObjectEnumerator, this, requestContext, enumNonEnumerable, enumSymbols);
-        return true;
+        return GetEnumeratorWithPrefix(
+            RecyclerNew(GetScriptContext()->GetRecycler(), ArgumentsObjectPrefixEnumerator, this, flags, requestContext),
+            enumerator, flags, requestContext, forInCache);
     }
 
     BOOL ArgumentsObject::GetDiagValueString(StringBuilder<ArenaAllocator>* stringBuilder, ScriptContext* requestContext)
@@ -291,7 +289,7 @@ namespace Js
     {
         TTD::NSSnapObjects::SnapHeapArgumentsInfo* argsInfo = alloc.SlabAllocateStruct<TTD::NSSnapObjects::SnapHeapArgumentsInfo>();
 
-        AssertMsg(this->callerDeleted == 0, "This never seems to be set but I want to assert just to be safe.");
+        TTDAssert(this->callerDeleted == 0, "This never seems to be set but I want to assert just to be safe.");
         argsInfo->NumOfArguments = this->numOfArguments;
         argsInfo->FormalCount = this->formalCount;
 
@@ -313,9 +311,13 @@ namespace Js
         {
             argsInfo->FrameObject = TTD_CONVERT_VAR_TO_PTR_ID(this->frameObject);
 
-            depOnCount = 1;
-            depOnArray = alloc.SlabAllocateArray<TTD_PTR_ID>(depOnCount);
-            depOnArray[0] = argsInfo->FrameObject;
+            //Primitive kinds always inflated first so we only need to deal with complex kinds as depends on
+            if(TTD::JsSupport::IsVarComplexKind(this->frameObject))
+            {
+                depOnCount = 1;
+                depOnArray = alloc.SlabAllocateArray<TTD_PTR_ID>(depOnCount);
+                depOnArray[0] = argsInfo->FrameObject;
+            }
         }
 
         argsInfo->DeletedArgFlags = (this->formalCount != 0) ? alloc.SlabAllocateArrayZ<byte>(argsInfo->FormalCount) : nullptr;
@@ -666,15 +668,15 @@ namespace Js
         return this->DynamicObject::SetPropertyWithAttributes(propertyId, value, attributes, info, flags, possibleSideEffects);
     }
 
-    BOOL ES5HeapArgumentsObject::GetEnumerator(BOOL enumNonEnumerable, Var* enumerator, ScriptContext * requestContext, bool preferSnapshotSemantics, bool enumSymbols)
+    BOOL ES5HeapArgumentsObject::GetEnumerator(JavascriptStaticEnumerator * enumerator, EnumeratorFlags flags, ScriptContext* requestContext, ForInCache * forInCache)
     {
-        if (!this->GetTypeHandler()->EnsureObjectReady(this))
+        ES5ArgumentsObjectEnumerator * es5HeapArgumentsObjectEnumerator = ES5ArgumentsObjectEnumerator::New(this, flags, requestContext, forInCache);
+        if (es5HeapArgumentsObjectEnumerator == nullptr)
         {
-            *enumerator = nullptr;
-            return FALSE;
+            return false;
         }
-        *enumerator = RecyclerNew(GetScriptContext()->GetRecycler(), ES5ArgumentsObjectEnumerator, this, requestContext, enumNonEnumerable, enumSymbols);
-        return true;
+
+        return enumerator->Initialize(es5HeapArgumentsObjectEnumerator, nullptr, nullptr, flags, requestContext, nullptr);
     }
 
     BOOL ES5HeapArgumentsObject::PreventExtensions()

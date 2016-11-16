@@ -294,11 +294,11 @@ napi_value napi_create_constructor_for_wrap_with_methods(
 
   JsPropertyIdRef pid = nullptr;
   JsValueRef prototype = nullptr;
-  JsGetPropertyIdFromNameUtf8("prototype", &pid);
+  JsCreatePropertyIdUtf8("prototype", 10, &pid);
   //JsGetPrototype(constructor, &prototype);
   JsGetProperty(constructor, pid, &prototype);
 
-  JsGetPropertyIdFromNameUtf8("constructor", &pid);
+  JsCreatePropertyIdUtf8("constructor", 12, &pid);
   JsSetProperty(prototype, pid, constructor, false);
 
   for (int i = 0; i < methodcount; i++) {
@@ -307,7 +307,7 @@ napi_value napi_create_constructor_for_wrap_with_methods(
     JsCreateNamedFunction(namestring, CallbackWrapper, methods[i].callback, &function);
     //JsCreateFunction(CallbackWrapper, methods[i].callback, &function);
 
-    JsGetPropertyIdFromNameUtf8(methods[i].utf8name, &pid);
+    JsCreatePropertyIdUtf8(methods[i].utf8name, strlen(methods[i].utf8name), &pid);
     // TODO(tawoll): always use strict rules?
     JsSetProperty(prototype, pid, function, false);
     //JsSetProperty(constructor, pid, function, true);
@@ -335,7 +335,7 @@ void napi_set_return_value(napi_env e,
 napi_propertyname napi_property_name(napi_env e, const char* utf8name) {
   JsErrorCode error = JsNoError;
   JsPropertyIdRef propertyId = nullptr;
-  error = JsGetPropertyIdFromNameUtf8(utf8name, &propertyId);
+  error = JsCreatePropertyIdUtf8(utf8name, strlen(utf8name), &propertyId);
   return reinterpret_cast<napi_propertyname>(propertyId);
 }
 
@@ -420,7 +420,7 @@ bool napi_is_array(napi_env e, napi_value v) {
 uint32_t napi_get_array_length(napi_env e, napi_value v) {
   JsErrorCode error = JsNoError;
   JsPropertyIdRef propertyIdRef;
-  error = JsGetPropertyIdFromNameUtf8("length", &propertyIdRef);
+  error = JsCreatePropertyIdUtf8("length", 7, &propertyIdRef);
   JsValueRef lengthRef;
   JsValueRef arrayRef = reinterpret_cast<JsValueRef>(v);
   error = JsGetProperty(arrayRef, propertyIdRef, &lengthRef);
@@ -695,7 +695,7 @@ int napi_get_string_from_value(napi_env e, napi_value v,
   size_t copied = 0;
   JsValueRef stringValue = reinterpret_cast<JsValueRef>(v);
   error = JsGetStringLength(stringValue, &len);
-  error = JsWriteStringUtf8(stringValue, (uint8_t *)buf, buf_size, &copied);
+  error = JsCopyStringUtf8(stringValue, (uint8_t*)buf, buf_size, &copied);
   // add one for null ending
   return len - static_cast<int>(copied) + 1;
 }
@@ -750,12 +750,11 @@ int napi_get_string_length(napi_env e, napi_value v) {
 
 int napi_get_string_utf8_length(napi_env e, napi_value v) {
   JsValueRef strRef = reinterpret_cast<JsValueRef>(v);
-  size_t len = 0;
   int length = 0;
-  char* str;
-  JsErrorCode errorCode = JsStringToPointerUtf8Copy(strRef, &str, &len);
-  if (errorCode == JsNoError) {
-    length = static_cast<int>(len);
+  JsErrorCode errorCode = JsGetStringLength(strRef, &length);
+
+  if (errorCode != JsNoError) {
+      return 0;
   }
   return length;
 }
@@ -764,7 +763,7 @@ int napi_get_string_utf8(napi_env e, napi_value v, char* buf, int bufsize) {
   JsErrorCode error = JsNoError;
   JsValueRef value = reinterpret_cast<JsValueRef>(v);
   size_t len = 0;
-  error = JsWriteStringUtf8(value, (uint8_t*)buf, bufsize, &len);
+  error = JsCopyStringUtf8(value, (uint8_t*)buf, bufsize, &len);
   return static_cast<int>(len);
 }
 

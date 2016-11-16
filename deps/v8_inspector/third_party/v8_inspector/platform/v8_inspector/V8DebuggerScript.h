@@ -30,11 +30,12 @@
 #ifndef V8DebuggerScript_h
 #define V8DebuggerScript_h
 
-#include "platform/inspector_protocol/Allocator.h"
-#include "platform/inspector_protocol/String16.h"
+#include "platform/inspector_protocol/InspectorProtocol.h"
 #include <v8.h>
 
-namespace blink {
+namespace v8_inspector {
+
+namespace protocol = blink::protocol;
 
 class V8DebuggerScript {
     PROTOCOL_DISALLOW_COPY(V8DebuggerScript);
@@ -42,20 +43,19 @@ public:
     V8DebuggerScript(v8::Isolate*, v8::Local<v8::Object>, bool isLiveEdit);
     ~V8DebuggerScript();
 
-    String16 scriptId() const { return m_id; }
-    String16 url() const { return m_url; }
+    const String16& scriptId() const { return m_id; }
+    const String16& url() const { return m_url; }
     bool hasSourceURL() const { return !m_sourceURL.isEmpty(); }
-    String16 sourceURL() const;
-    String16 sourceMappingURL() const { return m_sourceMappingURL; }
+    const String16& sourceURL() const;
+    const String16& sourceMappingURL() const { return m_sourceMappingURL; }
     v8::Local<v8::String> source(v8::Isolate*) const;
-    String16 hash() const { return m_hash; }
+    const String16& hash() const { return m_hash; }
     int startLine() const { return m_startLine; }
     int startColumn() const { return m_startColumn; }
     int endLine() const { return m_endLine; }
     int endColumn() const { return m_endColumn; }
     int executionContextId() const { return m_executionContextId; }
-    bool isContentScript() const { return m_isContentScript; }
-    bool isInternalScript() const { return m_isInternalScript; }
+    const String16& executionContextAuxData() const { return m_executionContextAuxData; }
     bool isLiveEdit() const { return m_isLiveEdit; }
 
     void setSourceURL(const String16&);
@@ -74,12 +74,11 @@ private:
     int m_endLine;
     int m_endColumn;
     int m_executionContextId;
-    bool m_isContentScript;
-    bool m_isInternalScript;
+    String16 m_executionContextAuxData;
     bool m_isLiveEdit;
 };
 
-} // namespace blink
+} // namespace v8_inspector
 
 
 #endif // V8DebuggerScript_h

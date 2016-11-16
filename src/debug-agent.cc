@@ -36,7 +36,6 @@ namespace node {
 namespace debugger {
 
 using v8::Context;
-using v8::Function;
 using v8::FunctionCallbackInfo;
 using v8::FunctionTemplate;
 using v8::HandleScope;
@@ -70,7 +69,7 @@ Agent::~Agent() {
 }
 
 
-bool Agent::Start(const std::string& host, int port, bool wait) {
+bool Agent::Start(const char* host, int port, bool wait) {
   int err;
 
   if (state_ == kRunning)
@@ -164,11 +163,18 @@ void Agent::WorkerRun() {
     Isolate::Scope isolate_scope(isolate);
 
     HandleScope handle_scope(isolate);
+#ifndef NODE_ENGINE_CHAKRACORE
     IsolateData isolate_data(isolate, &child_loop_,
                              array_buffer_allocator.zero_fill_field());
+#endif
     Local<Context> context = Context::New(isolate);
 
     Context::Scope context_scope(context);
+    // CHAKRA-TODO : fix this to create isolate_data before setting context
+#ifdef NODE_ENGINE_CHAKRACORE
+    IsolateData isolate_data(isolate, &child_loop_,
+        array_buffer_allocator.zero_fill_field());
+#endif
     Environment env(&isolate_data, context);
 
     const bool start_profiler_idle_notifier = false;

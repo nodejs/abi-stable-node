@@ -158,6 +158,8 @@ LargeHeapBucket::PageHeapAlloc(Recycler * recycler, size_t sizeCat, size_t size,
         AnalysisAssert(false);
     }
 
+
+
     LargeHeapBlock * heapBlock = LargeHeapBlock::New(address, pageCount, segment, 1, nullptr);
     if (!heapBlock)
     {
@@ -264,7 +266,7 @@ LargeHeapBucket::AddLargeHeapBlock(size_t size, bool nothrow)
 #if ENABLE_DEBUG_CONFIG_OPTIONS
     if (segment->GetPageCount() > recycler->GetRecyclerLargeBlockPageAllocator()->GetMaxAllocPageCount())
     {
-        EventWriteJSCRIPT_INTERNAL_RECYCLER_EXTRALARGE_OBJECT_ALLOC(size);
+        JS_ETW_INTERNAL(EventWriteJSCRIPT_INTERNAL_RECYCLER_EXTRALARGE_OBJECT_ALLOC(size));
     }
 #endif
 #endif

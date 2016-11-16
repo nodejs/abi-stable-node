@@ -31,27 +31,24 @@
 #ifndef InjectedScript_h
 #define InjectedScript_h
 
-#include "platform/inspector_protocol/Allocator.h"
-#include "platform/inspector_protocol/Platform.h"
+#include "platform/inspector_protocol/InspectorProtocol.h"
 #include "platform/v8_inspector/InjectedScriptNative.h"
 #include "platform/v8_inspector/InspectedContext.h"
 #include "platform/v8_inspector/V8Console.h"
-#include "platform/v8_inspector/V8DebuggerImpl.h"
+#include "platform/v8_inspector/V8Debugger.h"
 #include "platform/v8_inspector/protocol/Runtime.h"
 
 #include <v8.h>
 
-namespace blink {
+namespace v8_inspector {
 
 class RemoteObjectId;
 class V8FunctionCall;
+class V8InspectorImpl;
 class V8InspectorSessionImpl;
 
-namespace protocol {
-class DictionaryValue;
-}
-
-using protocol::Maybe;
+namespace protocol = blink::protocol;
+using blink::protocol::Maybe;
 
 class InjectedScript final {
     PROTOCOL_DISALLOW_COPY(InjectedScript);
@@ -76,7 +73,7 @@ public:
     void setCustomObjectFormatterEnabled(bool);
     v8::MaybeLocal<v8::Value> resolveCallArgument(ErrorString*, protocol::Runtime::CallArgument*);
 
-    std::unique_ptr<protocol::Runtime::ExceptionDetails> createExceptionDetails(v8::Local<v8::Message>);
+    std::unique_ptr<protocol::Runtime::ExceptionDetails> createExceptionDetails(ErrorString*, const v8::TryCatch&, const String16& groupName, bool generatePreview);
     void wrapEvaluateResult(ErrorString*,
         v8::MaybeLocal<v8::Value> maybeResultValue,
         const v8::TryCatch&,
@@ -84,7 +81,6 @@ public:
         bool returnByValue,
         bool generatePreview,
         std::unique_ptr<protocol::Runtime::RemoteObject>* result,
-        Maybe<bool>* wasThrown,
         Maybe<protocol::Runtime::ExceptionDetails>*);
     v8::Local<v8::Value> lastEvaluationResult() const;
 
@@ -99,32 +95,32 @@ public:
         const v8::TryCatch& tryCatch() const { return m_tryCatch; }
 
     protected:
-        Scope(ErrorString*, V8DebuggerImpl*, int contextGroupId);
+        Scope(ErrorString*, V8InspectorImpl*, int contextGroupId);
         ~Scope();
         virtual void findInjectedScript(V8InspectorSessionImpl*) = 0;
 
         ErrorString* m_errorString;
-        V8DebuggerImpl* m_debugger;
+        V8InspectorImpl* m_inspector;
         int m_contextGroupId;
         InjectedScript* m_injectedScript;
 
     private:
         void cleanup();
-        V8DebuggerImpl::PauseOnExceptionsState setPauseOnExceptionsState(V8DebuggerImpl::PauseOnExceptionsState);
+        V8Debugger::PauseOnExceptionsState setPauseOnExceptionsState(V8Debugger::PauseOnExceptionsState);
 
         v8::HandleScope m_handleScope;
         v8::TryCatch m_tryCatch;
         v8::Local<v8::Context> m_context;
         std::unique_ptr<V8Console::CommandLineAPIScope> m_commandLineAPIScope;
         bool m_ignoreExceptionsAndMuteConsole;
-        V8DebuggerImpl::PauseOnExceptionsState m_previousPauseOnExceptionsState;
+        V8Debugger::PauseOnExceptionsState m_previousPauseOnExceptionsState;
         bool m_userGesture;
     };
 
     class ContextScope: public Scope {
         PROTOCOL_DISALLOW_COPY(ContextScope);
     public:
-        ContextScope(ErrorString*, V8DebuggerImpl*, int contextGroupId, int executionContextId);
+        ContextScope(ErrorString*, V8InspectorImpl*, int contextGroupId, int executionContextId);
         ~ContextScope();
     private:
         void findInjectedScript(V8InspectorSessionImpl*) override;
@@ -134,7 +130,7 @@ public:
     class ObjectScope: public Scope {
         PROTOCOL_DISALLOW_COPY(ObjectScope);
     public:
-        ObjectScope(ErrorString*, V8DebuggerImpl*, int contextGroupId, const String16& remoteObjectId);
+        ObjectScope(ErrorString*, V8InspectorImpl*, int contextGroupId, const String16& remoteObjectId);
         ~ObjectScope();
         const String16& objectGroupName() const { return m_objectGroupName; }
         v8::Local<v8::Value> object() const { return m_object; }
@@ -148,7 +144,7 @@ public:
     class CallFrameScope: public Scope {
         PROTOCOL_DISALLOW_COPY(CallFrameScope);
     public:
-        CallFrameScope(ErrorString*, V8DebuggerImpl*, int contextGroupId, const String16& remoteCallFrameId);
+        CallFrameScope(ErrorString*, V8InspectorImpl*, int contextGroupId, const String16& remoteCallFrameId);
         ~CallFrameScope();
         size_t frameOrdinal() const { return m_frameOrdinal; }
     private:
@@ -170,6 +166,6 @@ private:
     v8::Global<v8::Object> m_commandLineAPI;
 };
 
-} // namespace blink
+} // namespace v8_inspector
 
 #endif

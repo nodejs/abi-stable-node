@@ -4,38 +4,42 @@
 
 #include "platform/v8_inspector/V8InspectorSessionImpl.h"
 
-#include "platform/inspector_protocol/Parser.h"
 #include "platform/v8_inspector/InjectedScript.h"
 #include "platform/v8_inspector/InspectedContext.h"
 #include "platform/v8_inspector/RemoteObjectId.h"
 #include "platform/v8_inspector/V8ConsoleAgentImpl.h"
+#include "platform/v8_inspector/V8Debugger.h"
 #include "platform/v8_inspector/V8DebuggerAgentImpl.h"
-#include "platform/v8_inspector/V8DebuggerImpl.h"
 #include "platform/v8_inspector/V8HeapProfilerAgentImpl.h"
+#include "platform/v8_inspector/V8InspectorImpl.h"
 #include "platform/v8_inspector/V8ProfilerAgentImpl.h"
 #include "platform/v8_inspector/V8RuntimeAgentImpl.h"
+#include "platform/v8_inspector/V8SchemaAgentImpl.h"
+#include "platform/v8_inspector/V8StringUtil.h"
 #include "platform/v8_inspector/public/V8ContextInfo.h"
-#include "platform/v8_inspector/public/V8DebuggerClient.h"
+#include "platform/v8_inspector/public/V8InspectorClient.h"
 
-namespace blink {
-
-const char V8InspectorSession::backtraceObjectGroup[] = "backtrace";
+namespace v8_inspector {
 
 // static
-bool V8InspectorSession::isV8ProtocolMethod(const String16& method)
+bool V8InspectorSession::canDispatchMethod(const String16& method)
 {
-    return method.startWith("Debugger.") || method.startWith("HeapProfiler.") || method.startWith("Profiler.") || method.startWith("Runtime.") || method.startWith("Console.");
+    return method.startsWith(protocol::Runtime::Metainfo::commandPrefix)
+        || method.startsWith(protocol::Debugger::Metainfo::commandPrefix)
+        || method.startsWith(protocol::Profiler::Metainfo::commandPrefix)
+        || method.startsWith(protocol::HeapProfiler::Metainfo::commandPrefix)
+        || method.startsWith(protocol::Console::Metainfo::commandPrefix)
+        || method.startsWith(protocol::Schema::Metainfo::commandPrefix);
 }
 
-std::unique_ptr<V8InspectorSessionImpl> V8InspectorSessionImpl::create(V8DebuggerImpl* debugger, int contextGroupId, protocol::FrontendChannel* channel, V8InspectorSessionClient* client, const String16* state)
+std::unique_ptr<V8InspectorSessionImpl> V8InspectorSessionImpl::create(V8InspectorImpl* inspector, int contextGroupId, protocol::FrontendChannel* channel, const String16* state)
 {
-    return wrapUnique(new V8InspectorSessionImpl(debugger, contextGroupId, channel, client, state));
+    return wrapUnique(new V8InspectorSessionImpl(inspector, contextGroupId, channel, state));
 }
 
-V8InspectorSessionImpl::V8InspectorSessionImpl(V8DebuggerImpl* debugger, int contextGroupId, protocol::FrontendChannel* channel, V8InspectorSessionClient* client, const String16* savedState)
+V8InspectorSessionImpl::V8InspectorSessionImpl(V8InspectorImpl* inspector, int contextGroupId, protocol::FrontendChannel* channel, const String16* savedState)
     : m_contextGroupId(contextGroupId)
-    , m_debugger(debugger)
-    , m_client(client)
+    , m_inspector(inspector)
     , m_customObjectFormatterEnabled(false)
     , m_dispatcher(channel)
     , m_state(nullptr)
@@ -44,6 +48,7 @@ V8InspectorSessionImpl::V8InspectorSessionImpl(V8DebuggerImpl* debugger, int con
     , m_heapProfilerAgent(nullptr)
     , m_profilerAgent(nullptr)
     , m_consoleAgent(nullptr)
+    , m_schemaAgent(nullptr)
 {
     if (savedState) {
         std::unique_ptr<protocol::Value> state = protocol::parseJSON(*savedState);
@@ -70,6 +75,9 @@ V8InspectorSessionImpl::V8InspectorSessionImpl(V8DebuggerImpl* debugger, int con
     m_consoleAgent = wrapUnique(new V8ConsoleAgentImpl(this, channel, agentState(protocol::Console::Metainfo::domainName)));
     protocol::Console::Dispatcher::wire(&m_dispatcher, m_consoleAgent.get());
 
+    m_schemaAgent = wrapUnique(new V8SchemaAgentImpl(this, channel, agentState(protocol::Schema::Metainfo::domainName)));
+    protocol::Schema::Dispatcher::wire(&m_dispatcher, m_schemaAgent.get());
+
     if (savedState) {
         m_runtimeAgent->restore();
         m_debuggerAgent->restore();
@@ -89,7 +97,7 @@ V8InspectorSessionImpl::~V8InspectorSessionImpl()
     m_runtimeAgent->disable(&errorString);
 
     discardInjectedScripts();
-    m_debugger->disconnect(this);
+    m_inspector->disconnect(this);
 }
 
 protocol::DictionaryValue* V8InspectorSessionImpl::agentState(const String16& name)
@@ -113,7 +121,7 @@ void V8InspectorSessionImpl::reset()
 void V8InspectorSessionImpl::discardInjectedScripts()
 {
     m_inspectedObjects.clear();
-    const V8DebuggerImpl::ContextByIdMap* contexts = m_debugger->contextGroup(m_contextGroupId);
+    const V8InspectorImpl::ContextByIdMap* contexts = m_inspector->contextGroup(m_contextGroupId);
     if (!contexts)
         return;
 
@@ -122,7 +130,7 @@ void V8InspectorSessionImpl::discardInjectedScripts()
     for (auto& idContext : *contexts)
         keys.push_back(idContext.first);
     for (auto& key : keys) {
-        contexts = m_debugger->contextGroup(m_contextGroupId);
+        contexts = m_inspector->contextGroup(m_contextGroupId);
         if (!contexts)
             continue;
         auto contextIt = contexts->find(key);
@@ -138,8 +146,13 @@ InjectedScript* V8InspectorSessionImpl::findInjectedScript(ErrorString* errorStr
         return nullptr;
     }
 
-    const V8DebuggerImpl::ContextByIdMap* contexts = m_debugger->contextGroup(m_contextGroupId);
-    auto contextsIt = contexts ? contexts->find(contextId) : contexts->end();
+    const V8InspectorImpl::ContextByIdMap* contexts = m_inspector->contextGroup(m_contextGroupId);
+    if (!contexts) {
+        *errorString = "Cannot find context with specified id";
+        return nullptr;
+    }
+
+    auto contextsIt = contexts->find(contextId);
     if (contextsIt == contexts->end()) {
         *errorString = "Cannot find context with specified id";
         return nullptr;
@@ -165,7 +178,7 @@ InjectedScript* V8InspectorSessionImpl::findInjectedScript(ErrorString* errorStr
 
 void V8InspectorSessionImpl::releaseObjectGroup(const String16& objectGroup)
 {
-    const V8DebuggerImpl::ContextByIdMap* contexts = m_debugger->contextGroup(m_contextGroupId);
+    const V8InspectorImpl::ContextByIdMap* contexts = m_inspector->contextGroup(m_contextGroupId);
     if (!contexts)
         return;
 
@@ -173,7 +186,7 @@ void V8InspectorSessionImpl::releaseObjectGroup(const String16& objectGroup)
     for (auto& idContext : *contexts)
         keys.push_back(idContext.first);
     for (auto& key : keys) {
-        contexts = m_debugger->contextGroup(m_contextGroupId);
+        contexts = m_inspector->contextGroup(m_contextGroupId);
         if (!contexts)
             continue;
         auto contextsIt = contexts->find(key);
@@ -185,29 +198,30 @@ void V8InspectorSessionImpl::releaseObjectGroup(const String16& objectGroup)
     }
 }
 
-v8::Local<v8::Value> V8InspectorSessionImpl::findObject(ErrorString* errorString, const String16& objectId, v8::Local<v8::Context>* context, String16* groupName)
+bool V8InspectorSessionImpl::unwrapObject(ErrorString* errorString, const String16& objectId, v8::Local<v8::Value>* object, v8::Local<v8::Context>* context, String16* objectGroup)
 {
     std::unique_ptr<RemoteObjectId> remoteId = RemoteObjectId::parse(errorString, objectId);
     if (!remoteId)
-        return v8::Local<v8::Value>();
+        return false;
     InjectedScript* injectedScript = findInjectedScript(errorString, remoteId.get());
     if (!injectedScript)
-        return v8::Local<v8::Value>();
-    v8::Local<v8::Value> objectValue;
-    injectedScript->findObject(errorString, *remoteId, &objectValue);
-    if (objectValue.IsEmpty())
-        return v8::Local<v8::Value>();
-    if (context)
-        *context = injectedScript->context()->context();
-    if (groupName)
-        *groupName = injectedScript->objectGroupName(*remoteId);
-    return objectValue;
+        return false;
+    if (!injectedScript->findObject(errorString, *remoteId, object))
+        return false;
+    *context = injectedScript->context()->context();
+    *objectGroup = injectedScript->objectGroupName(*remoteId);
+    return true;
+}
+
+std::unique_ptr<protocol::Runtime::API::RemoteObject> V8InspectorSessionImpl::wrapObject(v8::Local<v8::Context> context, v8::Local<v8::Value> value, const String16& groupName)
+{
+    return wrapObject(context, value, groupName, false);
 }
 
 std::unique_ptr<protocol::Runtime::RemoteObject> V8InspectorSessionImpl::wrapObject(v8::Local<v8::Context> context, v8::Local<v8::Value> value, const String16& groupName, bool generatePreview)
 {
     ErrorString errorString;
-    InjectedScript* injectedScript = findInjectedScript(&errorString, V8DebuggerImpl::contextId(context));
+    InjectedScript* injectedScript = findInjectedScript(&errorString, V8Debugger::contextId(context));
     if (!injectedScript)
         return nullptr;
     return injectedScript->wrapObject(&errorString, value, groupName, false, generatePreview);
@@ -216,7 +230,7 @@ std::unique_ptr<protocol::Runtime::RemoteObject> V8InspectorSessionImpl::wrapObj
 std::unique_ptr<protocol::Runtime::RemoteObject> V8InspectorSessionImpl::wrapTable(v8::Local<v8::Context> context, v8::Local<v8::Value> table, v8::Local<v8::Value> columns)
 {
     ErrorString errorString;
-    InjectedScript* injectedScript = findInjectedScript(&errorString, V8DebuggerImpl::contextId(context));
+    InjectedScript* injectedScript = findInjectedScript(&errorString, V8Debugger::contextId(context));
     if (!injectedScript)
         return nullptr;
     return injectedScript->wrapTable(table, columns);
@@ -225,7 +239,7 @@ std::unique_ptr<protocol::Runtime::RemoteObject> V8InspectorSessionImpl::wrapTab
 void V8InspectorSessionImpl::setCustomObjectFormatterEnabled(bool enabled)
 {
     m_customObjectFormatterEnabled = enabled;
-    const V8DebuggerImpl::ContextByIdMap* contexts = m_debugger->contextGroup(m_contextGroupId);
+    const V8InspectorImpl::ContextByIdMap* contexts = m_inspector->contextGroup(m_contextGroupId);
     if (!contexts)
         return;
     for (auto& idContext : *contexts) {
@@ -237,7 +251,7 @@ void V8InspectorSessionImpl::setCustomObjectFormatterEnabled(bool enabled)
 
 void V8InspectorSessionImpl::reportAllContexts(V8RuntimeAgentImpl* agent)
 {
-    const V8DebuggerImpl::ContextByIdMap* contexts = m_debugger->contextGroup(m_contextGroupId);
+    const V8InspectorImpl::ContextByIdMap* contexts = m_inspector->contextGroup(m_contextGroupId);
     if (!contexts)
         return;
     for (auto& idContext : *contexts)
@@ -254,6 +268,26 @@ String16 V8InspectorSessionImpl::stateJSON()
     return m_state->toJSONString();
 }
 
+std::unique_ptr<protocol::Array<protocol::Schema::API::Domain>> V8InspectorSessionImpl::supportedDomains()
+{
+    std::vector<std::unique_ptr<protocol::Schema::Domain>> domains = supportedDomainsImpl();
+    std::unique_ptr<protocol::Array<protocol::Schema::API::Domain>> result = protocol::Array<protocol::Schema::API::Domain>::create();
+    for (size_t i = 0; i < domains.size(); ++i)
+        result->addItem(std::move(domains[i]));
+    return result;
+}
+
+std::vector<std::unique_ptr<protocol::Schema::Domain>> V8InspectorSessionImpl::supportedDomainsImpl()
+{
+    std::vector<std::unique_ptr<protocol::Schema::Domain>> result;
+    result.push_back(protocol::Schema::Domain::create().setName(protocol::Runtime::Metainfo::domainName).setVersion(protocol::Runtime::Metainfo::version).build());
+    result.push_back(protocol::Schema::Domain::create().setName(protocol::Debugger::Metainfo::domainName).setVersion(protocol::Debugger::Metainfo::version).build());
+    result.push_back(protocol::Schema::Domain::create().setName(protocol::Profiler::Metainfo::domainName).setVersion(protocol::Profiler::Metainfo::version).build());
+    result.push_back(protocol::Schema::Domain::create().setName(protocol::HeapProfiler::Metainfo::domainName).setVersion(protocol::HeapProfiler::Metainfo::version).build());
+    result.push_back(protocol::Schema::Domain::create().setName(protocol::Schema::Metainfo::domainName).setVersion(protocol::Schema::Metainfo::version).build());
+    return result;
+}
+
 void V8InspectorSessionImpl::addInspectedObject(std::unique_ptr<V8InspectorSession::Inspectable> inspectable)
 {
     m_inspectedObjects.insert(m_inspectedObjects.begin(), std::move(inspectable));
@@ -268,9 +302,9 @@ V8InspectorSession::Inspectable* V8InspectorSessionImpl::inspectedObject(unsigne
     return m_inspectedObjects[num].get();
 }
 
-void V8InspectorSessionImpl::schedulePauseOnNextStatement(const String16& breakReason, std::unique_ptr<protocol::DictionaryValue> data)
+void V8InspectorSessionImpl::schedulePauseOnNextStatement(const String16& breakReason, const String16& breakDetails)
 {
-    m_debuggerAgent->schedulePauseOnNextStatement(breakReason, std::move(data));
+    m_debuggerAgent->schedulePauseOnNextStatement(breakReason, protocol::DictionaryValue::cast(parseJSON(breakDetails)));
 }
 
 void V8InspectorSessionImpl::cancelPauseOnNextStatement()
@@ -278,9 +312,9 @@ void V8InspectorSessionImpl::cancelPauseOnNextStatement()
     m_debuggerAgent->cancelPauseOnNextStatement();
 }
 
-void V8InspectorSessionImpl::breakProgram(const String16& breakReason, std::unique_ptr<protocol::DictionaryValue> data)
+void V8InspectorSessionImpl::breakProgram(const String16& breakReason, const String16& breakDetails)
 {
-    m_debuggerAgent->breakProgram(breakReason, std::move(data));
+    m_debuggerAgent->breakProgram(breakReason, protocol::DictionaryValue::cast(parseJSON(breakDetails)));
 }
 
 void V8InspectorSessionImpl::setSkipAllPauses(bool skip)
@@ -301,4 +335,13 @@ void V8InspectorSessionImpl::stepOver()
     m_debuggerAgent->stepOver(&errorString);
 }
 
-} // namespace blink
+std::unique_ptr<protocol::Array<protocol::Debugger::API::SearchMatch>> V8InspectorSessionImpl::searchInTextByLines(const String16& text, const String16& query, bool caseSensitive, bool isRegex)
+{
+    std::vector<std::unique_ptr<protocol::Debugger::SearchMatch>> matches = searchInTextByLinesImpl(this, text, query, caseSensitive, isRegex);
+    std::unique_ptr<protocol::Array<protocol::Debugger::API::SearchMatch>> result = protocol::Array<protocol::Debugger::API::SearchMatch>::create();
+    for (size_t i = 0; i < matches.size(); ++i)
+        result->addItem(std::move(matches[i]));
+    return result;
+}
+
+} // namespace v8_inspector

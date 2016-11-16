@@ -184,6 +184,12 @@ AutoSystemInfo::IsJscriptModulePointer(void * ptr)
 {
     return ((UINT_PTR)ptr >= Data.dllLoadAddress && (UINT_PTR)ptr < Data.dllHighAddress);
 }
+
+UINT_PTR
+AutoSystemInfo::GetChakraBaseAddr() const
+{
+    return dllLoadAddress;
+}
 #endif
 
 uint
@@ -220,7 +226,11 @@ AutoSystemInfo::SSE2Available() const
 #if defined(_M_X64) || defined(_M_ARM32_OR_ARM64)
     return true;
 #elif defined(_M_IX86)
+#if defined(_WIN32)
     return VirtualSseAvailable(2) && (CPUInfo[3] & (1 << 26));
+#else
+    return false; // TODO: xplat support
+#endif
 #else
     #error Unsupported platform.
 #endif
@@ -242,6 +252,13 @@ AutoSystemInfo::SSE4_1Available() const
 }
 
 BOOL
+AutoSystemInfo::SSE4_2Available() const
+{
+    Assert(initialized);
+    return VirtualSseAvailable(4) && (CPUInfo[2] & (0x1 << 20));
+}
+
+BOOL
 AutoSystemInfo::PopCntAvailable() const
 {
     Assert(initialized);
@@ -256,6 +273,16 @@ AutoSystemInfo::LZCntAvailable() const
     get_cpuid(CPUInfo, 0x80000001);
 
     return VirtualSseAvailable(4) && (CPUInfo[2] & (1 << 5));
+}
+
+BOOL
+AutoSystemInfo::TZCntAvailable() const
+{
+    Assert(initialized);
+    int CPUInfo[4];
+    get_cpuid(CPUInfo, 7);
+
+    return VirtualSseAvailable(4) && (CPUInfo[1] & (1 << 3));
 }
 
 bool

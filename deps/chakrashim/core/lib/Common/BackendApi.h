@@ -30,14 +30,14 @@ class NativeCodeGenerator;
 class ThreadContext;
 struct CodeGenWorkItem;
 class NativeCodeData;
-
+class ThreadContextInfo;
 class StackSym;
 class Func;
 struct InlinedFrameLayout;
 
 typedef intptr_t IntConstType;
 typedef uintptr_t  UIntConstType;
-typedef IntMath<intptr_t>::Type IntConstMath;
+typedef IntMath<IntConstType>::Type IntConstMath;
 typedef double  FloatConstType;
 
 #include "EmitBuffer.h"
@@ -60,7 +60,7 @@ void UpdateNativeCodeGeneratorForDebugMode(NativeCodeGenerator* nativeCodeGen);
 CriticalSection *GetNativeCodeGenCriticalSection(NativeCodeGenerator *pNativeCodeGen);
 bool TryReleaseNonHiPriWorkItem(Js::ScriptContext* scriptContext, CodeGenWorkItem* workItem);
 void NativeCodeGenEnterScriptStart(NativeCodeGenerator * nativeCodeGen);
-void FreeNativeCodeGenAllocation(Js::ScriptContext* scriptContext, void* address);
+void FreeNativeCodeGenAllocation(Js::ScriptContext* scriptContext, Js::JavascriptMethod address);
 CodeGenAllocators* GetForegroundAllocator(NativeCodeGenerator * nativeCodeGen, PageAllocator* pageallocator);
 void GenerateFunction(NativeCodeGenerator * nativeCodeGen, Js::FunctionBody * functionBody, Js::ScriptFunction * function = NULL);
 void GenerateLoopBody(NativeCodeGenerator * nativeCodeGen, Js::FunctionBody * functionBody, Js::LoopHeader * loopHeader, Js::EntryPointInfo* entryPointInfo, uint localCount, Js::Var localSlots[]);
@@ -226,14 +226,13 @@ enum LibraryValue {
 };
 
 enum VTableValue {
-#if !_M_X64
+//#if !_M_X64 TODO: OOP JIT, can we make this arch specific again?
     VtableJavascriptNumber,
-#endif
+//#endif
     VtableDynamicObject,
     VtableInvalid,
     VtablePropertyString,
     VtableJavascriptBoolean,
-    VtableSmallDynamicObjectSnapshotEnumeratorWPCache,
     VtableJavascriptArray,
     VtableInt8Array,
     VtableUint8Array,
@@ -267,6 +266,7 @@ enum VTableValue {
     VtableJavascriptRegExp,
     VtableScriptFunction,
     VtableJavascriptGeneratorFunction,
+    VtableJavascriptAsyncFunction,
     VtableStackScriptFunction,
     VtableConcatStringMulti,
     VtableCompoundString,

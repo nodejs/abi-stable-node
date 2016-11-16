@@ -381,7 +381,7 @@
     <default>
       <files>StackArgsWithFormals.js</files>
       <compile-flags>-mic:1 -off:simpleJit -trace:stackargformalsopt</compile-flags>
-      <tags>exclude_dynapogo,exclude_ship,exclude_fre,exclude_nonative,require_backend</tags>
+      <tags>exclude_dynapogo,exclude_ship,exclude_fre,exclude_nonative,require_backend,exclude_forceserialized</tags>
       <baseline>StackArgsWithFormals.baseline</baseline>
     </default>
   </test>
@@ -432,9 +432,15 @@
   <test>
     <default>
       <files>failnativecodeinstall.js</files>
-      <compile-flags>/maxinterpretcount:2 /lic:1 /bgjit /off:simplejit /on:failnativecodeinstall</compile-flags>
+      <compile-flags>-maxinterpretcount:2 -lic:1 -bgjit -off:simplejit -on:failnativecodeinstall</compile-flags>
       <tags>exclude_dynapogo,require_backend</tags>
       <baseline>failnativecodeinstall.baseline</baseline>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>redefer-recursive-inlinees.js</files>
+      <baseline>redefer-recursive-inlinees.baseline</baseline>
     </default>
   </test>
 </regress-exe>

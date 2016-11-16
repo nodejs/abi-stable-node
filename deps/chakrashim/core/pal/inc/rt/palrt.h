@@ -890,20 +890,16 @@ Remember to fix the errcode defintion in safecrt.h.
 #define _vscprintf _vscprintf_unsafe
 #define _vscwprintf _vscwprintf_unsafe
 
-#define sprintf_s _snprintf
-#define swprintf_s _snwprintf
-#define vsprintf_s _vsnprintf
-#define vswprintf_s _vsnwprintf
-
 extern "C++" {
 
 #include <safemath.h>
 
 inline errno_t __cdecl _wcslwr_unsafe(WCHAR *str, size_t sz)
 {
-    size_t fullSize;
-    if(!ClrSafeInt<size_t>::multiply(sz, sizeof(WCHAR), fullSize))
+    if (sz >= INT_MAX / sizeof(WCHAR))
         return 1;
+
+    size_t fullSize = sz * sizeof(WCHAR);
     WCHAR *copy = (WCHAR *)malloc(fullSize);
     if(copy == nullptr)
         return 1;

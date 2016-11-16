@@ -5,19 +5,21 @@
 #ifndef V8ProfilerAgentImpl_h
 #define V8ProfilerAgentImpl_h
 
-#include "platform/inspector_protocol/Allocator.h"
-#include "platform/inspector_protocol/String16.h"
+#include "platform/inspector_protocol/InspectorProtocol.h"
 #include "platform/v8_inspector/protocol/Profiler.h"
 
 #include <vector>
 
 namespace v8 {
+class CpuProfiler;
 class Isolate;
 }
 
-namespace blink {
+namespace v8_inspector {
 
 class V8InspectorSessionImpl;
+
+namespace protocol = blink::protocol;
 
 class V8ProfilerAgentImpl : public protocol::Profiler::Backend {
     PROTOCOL_DISALLOW_COPY(V8ProfilerAgentImpl);
@@ -39,6 +41,7 @@ public:
 
 private:
     String16 nextProfileId();
+    v8::CpuProfiler* profiler();
 
     void startProfiling(const String16& title);
     std::unique_ptr<protocol::Profiler::CPUProfile> stopProfiling(const String16& title, bool serialize);
@@ -47,6 +50,7 @@ private:
 
     V8InspectorSessionImpl* m_session;
     v8::Isolate* m_isolate;
+    v8::CpuProfiler* m_profiler;
     protocol::DictionaryValue* m_state;
     protocol::Profiler::Frontend m_frontend;
     bool m_enabled;
@@ -56,7 +60,6 @@ private:
     String16 m_frontendInitiatedProfileId;
 };
 
-} // namespace blink
-
+} // namespace v8_inspector
 
 #endif // !defined(V8ProfilerAgentImpl_h)

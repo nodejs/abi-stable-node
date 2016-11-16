@@ -46,6 +46,10 @@ namespace Js
         static const uint               UninitializedValue          = (uint)-1;
         static const ArgSlot            InvalidArgSlot              = (ArgSlot)-1;
         static const uint32             InvalidSymID = (uint32)-1;
+        static const size_t             InvalidSignature = (size_t)-1;
+
+        static const uint64 ExponentMask;
+        static const uint64 MantissaMask;
 
         static const int ReservedTypeIds = 2048;
 
@@ -69,6 +73,9 @@ namespace Js
 
         // Minimum stack required to be able to execute a JITted Javascript function.
         static const unsigned MinStackJIT = 0x930 * WIN64_STACK_FACTOR;
+
+        // Maximum stack space allowed to avoid generating ProbeCurrentStack
+        static const unsigned MaxStackSizeForNoProbe = 0x64;
 
 #if (defined(_M_ARM32_OR_ARM64) || defined(_M_AMD64))
 #if DBG
@@ -110,7 +117,7 @@ namespace Js
         static const unsigned MaxProcessJITCodeHeapSize = 1024 * 1024 * 1024;
 #endif
 
-        static const PBYTE StackLimitForScriptInterrupt;
+        static const size_t StackLimitForScriptInterrupt;
 
 
         // Arguments object created on the fly is 1 slot before the frame
@@ -142,6 +149,8 @@ namespace Js
         static const  char16 EvalCode[];
         static const  char16 GlobalFunction[];
         static const  char16 UnknownScriptCode[];
+        static const  char16 StringReplace[];
+        static const  char16 StringMatch[];
 
         static const size_t AnonymousFunctionLength = _countof(_u("Anonymous function")) - 1;
         static const size_t AnonymousLength         = _countof(_u("anonymous")) - 1;

@@ -307,7 +307,7 @@ endif
 ;;============================================================================================================
 
 extrn ?GetStackSizeForAsmJsUnboxing@Js@@YAHPEAVScriptFunction@1@@Z: PROC
-extrn ?UnboxAsmJsArguments@Js@@YAPEAXPEAVScriptFunction@1@PEAPEAXPEADUCallInfo@1@@Z : PROC
+extrn ?UnboxAsmJsArguments@Js@@YAPEAXPEAVScriptFunction@1@PEAPEAXPEADUCallInfo@1@_N@Z : PROC
 ; extrn ?BoxAsmJsReturnValue@Js@@YAPEAXPEAVScriptFunction@1@HNM@Z : PROC
 extrn ?BoxAsmJsReturnValue@Js@@YAPEAXPEAVScriptFunction@1@HNMT__m128@@@Z : PROC
 
@@ -352,7 +352,7 @@ align 16
 
         sub rsp, 20h ; so stack space for unboxing function isn't same as where it is unboxing into. allocate args spill space for unboxing function.
         ; unboxing function also does stack probe
-        call ?UnboxAsmJsArguments@Js@@YAPEAXPEAVScriptFunction@1@PEAPEAXPEADUCallInfo@1@@Z
+        call ?UnboxAsmJsArguments@Js@@YAPEAXPEAVScriptFunction@1@PEAPEAXPEADUCallInfo@1@_N@Z
         ; rax = target function address
 
 ifdef _CONTROL_FLOW_GUARD
@@ -446,6 +446,113 @@ endif
         ret
 
 ?AsmJsExternalEntryPoint@Js@@YAPEAXPEAVRecyclableObject@1@UCallInfo@1@ZZ ENDP
+
+;;============================================================================================================
+;; WasmLibrary::WasmDeferredParseExternalThunk
+;;============================================================================================================
+
+;;  JavascriptMethod WasmLibrary::WasmDeferredParseEntryPoint(AsmJsScriptFunction** funcPtr, int internalCall);
+extrn ?WasmDeferredParseEntryPoint@WasmLibrary@Js@@SAP6APEAXPEAVRecyclableObject@2@UCallInfo@2@ZZPEAPEAVAsmJsScriptFunction@2@H@Z : PROC
+
+;; Var WasmLibrary::WasmDeferredParseExternalThunk(RecyclableObject* function, CallInfo callInfo, ...)
+align 16
+?WasmDeferredParseExternalThunk@WasmLibrary@Js@@SAPEAXPEAVRecyclableObject@2@UCallInfo@2@ZZ PROC FRAME
+        ;; save volatile registers
+        mov qword ptr [rsp + 8h],  rcx
+        mov qword ptr [rsp + 10h], rdx
+        mov qword ptr [rsp + 18h], r8
+        mov qword ptr [rsp + 20h], r9
+
+        push rbp
+        .pushreg rbp
+        lea  rbp, [rsp]
+        .setframe rbp, 0
+        .endprolog
+
+        sub rsp, 20h
+        lea rcx, [rsp + 30h]
+        mov rdx, 0
+        call ?WasmDeferredParseEntryPoint@WasmLibrary@Js@@SAP6APEAXPEAVRecyclableObject@2@UCallInfo@2@ZZPEAPEAVAsmJsScriptFunction@2@H@Z
+
+ifdef _CONTROL_FLOW_GUARD
+        mov rcx, rax                            ; __guard_check_icall_fptr requires the call target in rcx.
+        call [__guard_check_icall_fptr]         ; verify that the call target is valid
+        mov rax, rcx                            ;restore call target
+endif
+        add rsp, 20h
+
+        lea rsp, [rbp]
+        pop rbp
+
+        ;; restore volatile registers
+        mov rcx, qword ptr [rsp + 8h]
+        mov rdx, qword ptr [rsp + 10h]
+        mov r8,  qword ptr [rsp + 18h]
+        mov r9,  qword ptr [rsp + 20h]
+
+        rex_jmp_reg rax
+?WasmDeferredParseExternalThunk@WasmLibrary@Js@@SAPEAXPEAVRecyclableObject@2@UCallInfo@2@ZZ ENDP
+
+;;============================================================================================================
+
+;;============================================================================================================
+;; WasmLibrary::WasmDeferredParseInternalThunk
+;;============================================================================================================
+
+;;  JavascriptMethod WasmLibrary::WasmDeferredParseEntryPoint(AsmJsScriptFunction** funcPtr, int internalCall);
+extrn ?WasmDeferredParseEntryPoint@WasmLibrary@Js@@SAP6APEAXPEAVRecyclableObject@2@UCallInfo@2@ZZPEAPEAVAsmJsScriptFunction@2@H@Z : PROC
+
+;; Var WasmLibrary::WasmDeferredParseInternalThunk(RecyclableObject* function, CallInfo callInfo, ...)
+align 16
+?WasmDeferredParseInternalThunk@WasmLibrary@Js@@SAPEAXPEAVRecyclableObject@2@UCallInfo@2@ZZ PROC FRAME
+        ;; save volatile registers
+        mov qword ptr [rsp + 8h],  rcx
+        mov qword ptr [rsp + 10h], rdx
+        mov qword ptr [rsp + 18h], r8
+        mov qword ptr [rsp + 20h], r9
+
+        push rbp
+        .pushreg rbp
+        lea  rbp, [rsp]
+        .setframe rbp, 0
+        .endprolog
+
+        sub rsp, 60h
+
+        ; spill potential floating point arguments to stack
+        movaps xmmword ptr [rsp + 30h], xmm1
+        movaps xmmword ptr [rsp + 40h], xmm2
+        movaps xmmword ptr [rsp + 50h], xmm3
+
+        lea rcx, [rsp + 70h]
+        mov rdx, 1
+        call ?WasmDeferredParseEntryPoint@WasmLibrary@Js@@SAP6APEAXPEAVRecyclableObject@2@UCallInfo@2@ZZPEAPEAVAsmJsScriptFunction@2@H@Z
+
+ifdef _CONTROL_FLOW_GUARD
+        mov rcx, rax                            ; __guard_check_icall_fptr requires the call target in rcx.
+        call [__guard_check_icall_fptr]         ; verify that the call target is valid
+        mov rax, rcx                            ;restore call target
+endif
+
+        ; restore potential floating point arguments from stack
+        movaps xmm1, xmmword ptr [rsp + 30h]
+        movaps xmm2, xmmword ptr [rsp + 40h]
+        movaps xmm3, xmmword ptr [rsp + 50h]
+        add rsp, 60h
+
+        lea rsp, [rbp]
+        pop rbp
+
+        ;; restore volatile registers
+        mov rcx, qword ptr [rsp + 8h]
+        mov rdx, qword ptr [rsp + 10h]
+        mov r8,  qword ptr [rsp + 18h]
+        mov r9,  qword ptr [rsp + 20h]
+
+        rex_jmp_reg rax
+?WasmDeferredParseInternalThunk@WasmLibrary@Js@@SAPEAXPEAVRecyclableObject@2@UCallInfo@2@ZZ ENDP
+
+;;============================================================================================================
 
 endif ;; _ENABLE_DYNAMIC_THUNKS
 

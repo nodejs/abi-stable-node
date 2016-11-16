@@ -331,6 +331,7 @@ Security::EncodeOpnd(IR::Instr *instr, IR::Opnd *opnd)
             {
                 dstSym->m_isConst = false;
                 dstSym->m_isIntConst = false;
+                dstSym->m_isInt64Const = false;
                 dstSym->m_isTaggableIntConst = false;
                 dstSym->m_isFltConst = false;
             }
@@ -426,7 +427,7 @@ Security::EncodeAddress(IR::Instr *instr, IR::Opnd *opnd, size_t value, IR::RegO
     instrNew = LowererMD::CreateAssign(regOpnd, opnd, instr);
 
     size_t cookie = (size_t)Math::Rand();
-    IR::AddrOpnd *cookieOpnd = IR::AddrOpnd::New((Js::Var)cookie, IR::AddrOpndKindConstant, instr->m_func);
+    IR::IntConstOpnd *cookieOpnd = IR::IntConstOpnd::New(cookie, TyMachReg, instr->m_func);
     instrNew = IR::Instr::New(Js::OpCode::XOR, regOpnd, regOpnd, cookieOpnd, instr->m_func);
     instr->InsertBefore(instrNew);
     LowererMD::Legalize(instrNew);

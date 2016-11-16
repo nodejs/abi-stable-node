@@ -150,6 +150,9 @@ private:
 #ifdef PROFILE_MEM
     struct ArenaMemoryData * memoryData;
 #endif
+#if DBG
+    bool needsDelayFreeList;
+#endif
 
 public:
     static const size_t ObjectAlignmentBitShift = ObjectAlignmentBitShiftArg;
@@ -224,10 +227,21 @@ public:
 
     static size_t GetAlignedSize(size_t size) { return AllocSizeMath::Align(size, ArenaAllocatorBase::ObjectAlignment); }
 
-    char * AllocInternal(size_t requestedBytes);
+    char * AllocInternal(DECLSPEC_GUARD_OVERFLOW size_t requestedBytes);
 
-    char* Realloc(void* buffer, size_t existingBytes, size_t requestedBytes);
+    char* Realloc(void* buffer, DECLSPEC_GUARD_OVERFLOW size_t existingBytes, DECLSPEC_GUARD_OVERFLOW size_t requestedBytes);
     void Free(void * buffer, size_t byteSize);
+#if DBG
+    bool HasDelayFreeList() const
+    {
+        return needsDelayFreeList;
+    }
+    void SetNeedsDelayFreeList()
+    {
+        needsDelayFreeList = true;
+    }
+    void MergeDelayFreeList();
+#endif
 #ifdef TRACK_ALLOC
     // Doesn't support tracking information, dummy implementation
     ArenaAllocatorBase * TrackAllocInfo(TrackAllocData const& data) { return this; }
@@ -235,8 +249,8 @@ public:
 #endif
 
 protected:
-    char * RealAlloc(size_t nbytes);
-    __forceinline char * RealAllocInlined(size_t nbytes);
+    char * RealAlloc(DECLSPEC_GUARD_OVERFLOW size_t nbytes);
+    __forceinline char * RealAllocInlined(DECLSPEC_GUARD_OVERFLOW size_t nbytes);
 private:
 #ifdef PROFILE_MEM
     void LogBegin();
@@ -250,11 +264,11 @@ private:
     static size_t Size(BigBlock * blockList);
     void FullReset();
     void SetCacheBlock(BigBlock * cacheBlock);
-    template <bool DoRecoverMemory> char * AllocFromHeap(size_t nbytes);
+    template <bool DoRecoverMemory> char * AllocFromHeap(DECLSPEC_GUARD_OVERFLOW size_t nbytes);
     void ReleaseMemory();
     void ReleasePageMemory();
     void ReleaseHeapMemory();
-    char * SnailAlloc(size_t nbytes);
+    char * SnailAlloc(DECLSPEC_GUARD_OVERFLOW size_t nbytes);
     BigBlock * AddBigBlock(size_t pages);
 
 #ifdef ARENA_ALLOCATOR_FREE_LIST_SIZE
@@ -289,9 +303,12 @@ public:
     static const unsigned char DbgFreeMemFill = DbgMemFill;
 #endif
     static void * New(ArenaAllocatorBase<InPlaceFreeListPolicy> * allocator);
-    static void * Allocate(void * policy, size_t size);
+    static void * Allocate(void * policy, DECLSPEC_GUARD_OVERFLOW size_t size);
     static void * Free(void * policy, void * object, size_t size);
     static void * Reset(void * policy);
+#if DBG
+    static void MergeDelayFreeList(void * freeList);
+#endif
     static void PrepareFreeObject(__out_bcount(size) void * object, _In_ size_t size)
     {
 #ifdef ARENA_MEMORY_VERIFY
@@ -341,7 +358,7 @@ public:
     static const char DbgFreeMemFill = 0x0;
 #endif
     static void * New(ArenaAllocatorBase<StandAloneFreeListPolicy> * allocator);
-    static void * Allocate(void * policy, size_t size);
+    static void * Allocate(void * policy, DECLSPEC_GUARD_OVERFLOW size_t size);
     static void * Free(void * policy, void * object, size_t size);
     static void * Reset(void * policy);
     static void PrepareFreeObject(_Out_writes_bytes_all_(size) void * object, _In_ size_t size)
@@ -352,6 +369,9 @@ public:
     }
 #ifdef ARENA_MEMORY_VERIFY
     static void VerifyFreeObjectIsFreeMemFilled(void * object, size_t size);
+#endif
+#if DBG
+    static void MergeDelayFreeList(void * freeList);
 #endif
     static void Release(void * policy);
 };
@@ -377,12 +397,12 @@ public:
     }
 
     __forceinline
-    char * Alloc(size_t requestedBytes)
+    char * Alloc(DECLSPEC_GUARD_OVERFLOW size_t requestedBytes)
     {
         return AllocInternal(requestedBytes);
     }
 
-    char * AllocZero(size_t nbytes)
+    char * AllocZero(DECLSPEC_GUARD_OVERFLOW size_t nbytes)
     {
         char * buffer = Alloc(nbytes);
         memset(buffer, 0, nbytes);
@@ -393,13 +413,13 @@ public:
         return buffer;
     }
 
-    char * AllocLeaf(size_t requestedBytes)
+    char * AllocLeaf(DECLSPEC_GUARD_OVERFLOW size_t requestedBytes)
     {
         // Leaf allocation is not meaningful here, but needed by Allocator-templatized classes that may call one of the Leaf versions of AllocatorNew
         return Alloc(requestedBytes);
     }
 
-    char * NoThrowAlloc(size_t requestedBytes)
+    char * NoThrowAlloc(DECLSPEC_GUARD_OVERFLOW size_t requestedBytes)
     {
         void (*tempOutOfMemoryFunc)() = outOfMemoryFunc;
         outOfMemoryFunc = nullptr;
@@ -408,7 +428,7 @@ public:
         return buffer;
     }
 
-    char * NoThrowAllocZero(size_t requestedBytes)
+    char * NoThrowAllocZero(DECLSPEC_GUARD_OVERFLOW size_t requestedBytes)
     {
         char * buffer = NoThrowAlloc(requestedBytes);
         if (buffer != nullptr)
@@ -418,7 +438,7 @@ public:
         return buffer;
     }
 
-    char * NoThrowNoRecoveryAlloc(size_t requestedBytes)
+    char * NoThrowNoRecoveryAlloc(DECLSPEC_GUARD_OVERFLOW size_t requestedBytes)
     {
         void (*tempRecoverMemoryFunc)() = recoverMemoryFunc;
         recoverMemoryFunc = nullptr;
@@ -427,7 +447,7 @@ public:
         return buffer;
     }
 
-    char * NoThrowNoRecoveryAllocZero(size_t requestedBytes)
+    char * NoThrowNoRecoveryAllocZero(DECLSPEC_GUARD_OVERFLOW size_t requestedBytes)
     {
         char * buffer = NoThrowNoRecoveryAlloc(requestedBytes);
         if (buffer != nullptr)
@@ -453,12 +473,11 @@ public:
     {
     }
 
-    char * Alloc(size_t requestedBytes)
+    char * Alloc(DECLSPEC_GUARD_OVERFLOW size_t requestedBytes)
     {
         // Fast path
         if (sizeof(BVSparseNode) == requestedBytes)
         {
-            AssertMsg(Math::Align(requestedBytes, ArenaAllocatorBase::ObjectAlignment) == requestedBytes, "Assert for Perf, T should always be aligned");
             // Fast path for BVSparseNode allocation
             if (bvFreeList)
             {
@@ -492,22 +511,22 @@ public:
         return ArenaAllocator::Free(buffer, byteSize);
     }
 
-    char * AllocZero(size_t nbytes)
+    char * AllocZero(DECLSPEC_GUARD_OVERFLOW size_t nbytes)
     {
         return ArenaAllocator::AllocZero(nbytes);
     }
 
-    char * AllocLeaf(size_t requestedBytes)
+    char * AllocLeaf(DECLSPEC_GUARD_OVERFLOW size_t requestedBytes)
     {
         return ArenaAllocator::AllocLeaf(requestedBytes);
     }
 
-    char * NoThrowAlloc(size_t requestedBytes)
+    char * NoThrowAlloc(DECLSPEC_GUARD_OVERFLOW size_t requestedBytes)
     {
         return ArenaAllocator::NoThrowAlloc(requestedBytes);
     }
 
-    char * NoThrowAllocZero(size_t requestedBytes)
+    char * NoThrowAllocZero(DECLSPEC_GUARD_OVERFLOW size_t requestedBytes)
     {
         return ArenaAllocator::NoThrowAllocZero(requestedBytes);
     }
@@ -593,7 +612,7 @@ public:
     static const unsigned char DbgFreeMemFill = DbgMemFill;
 #endif
     static void * New(ArenaAllocatorBase<InlineCacheAllocatorTraits> * allocator);
-    static void * Allocate(void * policy, size_t size);
+    static void * Allocate(void * policy, DECLSPEC_GUARD_OVERFLOW size_t size);
     static void * Free(void * policy, void * object, size_t size);
     static void * Reset(void * policy);
     static void Release(void * policy);
@@ -614,6 +633,9 @@ public:
         memset(object, NULL, size);
 #endif
     }
+#if DBG
+    static void MergeDelayFreeList(void * freeList);
+#endif
 #ifdef ARENA_MEMORY_VERIFY
     static void VerifyFreeObjectIsFreeMemFilled(void * object, size_t size);
 #endif
@@ -649,12 +671,12 @@ public:
 #endif
     {}
 
-    char * Alloc(size_t requestedBytes)
+    char * Alloc(DECLSPEC_GUARD_OVERFLOW size_t requestedBytes)
     {
         return AllocInternal(requestedBytes);
     }
 
-    char * AllocZero(size_t nbytes)
+    char * AllocZero(DECLSPEC_GUARD_OVERFLOW size_t nbytes)
     {
         char * buffer = Alloc(nbytes);
         memset(buffer, 0, nbytes);
@@ -705,12 +727,12 @@ public:
     InlineCacheAllocator(__in LPCWSTR name, PageAllocator * pageAllocator, void(*outOfMemoryFunc)()) :
         ArenaAllocatorBase<InlineCacheAllocatorTraits>(name, pageAllocator, outOfMemoryFunc) {}
 
-    char * Alloc(size_t requestedBytes)
+    char * Alloc(DECLSPEC_GUARD_OVERFLOW size_t requestedBytes)
     {
         return AllocInternal(requestedBytes);
     }
 
-    char * AllocZero(size_t nbytes)
+    char * AllocZero(DECLSPEC_GUARD_OVERFLOW size_t nbytes)
     {
         char * buffer = Alloc(nbytes);
         memset(buffer, 0, nbytes);
@@ -735,47 +757,21 @@ public:
 
 #endif
 
-class IsInstInlineCacheAllocatorInfo
+
+#define CacheAllocatorTraits StandAloneFreeListPolicy
+
+class CacheAllocator : public ArenaAllocatorBase<CacheAllocatorTraits>
 {
 public:
-    struct CacheLayout
-    {
-        char bytes[4 * sizeof(intptr_t)];
-    };
+    CacheAllocator(__in LPCWSTR name, PageAllocator * pageAllocator, void(*outOfMemoryFunc)()) :
+        ArenaAllocatorBase<CacheAllocatorTraits>(name, pageAllocator, outOfMemoryFunc) {}
 
-#if _M_X64 || _M_ARM64
-    CompileAssert(sizeof(CacheLayout) == 32);
-    static const size_t ObjectAlignmentBitShift = 5;
-#else
-    CompileAssert(sizeof(CacheLayout) == 16);
-    static const size_t ObjectAlignmentBitShift = 4;
-#endif
-
-    static const size_t ObjectAlignment = 1 << ObjectAlignmentBitShift;
-    static const size_t MaxObjectSize = sizeof(CacheLayout);
-};
-
-
-#define IsInstInlineCacheAllocatorTraits StandAloneFreeListPolicy
-
-class IsInstInlineCacheAllocator : public IsInstInlineCacheAllocatorInfo, public ArenaAllocatorBase<IsInstInlineCacheAllocatorTraits>
-{
-
-#ifdef POLY_INLINE_CACHE_SIZE_STATS
-private:
-    size_t polyCacheAllocSize;
-#endif
-
-public:
-    IsInstInlineCacheAllocator(__in LPCWSTR name, PageAllocator * pageAllocator, void(*outOfMemoryFunc)()) :
-        ArenaAllocatorBase<IsInstInlineCacheAllocatorTraits>(name, pageAllocator, outOfMemoryFunc) {}
-
-    char * Alloc(size_t requestedBytes)
+    char * Alloc(DECLSPEC_GUARD_OVERFLOW size_t requestedBytes)
     {
         return AllocInternal(requestedBytes);
     }
 
-    char * AllocZero(size_t nbytes)
+    char * AllocZero(DECLSPEC_GUARD_OVERFLOW size_t nbytes)
     {
         char * buffer = Alloc(nbytes);
         memset(buffer, 0, nbytes);
@@ -791,11 +787,6 @@ public:
 #endif
     void ZeroAll();
 
-#ifdef POLY_INLINE_CACHE_SIZE_STATS
-    size_t GetPolyInlineCacheSize() { return this->polyCacheAllocSize; }
-    void LogPolyCacheAlloc(size_t size) { this->polyCacheAllocSize += size; }
-    void LogPolyCacheFree(size_t size) { this->polyCacheAllocSize -= size; }
-#endif
 };
 
 

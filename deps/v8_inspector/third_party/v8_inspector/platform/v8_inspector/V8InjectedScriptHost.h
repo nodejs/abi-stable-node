@@ -5,11 +5,14 @@
 #ifndef V8InjectedScriptHost_h
 #define V8InjectedScriptHost_h
 
+#include "platform/inspector_protocol/InspectorProtocol.h"
 #include <v8.h>
 
-namespace blink {
+namespace v8_inspector {
 
-class V8DebuggerImpl;
+class V8InspectorImpl;
+
+namespace protocol = blink::protocol;
 
 // SECURITY NOTE: Although the InjectedScriptHost is intended for use solely by the inspector,
 // a reference to the InjectedScriptHost may be leaked to the page being inspected. Thus, the
@@ -19,20 +22,18 @@ class V8DebuggerImpl;
 class V8InjectedScriptHost {
 public:
     // We expect that debugger outlives any JS context and thus V8InjectedScriptHost (owned by JS)
-    // is destroyed before debugger.
-    static v8::Local<v8::Object> create(v8::Local<v8::Context>, V8DebuggerImpl*);
+    // is destroyed before inspector.
+    static v8::Local<v8::Object> create(v8::Local<v8::Context>, V8InspectorImpl*);
 private:
     static void internalConstructorNameCallback(const v8::FunctionCallbackInfo<v8::Value>&);
     static void formatAccessorsAsProperties(const v8::FunctionCallbackInfo<v8::Value>&);
-    static void isTypedArrayCallback(const v8::FunctionCallbackInfo<v8::Value>&);
     static void subtypeCallback(const v8::FunctionCallbackInfo<v8::Value>&);
     static void getInternalPropertiesCallback(const v8::FunctionCallbackInfo<v8::Value>&);
-    static void suppressWarningsAndCallFunctionCallback(const v8::FunctionCallbackInfo<v8::Value>&);
+    static void objectHasOwnPropertyCallback(const v8::FunctionCallbackInfo<v8::Value>&);
     static void bindCallback(const v8::FunctionCallbackInfo<v8::Value>&);
     static void proxyTargetValueCallback(const v8::FunctionCallbackInfo<v8::Value>&);
-    static void prototypeCallback(const v8::FunctionCallbackInfo<v8::Value>&);
 };
 
-} // namespace blink
+} // namespace v8_inspector
 
 #endif // V8InjectedScriptHost_h

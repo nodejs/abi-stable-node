@@ -196,7 +196,7 @@ class SimpleProgressIndicator(ProgressIndicator):
         print failed.output.stdout.strip()
       print "Command: %s" % EscapeCommand(failed.command)
       if failed.HasCrashed():
-        print "--- CRASHED ---"
+        print "--- %s ---" % PrintCrashed(failed.output.exit_code)
       if failed.HasTimedOut():
         print "--- TIMEOUT ---"
     if len(self.failed) == 0:
@@ -285,6 +285,9 @@ class TapProgressIndicator(SimpleProgressIndicator):
       logger.info(status_line)
       self._printDiagnostic("\n".join(output.diagnostic))
 
+      if output.HasCrashed():
+        self._printDiagnostic(PrintCrashed(output.output.exit_code))
+
       if output.HasTimedOut():
         self._printDiagnostic('TIMEOUT')
 
@@ -347,7 +350,7 @@ class CompactProgressIndicator(ProgressIndicator):
         print self.templates['stderr'] % stderr
       print "Command: %s" % EscapeCommand(output.command)
       if output.HasCrashed():
-        print "--- CRASHED ---"
+        print "--- %s ---" % PrintCrashed(output.output.exit_code)
       if output.HasTimedOut():
         print "--- TIMEOUT ---"
 
@@ -765,10 +768,10 @@ class TestRepository(TestSuite):
   def GetBuildRequirements(self, path, context):
     return self.GetConfiguration(context).GetBuildRequirements()
 
-  def AddTestsToList(self, result, current_path, path, context, arch, mode):
+  def AddTestsToList(self, result, current_path, path, context, arch, mode, jsEngine):
     for v in VARIANT_FLAGS:
       tests = self.GetConfiguration(context).ListTests(current_path, path,
-                                                       arch, mode)
+                                                       arch, mode, jsEngine)
       for t in tests: t.variant_flags = v
       result += tests * context.repeat
 
@@ -790,14 +793,14 @@ class LiteralTestSuite(TestSuite):
         result += test.GetBuildRequirements(rest, context)
     return result
 
-  def ListTests(self, current_path, path, context, arch, mode):
+  def ListTests(self, current_path, path, context, arch, mode, jsEngine):
     (name, rest) = CarCdr(path)
     result = [ ]
     for test in self.tests:
       test_name = test.GetName()
       if not name or name.match(test_name):
         full_path = current_path + [test_name]
-        test.AddTestsToList(result, full_path, path, context, arch, mode)
+        test.AddTestsToList(result, full_path, path, context, arch, mode, jsEngine)
     result.sort(cmp=lambda a, b: cmp(a.GetName(), b.GetName()))
     return result
 
@@ -864,10 +867,6 @@ class Context(object):
   def GetTimeout(self, mode):
     return self.timeout * TIMEOUT_SCALEFACTOR[ARCH_GUESS or 'ia32'][mode]
 
-  def GetEngine(self, arch, mode):
-    vm = self.GetVm(arch, mode)
-    engine = Execute([vm, "-p", "process.jsEngine || 'v8'"], self)
-    return engine.stdout.strip() if engine.exit_code is 0 else 'v8'
 
 def RunTestCases(cases_to_run, progress, tasks, flaky_tests_mode):
   progress = PROGRESS_INDICATORS[progress](cases_to_run, flaky_tests_mode)
@@ -1481,6 +1480,13 @@ def FormatTime(d):
   return time.strftime("%M:%S.", time.gmtime(d)) + ("%03i" % millis)
 
 
+def PrintCrashed(code):
+  if utils.IsWindows():
+    return "CRASHED"
+  else:
+    return "CRASHED (Signal: %d)" % -code
+
+
 def Main():
   parser = BuildOptions()
   (options, args) = parser.parse_args()
@@ -1551,16 +1557,25 @@ def Main():
           continue
         archEngineContext = Execute([vm, "-p", "process.arch"], context)
         vmArch = archEngineContext.stdout.rstrip()
-        if archEngineContext.exit_code is not 0 or vmArch == "undefined":
+        if archEngineContext.exit_code != 0 or vmArch == "undefined":
           print "Can't determine the arch of: '%s'" % vm
           print archEngineContext.stderr.rstrip()
           continue
+        jsEngineContext = Execute([vm, "-p", "process.jsEngine"], context)
+        jsEngine = jsEngineContext.stdout.rstrip()
+        if jsEngineContext.exit_code != 0 or jsEngine == "undefined":
+          print "Can't determine the jsEngine of: '%s'" % vm
+          print jsEngineContext.stderr.rstrip()
+          continue
         env = {
+          # variable names are lowercased when reading the status files
+          # any uppercase character here will prevent the names from matching
           'mode': mode,
           'system': utils.GuessOS(),
           'arch': vmArch,
+          'jsengine': jsEngine,
         }
-        test_list = root.ListTests([], path, context, arch, mode)
+        test_list = root.ListTests([], path, context, arch, mode, jsEngine)
         unclassified_tests += test_list
         (cases, unused_rules, all_outcomes) = (
             config.ClassifyTests(test_list, env))

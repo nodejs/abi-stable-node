@@ -10,6 +10,71 @@
 //It should also be of a size that allows us to inline the event data for the most common events without being too wasteful on other events.
 #define EVENT_INLINE_DATA_BYTE_COUNT 36
 
+//The limit on event times used as the default value
+#define TTD_EVENT_MAXTIME INT64_MAX
+
+//Values copied from ChakraCommon.h
+#define TTD_REPLAY_JS_INVALID_REFERENCE nullptr
+#define TTD_REPLAY_JsErrorInvalidArgument 65537
+#define TTD_REPLAY_JsErrorArgumentNotObject 65548
+#define TTD_REPLAY_JsErrorCategoryScript 196609
+#define TTD_REPLAY_JsErrorScriptTerminated 196611
+
+
+#define TTD_REPLAY_VALIDATE_JSREF(p) \
+        if (p == TTD_REPLAY_JS_INVALID_REFERENCE) \
+        { \
+            return; \
+        }
+
+#define TTD_REPLAY_MARSHAL_OBJECT(p, scriptContext) \
+        Js::RecyclableObject* __obj = Js::RecyclableObject::FromVar(p); \
+        if (__obj->GetScriptContext() != scriptContext) \
+        { \
+            p = Js::CrossSite::MarshalVar(scriptContext, __obj); \
+        }
+
+#define TTD_REPLAY_VALIDATE_INCOMING_REFERENCE(p, scriptContext) \
+        TTD_REPLAY_VALIDATE_JSREF(p); \
+        if (Js::RecyclableObject::Is(p)) \
+        { \
+            TTD_REPLAY_MARSHAL_OBJECT(p, scriptContext) \
+        }
+
+#define TTD_REPLAY_VALIDATE_INCOMING_OBJECT(p, scriptContext) \
+        { \
+            TTD_REPLAY_VALIDATE_JSREF(p); \
+            if(!Js::JavascriptOperators::IsObject(p)) \
+            { \
+                return; \
+            } \
+            TTD_REPLAY_MARSHAL_OBJECT(p, scriptContext) \
+        }
+
+#define TTD_REPLAY_VALIDATE_INCOMING_OBJECT_OR_NULL(p, scriptContext) \
+        { \
+            TTD_REPLAY_VALIDATE_JSREF(p); \
+            if(!Js::JavascriptOperators::IsObjectOrNull(p)) \
+            { \
+                return; \
+            } \
+            TTD_REPLAY_MARSHAL_OBJECT(p, scriptContext) \
+        }
+
+#define TTD_REPLAY_VALIDATE_INCOMING_FUNCTION(p, scriptContext) \
+        { \
+            TTD_REPLAY_VALIDATE_JSREF(p); \
+            if(!Js::JavascriptFunction::Is(p)) \
+            { \
+                return; \
+            } \
+            TTD_REPLAY_MARSHAL_OBJECT(p, scriptContext) \
+        }
+
+#define TTD_REPLAY_ACTIVE_CONTEXT(executeContext) \
+        Js::ScriptContext* ctx = executeContext->GetActiveScriptContext(); \
+        TTDAssert(ctx != nullptr, "This should be non-null!!!");
+
 namespace TTD
 {
     //An exception class for controlled aborts from the runtime to the toplevel TTD control loop
@@ -22,25 +87,29 @@ namespace TTD
         //An optional target event time -- intent is interpreted based on the abort code
         const int64 m_optEventTime;
 
-        //An optional -- and static string message to include
-        const LPCWSTR m_staticAbortMessage;
+        //An optional move mode value -- should be built by host we just propagate it
+        const int64 m_optMoveMode;
 
-        TTDebuggerAbortException(uint32 abortCode, int64 optEventTime, LPCWSTR staticAbortMessage);
+        //An optional -- and static string message to include
+        const char16* m_staticAbortMessage;
+
+        TTDebuggerAbortException(uint32 abortCode, int64 optEventTime, int64 optMoveMode, const char16* staticAbortMessage);
 
     public:
         ~TTDebuggerAbortException();
 
-        static TTDebuggerAbortException CreateAbortEndOfLog(LPCWSTR staticMessage);
-        static TTDebuggerAbortException CreateTopLevelAbortRequest(int64 targetEventTime, LPCWSTR staticMessage);
-        static TTDebuggerAbortException CreateUncaughtExceptionAbortRequest(int64 targetEventTime, LPCWSTR staticMessage);
+        static TTDebuggerAbortException CreateAbortEndOfLog(const char16* staticMessage);
+        static TTDebuggerAbortException CreateTopLevelAbortRequest(int64 targetEventTime, int64 moveMode, const char16* staticMessage);
+        static TTDebuggerAbortException CreateUncaughtExceptionAbortRequest(int64 targetEventTime, const char16* staticMessage);
 
         bool IsEndOfLog() const;
         bool IsEventTimeMove() const;
         bool IsTopLevelException() const;
 
         int64 GetTargetEventTime() const;
+        int64 GetMoveMode() const;
 
-        LPCWSTR GetStaticAbortMessage() const;
+        const char16* GetStaticAbortMessage() const;
     };
 
     //A struct for tracking time events in a single method
@@ -49,24 +118,22 @@ namespace TTD
         Js::FunctionBody* Function;
 
 #if ENABLE_TTD_INTERNAL_DIAGNOSTICS
-        LPCWSTR Name; //only added for debugging can get rid of later.
+        const char16* Name; //only added for debugging can get rid of later.
 #endif
 
         uint64 EventTime; //The event time when the function was called
         uint64 FunctionTime; //The function time when the function was called
         uint64 LoopTime; //The current loop taken time for the function
 
-#if ENABLE_TTD_STACK_STMTS
         int32 LastStatementIndex; //The previously executed statement
         uint64 LastStatementLoopTime; //The previously executed statement
 
         int32 CurrentStatementIndex; //The currently executing statement
         uint64 CurrentStatementLoopTime; //The currently executing statement
 
-                                         //bytecode range of the current stmt
+        //bytecode range of the current stmt
         uint32 CurrentStatementBytecodeMin;
         uint32 CurrentStatementBytecodeMax;
-#endif
     };
 
     //A class to represent a source location
@@ -79,7 +146,7 @@ namespace TTD
         int64 m_ltime;  //-1 indicates any ltime is OK
 
         //The document
-        wchar* m_sourceFile; //temp use until we make docid stable
+        char16* m_sourceFile; //temp use until we make docid stable
         uint32 m_docid;
 
         //The position of the function in the document
@@ -92,24 +159,34 @@ namespace TTD
 
     public:
         TTDebuggerSourceLocation();
+        TTDebuggerSourceLocation(int64 topLevelETime, const SingleCallCounter& callFrame);
         TTDebuggerSourceLocation(const TTDebuggerSourceLocation& other);
         ~TTDebuggerSourceLocation();
+
+        TTDebuggerSourceLocation& operator= (const TTDebuggerSourceLocation& other);
+
+#if ENABLE_TTD_INTERNAL_DIAGNOSTICS
+        void PrintToConsole(bool newline) const;
+#endif
 
         void Initialize();
 
         bool HasValue() const;
         void Clear();
         void SetLocation(const TTDebuggerSourceLocation& other);
-        void SetLocation(const SingleCallCounter& callFrame);
+        void SetLocation(int64 topLevelETime, const SingleCallCounter& callFrame);
         void SetLocation(int64 etime, int64 ftime, int64 ltime, Js::FunctionBody* body, ULONG line, LONG column);
 
         int64 GetRootEventTime() const;
         int64 GetFunctionTime() const;
         int64 GetLoopTime() const;
 
-        Js::FunctionBody* ResolveAssociatedSourceInfo(Js::ScriptContext* ctx);
+        Js::FunctionBody* ResolveAssociatedSourceInfo(Js::ScriptContext* ctx) const;
         uint32 GetLine() const;
         uint32 GetColumn() const;
+
+        //return true if this comes strictly before other in execution order
+        bool IsBefore(const TTDebuggerSourceLocation& other) const;
     };
 
     //////////////////
@@ -135,6 +212,10 @@ namespace TTD
             //JsRTActionTag is a marker for where the JsRT actions begin
             JsRTActionTag,
 
+            CreateScriptContextActionTag,
+            SetActiveScriptContextActionTag,
+            DeadScriptContextActionTag,
+
 #if !INT32VAR
             CreateIntegerActionTag,
 #endif
@@ -142,6 +223,13 @@ namespace TTD
             CreateBooleanActionTag,
             CreateStringActionTag,
             CreateSymbolActionTag,
+
+            CreateErrorActionTag,
+            CreateRangeErrorActionTag,
+            CreateReferenceErrorActionTag,
+            CreateSyntaxErrorActionTag,
+            CreateTypeErrorActionTag,
+            CreateURIErrorActionTag,
 
             VarConvertToNumberActionTag,
             VarConvertToBooleanActionTag,
@@ -158,8 +246,17 @@ namespace TTD
             AllocateExternalArrayBufferActionTag,
             AllocateFunctionActionTag,
 
+            HostExitProcessTag,
             GetAndClearExceptionActionTag,
+            SetExceptionActionTag,
 
+            HasPropertyActionTag,
+            InstanceOfActionTag,
+            EqualsActionTag,
+
+            GetPropertyIdFromSymbolTag,
+
+            GetPrototypeActionTag,
             GetPropertyActionTag,
             GetIndexActionTag,
             GetOwnPropertyInfoActionTag,
@@ -174,6 +271,11 @@ namespace TTD
 
             GetTypedArrayInfoActionTag,
 
+            RawBufferCopySync,
+            RawBufferModifySync,
+            RawBufferAsyncModificationRegister,
+            RawBufferAsyncModifyComplete,
+
             ConstructCallActionTag,
             CallbackOpActionTag,
             CodeParseActionTag,
@@ -183,18 +285,29 @@ namespace TTD
         };
 
         //Inflate an argument variable for an action during replay and record passing an value to the host
-        void PassVarToHostInReplay(Js::ScriptContext* ctx, TTDVar origVar, Js::Var replayVar);
-        Js::Var InflateVarInReplay(Js::ScriptContext* ctx, TTDVar var);
+        void PassVarToHostInReplay(ThreadContextTTD* executeContext, TTDVar origVar, Js::Var replayVar);
+        Js::Var InflateVarInReplay(ThreadContextTTD* executeContext, TTDVar var);
 
-        typedef void(*fPtr_EventLogActionEntryInfoExecute)(const EventLogEntry* evt, Js::ScriptContext* ctx);
+        //The kind of context that the replay code should execute in
+        enum class ContextExecuteKind
+        {
+            None,
+            GlobalAPIWrapper,
+            ContextAPIWrapper,
+            ContextAPINoScriptWrapper
+        };
+
+        typedef void(*fPtr_EventLogActionEntryInfoExecute)(const EventLogEntry* evt, ThreadContextTTD* execCtx);
 
         typedef void(*fPtr_EventLogEntryInfoUnload)(EventLogEntry* evt, UnlinkableSlabAllocator& alloc);
-        typedef void(*fPtr_EventLogEntryInfoEmit)(const EventLogEntry* evt, LPCWSTR uri, FileWriter* writer, ThreadContext* threadContext);
+        typedef void(*fPtr_EventLogEntryInfoEmit)(const EventLogEntry* evt, FileWriter* writer, ThreadContext* threadContext);
         typedef void(*fPtr_EventLogEntryInfoParse)(EventLogEntry* evt, ThreadContext* threadContext, FileReader* reader, UnlinkableSlabAllocator& alloc);
 
         //A struct that we use for our pseudo v-table on the EventLogEntry data
         struct EventLogEntryVTableEntry
         {
+            ContextExecuteKind ContextKind;
+
             fPtr_EventLogActionEntryInfoExecute ExecuteFP;
 
             fPtr_EventLogEntryInfoUnload UnloadFP;
@@ -210,6 +323,9 @@ namespace TTD
             //The kind of the event
             EventKind EventKind;
 
+            //The result status code
+            int32 ResultStatus;
+
 #if ENABLE_TTD_INTERNAL_DIAGNOSTICS
             //The event time for this event
             int64 EventTimeStamp;
@@ -220,7 +336,7 @@ namespace TTD
         const T* GetInlineEventDataAs(const EventLogEntry* evt)
         {
             static_assert(sizeof(T) < EVENT_INLINE_DATA_BYTE_COUNT, "Data is too large for inline representation!!!");
-            AssertMsg(evt->EventKind == tag, "Bad tag match!");
+            TTDAssert(evt->EventKind == tag, "Bad tag match!");
 
             return reinterpret_cast<const T*>(evt->EventData);
         }
@@ -229,15 +345,20 @@ namespace TTD
         T* GetInlineEventDataAs(EventLogEntry* evt)
         {
             static_assert(sizeof(T) < EVENT_INLINE_DATA_BYTE_COUNT, "Data is too large for inline representation!!!");
-            AssertMsg(evt->EventKind == tag, "Bad tag match!");
+            TTDAssert(evt->EventKind == tag, "Bad tag match!");
 
             return reinterpret_cast<T*>(evt->EventData);
         }
 
         //Helpers for initializing, emitting and parsing the basic event data
         void EventLogEntry_Initialize(EventLogEntry* evt, EventKind tag, int64 etime);
-        void EventLogEntry_Emit(const EventLogEntry* evt, EventLogEntryVTableEntry* evtFPVTable, FileWriter* writer, LPCWSTR uri, ThreadContext* threadContext, NSTokens::Separator separator);
+        void EventLogEntry_Emit(const EventLogEntry* evt, EventLogEntryVTableEntry* evtFPVTable, FileWriter* writer, ThreadContext* threadContext, NSTokens::Separator separator);
         void EventLogEntry_Parse(EventLogEntry* evt, EventLogEntryVTableEntry* evtFPVTable, bool readSeperator, ThreadContext* threadContext, FileReader* reader, UnlinkableSlabAllocator& alloc);
+
+        bool EventFailsWithRuntimeError(const EventLogEntry* evt);
+        bool EventDoesNotReturn(const EventLogEntry* evt);
+        bool EventCompletesNormally(const EventLogEntry* evt);
+        bool EventCompletesWithException(const EventLogEntry* evt);
 
         //////////////////
 
@@ -252,10 +373,10 @@ namespace TTD
         };
 
         void SnapshotEventLogEntry_UnloadEventMemory(EventLogEntry* evt, UnlinkableSlabAllocator& alloc);
-        void SnapshotEventLogEntry_Emit(const EventLogEntry* evt, LPCWSTR uri, FileWriter* writer, ThreadContext* threadContext);
+        void SnapshotEventLogEntry_Emit(const EventLogEntry* evt, FileWriter* writer, ThreadContext* threadContext);
         void SnapshotEventLogEntry_Parse(EventLogEntry* evt, ThreadContext* threadContext, FileReader* reader, UnlinkableSlabAllocator& alloc);
 
-        void SnapshotEventLogEntry_EnsureSnapshotDeserialized(EventLogEntry* evt, LPCWSTR uri, ThreadContext* threadContext);
+        void SnapshotEventLogEntry_EnsureSnapshotDeserialized(EventLogEntry* evt, ThreadContext* threadContext);
         void SnapshotEventLogEntry_UnloadSnapshot(EventLogEntry* evt);
 
         //A struct that represents snapshot events
@@ -268,7 +389,7 @@ namespace TTD
             double EventWallTime;
         };
 
-        void EventLoopYieldPointEntry_Emit(const EventLogEntry* evt, LPCWSTR uri, FileWriter* writer, ThreadContext* threadContext);
+        void EventLoopYieldPointEntry_Emit(const EventLogEntry* evt, FileWriter* writer, ThreadContext* threadContext);
         void EventLoopYieldPointEntry_Parse(EventLogEntry* evt, ThreadContext* threadContext, FileReader* reader, UnlinkableSlabAllocator& alloc);
 
         //////////////////
@@ -280,7 +401,7 @@ namespace TTD
             uint64 BodyCounterId;
         };
 
-        void CodeLoadEventLogEntry_Emit(const EventLogEntry* evt, LPCWSTR uri, FileWriter* writer, ThreadContext* threadContext);
+        void CodeLoadEventLogEntry_Emit(const EventLogEntry* evt, FileWriter* writer, ThreadContext* threadContext);
         void CodeLoadEventLogEntry_Parse(EventLogEntry* evt, ThreadContext* threadContext, FileReader* reader, UnlinkableSlabAllocator& alloc);
 
         //A struct that represents telemetry events from the user code
@@ -294,7 +415,7 @@ namespace TTD
         };
 
         void TelemetryEventLogEntry_UnloadEventMemory(EventLogEntry* evt, UnlinkableSlabAllocator& alloc);
-        void TelemetryEventLogEntry_Emit(const EventLogEntry* evt, LPCWSTR uri, FileWriter* writer, ThreadContext* threadContext);
+        void TelemetryEventLogEntry_Emit(const EventLogEntry* evt, FileWriter* writer, ThreadContext* threadContext);
         void TelemetryEventLogEntry_Parse(EventLogEntry* evt, ThreadContext* threadContext, FileReader* reader, UnlinkableSlabAllocator& alloc);
 
         //////////////////
@@ -307,7 +428,7 @@ namespace TTD
             uint64 Seed1;
         };
 
-        void RandomSeedEventLogEntry_Emit(const EventLogEntry* evt, LPCWSTR uri, FileWriter* writer, ThreadContext* threadContext);
+        void RandomSeedEventLogEntry_Emit(const EventLogEntry* evt, FileWriter* writer, ThreadContext* threadContext);
         void RandomSeedEventLogEntry_Parse(EventLogEntry* evt, ThreadContext* threadContext, FileReader* reader, UnlinkableSlabAllocator& alloc);
 
         //A struct that represents a simple event that needs a double value (e.g. date values)
@@ -317,7 +438,7 @@ namespace TTD
             double DoubleValue;
         };
 
-        void DoubleEventLogEntry_Emit(const EventLogEntry* evt, LPCWSTR uri, FileWriter* writer, ThreadContext* threadContext);
+        void DoubleEventLogEntry_Emit(const EventLogEntry* evt, FileWriter* writer, ThreadContext* threadContext);
         void DoubleEventLogEntry_Parse(EventLogEntry* evt, ThreadContext* threadContext, FileReader* reader, UnlinkableSlabAllocator& alloc);
 
         //A struct that represents a simple event that needs a string value (e.g. date values)
@@ -328,7 +449,7 @@ namespace TTD
         };
 
         void StringValueEventLogEntry_UnloadEventMemory(EventLogEntry* evt, UnlinkableSlabAllocator& alloc);
-        void StringValueEventLogEntry_Emit(const EventLogEntry* evt, LPCWSTR uri, FileWriter* writer, ThreadContext* threadContext);
+        void StringValueEventLogEntry_Emit(const EventLogEntry* evt, FileWriter* writer, ThreadContext* threadContext);
         void StringValueEventLogEntry_Parse(EventLogEntry* evt, ThreadContext* threadContext, FileReader* reader, UnlinkableSlabAllocator& alloc);
 
         //////////////////
@@ -347,7 +468,7 @@ namespace TTD
         };
 
         void PropertyEnumStepEventLogEntry_UnloadEventMemory(EventLogEntry* evt, UnlinkableSlabAllocator& alloc);
-        void PropertyEnumStepEventLogEntry_Emit(const EventLogEntry* evt, LPCWSTR uri, FileWriter* writer, ThreadContext* threadContext);
+        void PropertyEnumStepEventLogEntry_Emit(const EventLogEntry* evt, FileWriter* writer, ThreadContext* threadContext);
         void PropertyEnumStepEventLogEntry_Parse(EventLogEntry* evt, ThreadContext* threadContext, FileReader* reader, UnlinkableSlabAllocator& alloc);
 
         //////////////////
@@ -359,7 +480,7 @@ namespace TTD
             Js::PropertyId Pid;
         };
 
-        void SymbolCreationEventLogEntry_Emit(const EventLogEntry* evt, LPCWSTR uri, FileWriter* writer, ThreadContext* threadContext);
+        void SymbolCreationEventLogEntry_Emit(const EventLogEntry* evt, FileWriter* writer, ThreadContext* threadContext);
         void SymbolCreationEventLogEntry_Parse(EventLogEntry* evt, ThreadContext* threadContext, FileReader* reader, UnlinkableSlabAllocator& alloc);
 
         //////////////////
@@ -376,7 +497,7 @@ namespace TTD
 
         int64 ExternalCbRegisterCallEventLogEntry_GetLastNestedEventTime(const EventLogEntry* evt);
 
-        void ExternalCbRegisterCallEventLogEntry_Emit(const EventLogEntry* evt, LPCWSTR uri, FileWriter* writer, ThreadContext* threadContext);
+        void ExternalCbRegisterCallEventLogEntry_Emit(const EventLogEntry* evt, FileWriter* writer, ThreadContext* threadContext);
         void ExternalCbRegisterCallEventLogEntry_Parse(EventLogEntry* evt, ThreadContext* threadContext, FileReader* reader, UnlinkableSlabAllocator& alloc);
 
         //////////////////
@@ -385,14 +506,15 @@ namespace TTD
         //A struct containing additional information on the external call
         struct ExternalCallEventLogEntry_AdditionalInfo
         {
-            //
-            //TODO: later we should record more detail on the script exception for inflation if needed
-            //
-            bool HasScriptException;
-            bool HasTerminiatingException;
+            //The wall clock times for this action
+            double BeginTime;
+            double EndTime;
 
             //The last event time that is nested in this external call
             int64 LastNestedEventTime;
+
+            //if we need to check exception information
+            bool CheckExceptionStatus;
 
 #if ENABLE_TTD_INTERNAL_DIAGNOSTICS
             //the function name for the function that is invoked
@@ -422,11 +544,11 @@ namespace TTD
 
         int64 ExternalCallEventLogEntry_GetLastNestedEventTime(const EventLogEntry* evt);
 
-        void ExternalCallEventLogEntry_ProcessArgs(EventLogEntry* evt, int32 rootDepth, Js::JavascriptFunction* function, uint32 argc, Js::Var* argv, UnlinkableSlabAllocator& alloc);
-        void ExternalCallEventLogEntry_ProcessReturn(EventLogEntry* evt, Js::Var res, bool hasScriptException, bool hasTerminiatingException, int64 lastNestedEvent);
+        void ExternalCallEventLogEntry_ProcessArgs(EventLogEntry* evt, int32 rootDepth, Js::JavascriptFunction* function, uint32 argc, Js::Var* argv, bool checkExceptions, double beginTime, UnlinkableSlabAllocator& alloc);
+        void ExternalCallEventLogEntry_ProcessReturn(EventLogEntry* evt, Js::Var res, int64 lastNestedEvent, double endTime);
 
         void ExternalCallEventLogEntry_UnloadEventMemory(EventLogEntry* evt, UnlinkableSlabAllocator& alloc);
-        void ExternalCallEventLogEntry_Emit(const EventLogEntry* evt, LPCWSTR uri, FileWriter* writer, ThreadContext* threadContext);
+        void ExternalCallEventLogEntry_Emit(const EventLogEntry* evt, FileWriter* writer, ThreadContext* threadContext);
         void ExternalCallEventLogEntry_Parse(EventLogEntry* evt, ThreadContext* threadContext, FileReader* reader, UnlinkableSlabAllocator& alloc);
     }
 }

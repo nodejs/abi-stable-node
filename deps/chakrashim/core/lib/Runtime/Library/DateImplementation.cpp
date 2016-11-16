@@ -47,7 +47,7 @@ namespace Js {
 
     const static SZS g_rgszs[] =
     {
-#define Szs(sz, val) { _u(sz), sizeof(_u(sz)) - 1, ParseStringTokenType::##szst, val }
+#define Szs(sz, val) { _u(sz), _countof(_u(sz)) - 1, ParseStringTokenType::##szst, val }
 
         // bc and ad
 #undef szst
@@ -1580,6 +1580,14 @@ LError:
         double tv;
         double dblT;
         uint ivar;
+
+        // See: https://github.com/Microsoft/ChakraCore/issues/1318
+        // Date.UTC should return NaN with 0 arguments.
+        // args.Info.Count includes an implicit first parameter, so we check for Count <= 1.
+        if (args.Info.Count <= 1)
+        {
+            return JavascriptNumber::NaN;
+        }
 
         for (ivar = 0; (ivar < (args.Info.Count-1)) && ivar < kcvarMax; ++ivar)
         {

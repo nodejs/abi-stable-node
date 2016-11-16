@@ -14,11 +14,49 @@ namespace Js
     static const char EmptySegmentData[sizeof(SparseArraySegmentBase)] = {0};
     const SparseArraySegmentBase *JavascriptArray::EmptySegment = (SparseArraySegmentBase *)&EmptySegmentData;
 
+    // col0 : allocation bucket
+    // col1 : No. of missing items to set during initialization depending on bucket. 
+    // col2 : allocation size for elements in given bucket.
+    // col1 and col2 is calculated at runtime
+    uint JavascriptNativeFloatArray::allocationBuckets[][AllocationBucketsInfoSize] =
+    {
+        { 3, 0, 0 },    // allocate space for 3 elements for array of length 0,1,2,3
+        { 5, 0, 0 },    // allocate space for 5 elements for array of length 4,5
+        { 8, 0, 0 },    // allocate space for 8 elements for array of length 6,7,8
+    };
 #if defined(_M_X64_OR_ARM64)
     const Var JavascriptArray::MissingItem = (Var)0x8000000280000002;
+    uint JavascriptNativeIntArray::allocationBuckets[][AllocationBucketsInfoSize] =
+    {
+        // See comments above on how to read this
+        {2, 0, 0},
+        {6, 0, 0},
+        {8, 0, 0},
+    };
+    uint JavascriptArray::allocationBuckets[][AllocationBucketsInfoSize] =
+    {
+        // See comments above on how to read this
+        {4, 0, 0},
+        {6, 0, 0},
+        {8, 0, 0},
+    };
 #else
     const Var JavascriptArray::MissingItem = (Var)0x80000002;
+    uint JavascriptNativeIntArray::allocationBuckets[][AllocationBucketsInfoSize] =
+    {
+        // See comments above on how to read this
+        { 3, 0, 0 },
+        { 7, 0, 0 },
+        { 8, 0, 0 },
+    };
+    uint JavascriptArray::allocationBuckets[][AllocationBucketsInfoSize] =
+    {
+        // See comments above on how to read this
+        { 4, 0, 0 },
+        { 8, 0, 0 },
+    };
 #endif
+
     const int32 JavascriptNativeIntArray::MissingItem = 0x80000002;
     static const uint64 FloatMissingItemPattern = 0x8000000280000002ull;
     const double JavascriptNativeFloatArray::MissingItem = *(double*)&FloatMissingItemPattern;
@@ -796,10 +834,11 @@ namespace Js
         if (arrayInfo->IsNativeIntArray())
         {
             JavascriptNativeIntArray *arr;
-            FunctionBody *functionBody = weakFuncRef->Get();
-            JavascriptLibrary *lib = scriptContext->GetLibrary();
 
 #if ENABLE_COPYONACCESS_ARRAY
+            JavascriptLibrary *lib = scriptContext->GetLibrary();
+            FunctionBody *functionBody = weakFuncRef->Get();
+
             if (JavascriptLibrary::IsCopyOnAccessArrayCallSite(lib, arrayInfo, count))
             {
                 Assert(lib->cacheForCopyOnAccessArraySegments);
@@ -2862,6 +2901,23 @@ namespace Js
         return  JavascriptNumber::ToVar(idxDest, scriptContext);
     }
 
+    void JavascriptArray::ThrowErrorOnFailure(BOOL succeeded, ScriptContext* scriptContext, uint32 index)
+    {
+        if (!succeeded)
+        {
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_CantRedefineProp, JavascriptConversion::ToString(JavascriptNumber::ToVar(index, scriptContext), scriptContext)->GetSz());
+        }
+    }
+
+    void JavascriptArray::ThrowErrorOnFailure(BOOL succeeded, ScriptContext* scriptContext, BigIndex index)
+    {
+        if (!succeeded)
+        {
+            uint64 i = (uint64)(index.IsSmallIndex() ? index.GetSmallIndex() : index.GetBigIndex());
+            JavascriptError::ThrowTypeError(scriptContext, JSERR_CantRedefineProp, JavascriptConversion::ToString(JavascriptNumber::ToVar(i, scriptContext), scriptContext)->GetSz());
+        }
+    }
+
     BOOL JavascriptArray::SetArrayLikeObjects(RecyclableObject* pDestObj, uint32 idxDest, Var aItem)
     {
         return pDestObj->SetItem(idxDest, aItem, Js::PropertyOperation_ThrowIfNotExtensible);
@@ -2993,7 +3049,7 @@ namespace Js
                             }
                             else
                             {
-                                SetArrayLikeObjects(pDestObj, idxDest, subItem);
+                                ThrowErrorOnFailure(SetArrayLikeObjects(pDestObj, idxDest, subItem), scriptContext, idxDest);
                             }
                         }
                         ++idxDest;
@@ -3012,7 +3068,7 @@ namespace Js
                             }
                             else
                             {
-                                SetArrayLikeObjects(pDestObj, idxDest, subItem);
+                                ThrowErrorOnFailure(SetArrayLikeObjects(pDestObj, idxDest, subItem), scriptContext, idxSubItem);
                             }
                         }
                         ++idxDest;
@@ -3136,7 +3192,7 @@ namespace Js
             }
 
             bool converted;
-            if (JavascriptArray::IsAnyArray(aItem))
+            if (JavascriptArray::IsAnyArray(aItem) || remoteTypeIds[idxArg] == TypeIds_Array)
             {
                 if (JavascriptNativeIntArray::Is(aItem)) // Fast path
                 {
@@ -3156,7 +3212,6 @@ namespace Js
                     ConcatArgs<uint>(pVarDestArray, remoteTypeIds, args, scriptContext, idxArg, idxDest);
                     return pVarDestArray;
                 }
-
                 if (converted)
                 {
                     // Copying the last array forced a conversion, so switch over to the var version
@@ -3167,8 +3222,6 @@ namespace Js
             }
             else
             {
-                Assert(!JavascriptArray::IsAnyArray(aItem) && remoteTypeIds[idxArg] != TypeIds_Array);
-
                 if (TaggedInt::Is(aItem))
                 {
                     pDestArray->DirectSetItemAt(idxDest, (double)TaggedInt::ToInt32(aItem));
@@ -3327,9 +3380,52 @@ namespace Js
         pDestObj = ArraySpeciesCreate(args[0], 0, scriptContext);
         if (pDestObj)
         {
-            isInt = JavascriptNativeIntArray::Is(pDestObj);
-            isFloat = !isInt && JavascriptNativeFloatArray::Is(pDestObj); // if we know it is an int short the condition to avoid a function call
-            isArray = isInt || isFloat || JavascriptArray::Is(pDestObj);
+            // Check the thing that species create made. If it's a native array that can't handle the source
+            // data, convert it. If it's a more conservative kind of array than the source data, indicate that
+            // so that the data will be converted on copy.
+            if (isInt)
+            {
+                if (JavascriptNativeIntArray::Is(pDestObj))
+                {
+                    isArray = true;
+                }
+                else
+                {
+                    isInt = false;
+                    isFloat = JavascriptNativeFloatArray::Is(pDestObj);
+                    isArray = JavascriptArray::Is(pDestObj);
+                }
+            }
+            else if (isFloat)
+            {
+                if (JavascriptNativeIntArray::Is(pDestObj))
+                {
+                    JavascriptNativeIntArray::ToNativeFloatArray(JavascriptNativeIntArray::FromVar(pDestObj));
+                    isArray = true;
+                }
+                else
+                {
+                    isFloat = JavascriptNativeFloatArray::Is(pDestObj);
+                    isArray = JavascriptArray::Is(pDestObj);
+                }
+            }
+            else
+            {
+                if (JavascriptNativeIntArray::Is(pDestObj))
+                {
+                    JavascriptNativeIntArray::ToVarArray(JavascriptNativeIntArray::FromVar(pDestObj));
+                    isArray = true;
+                }
+                else if (JavascriptNativeFloatArray::Is(pDestObj))
+                {
+                    JavascriptNativeFloatArray::ToVarArray(JavascriptNativeFloatArray::FromVar(pDestObj));
+                    isArray = true;
+                }
+                else
+                {
+                    isArray = JavascriptArray::Is(pDestObj);
+                }
+            }
         }
 
         if (pDestObj == nullptr || isArray)
@@ -3565,24 +3661,13 @@ namespace Js
             }
         }
 
-        // In ES6-mode, we always load the length property from the object instead of using the internal slot.
-        // Even for arrays, this is now observable via proxies.
-        // If source object is not an array, we fall back to this behavior anyway.
-        if (scriptContext->GetConfig()->IsES6TypedArrayExtensionsEnabled() || pArr == nullptr)
+        if (scriptContext->GetConfig()->IsES6ToLengthEnabled())
         {
-            if (scriptContext->GetConfig()->IsES6ToLengthEnabled())
-            {
-                length = (uint64)JavascriptConversion::ToLength(JavascriptOperators::OP_GetLength(obj, scriptContext), scriptContext);
-
-            }
-            else
-            {
-                length = JavascriptConversion::ToUInt32(JavascriptOperators::OP_GetLength(obj, scriptContext), scriptContext);
-            }
+            length = (uint64)JavascriptConversion::ToLength(JavascriptOperators::OP_GetLength(obj, scriptContext), scriptContext);
         }
         else
         {
-            length = pArr->length;
+            length = JavascriptConversion::ToUInt32(JavascriptOperators::OP_GetLength(obj, scriptContext), scriptContext);
         }
 
         if (pArr)
@@ -3675,7 +3760,7 @@ namespace Js
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
-        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(ArrayIndexOfCount);
+        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(Array_Prototype_indexOf);
 
         Var returnValue =  IndexOfHelper<false>(args, scriptContext);
 
@@ -3694,7 +3779,7 @@ namespace Js
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
-        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(ArrayIncludesCount);
+        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(Array_Prototype_includes);
 
         Var returnValue = IndexOfHelper<true>(args, scriptContext);
         Assert(returnValue == scriptContext->GetLibrary()->GetTrue() || returnValue == scriptContext->GetLibrary()->GetFalse());
@@ -3729,13 +3814,13 @@ namespace Js
     }
 
     template <>
-    BOOL JavascriptArray::TemplatedGetItem(RecyclableObject * obj, uint32 index, Var * element, ScriptContext * scriptContext)
+    BOOL JavascriptArray::TemplatedGetItem(RecyclableObject * obj, uint32 index, Var * element, ScriptContext * scriptContext, bool checkHasItem)
     {
         // Note: Sometime cross site array go down this path to get the marshalling
         Assert(!VirtualTableInfo<JavascriptArray>::HasVirtualTable(obj)
             && !VirtualTableInfo<JavascriptNativeIntArray>::HasVirtualTable(obj)
             && !VirtualTableInfo<JavascriptNativeFloatArray>::HasVirtualTable(obj));
-        if (!JavascriptOperators::HasItem(obj, index))
+        if (checkHasItem && !JavascriptOperators::HasItem(obj, index))
         {
             return FALSE;
         }
@@ -3743,7 +3828,7 @@ namespace Js
     }
 
     template <>
-    BOOL JavascriptArray::TemplatedGetItem(RecyclableObject * obj, uint64 index, Var * element, ScriptContext * scriptContext)
+    BOOL JavascriptArray::TemplatedGetItem(RecyclableObject * obj, uint64 index, Var * element, ScriptContext * scriptContext, bool checkHasItem)
     {
         // Note: Sometime cross site array go down this path to get the marshalling
         Assert(!VirtualTableInfo<JavascriptArray>::HasVirtualTable(obj)
@@ -3751,7 +3836,7 @@ namespace Js
             && !VirtualTableInfo<JavascriptNativeFloatArray>::HasVirtualTable(obj));
         PropertyRecord const * propertyRecord;
         JavascriptOperators::GetPropertyIdForInt(index, scriptContext, &propertyRecord);
-        if (!JavascriptOperators::HasProperty(obj, propertyRecord->GetPropertyId()))
+        if (checkHasItem && !JavascriptOperators::HasProperty(obj, propertyRecord->GetPropertyId()))
         {
             return FALSE;
         }
@@ -3761,14 +3846,14 @@ namespace Js
     }
 
     template <>
-    BOOL JavascriptArray::TemplatedGetItem(JavascriptArray *pArr, uint32 index, Var * element, ScriptContext * scriptContext)
+    BOOL JavascriptArray::TemplatedGetItem(JavascriptArray *pArr, uint32 index, Var * element, ScriptContext * scriptContext, bool checkHasItem)
     {
         Assert(VirtualTableInfo<JavascriptArray>::HasVirtualTable(pArr)
             || VirtualTableInfo<CrossSiteObject<JavascriptArray>>::HasVirtualTable(pArr));
         return pArr->JavascriptArray::DirectGetItemAtFull(index, element);
     }
     template <>
-    BOOL JavascriptArray::TemplatedGetItem(JavascriptArray *pArr, uint64 index, Var * element, ScriptContext * scriptContext)
+    BOOL JavascriptArray::TemplatedGetItem(JavascriptArray *pArr, uint64 index, Var * element, ScriptContext * scriptContext, bool checkHasItem)
     {
         // This should never get called.
         Assert(false);
@@ -3776,7 +3861,7 @@ namespace Js
     }
 
     template <>
-    BOOL JavascriptArray::TemplatedGetItem(JavascriptNativeIntArray *pArr, uint32 index, Var * element, ScriptContext * scriptContext)
+    BOOL JavascriptArray::TemplatedGetItem(JavascriptNativeIntArray *pArr, uint32 index, Var * element, ScriptContext * scriptContext, bool checkHasItem)
     {
         Assert(VirtualTableInfo<JavascriptNativeIntArray>::HasVirtualTable(pArr)
             || VirtualTableInfo<CrossSiteObject<JavascriptNativeIntArray>>::HasVirtualTable(pArr));
@@ -3784,7 +3869,7 @@ namespace Js
     }
 
     template <>
-    BOOL JavascriptArray::TemplatedGetItem(JavascriptNativeIntArray *pArr, uint64 index, Var * element, ScriptContext * scriptContext)
+    BOOL JavascriptArray::TemplatedGetItem(JavascriptNativeIntArray *pArr, uint64 index, Var * element, ScriptContext * scriptContext, bool checkHasItem)
     {
         // This should never get called.
         Assert(false);
@@ -3792,7 +3877,7 @@ namespace Js
     }
 
     template <>
-    BOOL JavascriptArray::TemplatedGetItem(JavascriptNativeFloatArray *pArr, uint32 index, Var * element, ScriptContext * scriptContext)
+    BOOL JavascriptArray::TemplatedGetItem(JavascriptNativeFloatArray *pArr, uint32 index, Var * element, ScriptContext * scriptContext, bool checkHasItem)
     {
         Assert(VirtualTableInfo<JavascriptNativeFloatArray>::HasVirtualTable(pArr)
             || VirtualTableInfo<CrossSiteObject<JavascriptNativeFloatArray>>::HasVirtualTable(pArr));
@@ -3800,7 +3885,7 @@ namespace Js
     }
 
     template <>
-    BOOL JavascriptArray::TemplatedGetItem(JavascriptNativeFloatArray *pArr, uint64 index, Var * element, ScriptContext * scriptContext)
+    BOOL JavascriptArray::TemplatedGetItem(JavascriptNativeFloatArray *pArr, uint64 index, Var * element, ScriptContext * scriptContext, bool checkHasItem)
     {
         // This should never get called.
         Assert(false);
@@ -3808,13 +3893,13 @@ namespace Js
     }
 
     template <>
-    BOOL JavascriptArray::TemplatedGetItem(TypedArrayBase * typedArrayBase, uint32 index, Var * element, ScriptContext * scriptContext)
+    BOOL JavascriptArray::TemplatedGetItem(TypedArrayBase * typedArrayBase, uint32 index, Var * element, ScriptContext * scriptContext, bool checkHasItem)
     {
         // We need to do explicit check for items since length value may not actually match the actual TypedArray length.
         // User could add a length property to a TypedArray instance which lies and returns a different value from the underlying length.
         // Since this method can be called via Array.prototype.indexOf with .apply or .call passing a TypedArray as this parameter
         // we don't know whether or not length == typedArrayBase->GetLength().
-        if (!typedArrayBase->HasItem(index))
+        if (checkHasItem && !typedArrayBase->HasItem(index))
         {
             return false;
         }
@@ -3824,13 +3909,12 @@ namespace Js
     }
 
     template <>
-    BOOL JavascriptArray::TemplatedGetItem(TypedArrayBase * typedArrayBase, uint64 index, Var * element, ScriptContext * scriptContext)
+    BOOL JavascriptArray::TemplatedGetItem(TypedArrayBase * typedArrayBase, uint64 index, Var * element, ScriptContext * scriptContext, bool checkHasItem)
     {
         // This should never get called.
         Assert(false);
         Throw::InternalError();
     }
-
 
     template <bool includesAlgorithm, typename T, typename P>
     Var JavascriptArray::TemplatedIndexOfHelper(T * pArr, Var search, P fromIndex, P toIndex, ScriptContext * scriptContext)
@@ -3845,7 +3929,7 @@ namespace Js
         //Consider: enumerating instead of walking all indices
         for (P i = fromIndex; i < toIndex; i++)
         {
-            if (!TemplatedGetItem(pArr, i, &element, scriptContext))
+            if (!TryTemplatedGetItem(pArr, i, &element, scriptContext, !includesAlgorithm))
             {
                 if (doUndefinedSearch)
                 {
@@ -3925,6 +4009,62 @@ namespace Js
         // the head segment.
         fromIndex = toIndex > GetHead()->length ? GetHead()->length : -1;
         return -1;
+    }
+
+    template<typename T>
+    bool AreAllBytesEqual(T value)
+    {
+        byte* bValue = (byte*)&value;
+        byte firstByte = *bValue++;
+        for (int i = 1; i < sizeof(T); ++i)
+        {
+            if (*bValue++ != firstByte)
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    template<>
+    void JavascriptArray::CopyValueToSegmentBuferNoCheck(double* buffer, uint32 length, double value)
+    {
+        if (JavascriptNumber::IsZero(value) && !JavascriptNumber::IsNegZero(value))
+        {
+            memset(buffer, 0, sizeof(double) * length);
+        }
+        else
+        {
+            for (uint32 i = 0; i < length; i++)
+            {
+                buffer[i] = value;
+            }
+        }
+    }
+
+    template<>
+    void JavascriptArray::CopyValueToSegmentBuferNoCheck(int32* buffer, uint32 length, int32 value)
+    {
+        if (value == 0 || AreAllBytesEqual(value))
+        {
+            memset(buffer, *(byte*)&value, sizeof(int32)* length);
+        }
+        else
+        {
+            for (uint32 i = 0; i < length; i++)
+            {
+                buffer[i] = value;
+            }
+        }
+    }
+
+    template<>
+    void JavascriptArray::CopyValueToSegmentBuferNoCheck(Js::Var* buffer, uint32 length, Js::Var value)
+    {
+        for (uint32 i = 0; i < length; i++)
+        {
+            buffer[i] = value;
+        }
     }
 
     int32 JavascriptNativeIntArray::HeadSegmentIndexOfHelper(Var search, uint32 &fromIndex, uint32 toIndex, bool includesAlgorithm,  ScriptContext * scriptContext)
@@ -4162,7 +4302,7 @@ namespace Js
         [&](bool/*hasException*/)
         {
             Var top = scriptContext->PopObject();
-            if (JavascriptProxy::Is(thisArg))
+            if (isProxy)
             {
                 AssertMsg(top == target, "Unmatched operation stack");
             }
@@ -4210,7 +4350,8 @@ CaseDefault:
                     {
                         cs->Append(separator);
                     }
-                    if (TemplatedGetItem(arr, i, &item, scriptContext))
+
+                    if (TryTemplatedGetItem(arr, i, &item, scriptContext))
                     {
                         cs->Append(JavascriptArray::JoinToString(item, scriptContext));
                     }
@@ -4228,19 +4369,23 @@ CaseDefault:
 
                 JavascriptString *res = nullptr;
                 Var item;
+
                 if (TemplatedGetItem(arr, 0u, &item, scriptContext))
                 {
                     res = JavascriptArray::JoinToString(item, scriptContext);
                 }
-                if (TemplatedGetItem(arr, 1u, &item, scriptContext))
+
+                if (TryTemplatedGetItem(arr, 1u, &item, scriptContext))
                 {
                     JavascriptString *const itemString = JavascriptArray::JoinToString(item, scriptContext);
                     return res ? ConcatString::New(res, itemString) : itemString;
                 }
+
                 if(res)
                 {
                     return res;
                 }
+
                 goto Case0;
             }
 
@@ -4348,7 +4493,7 @@ Case0:
         ARGUMENTS(args, callInfo);
         ScriptContext* scriptContext = function->GetScriptContext();
 
-        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(ArrayLastIndexOfCount);
+        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(Array_Prototype_lastIndexOf);
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
@@ -4476,7 +4621,7 @@ Case0:
         {
             uint32 index = end - i;
 
-            if (!TemplatedGetItem(pArr, index, &element, scriptContext))
+            if (!TryTemplatedGetItem(pArr, index, &element, scriptContext))
             {
                 continue;
             }
@@ -4650,7 +4795,7 @@ Case0:
             {
                 element = scriptContext->GetLibrary()->GetUndefined();
             }
-            h.ThrowTypeErrorOnFailure(JavascriptOperators::DeleteItem(dynamicObject, index.GetSmallIndex(), PropertyOperation_ThrowIfNotExtensible));
+            h.ThrowTypeErrorOnFailure(JavascriptOperators::DeleteItem(dynamicObject, index.GetSmallIndex(), PropertyOperation_ThrowOnDeleteIfNotConfig));
 
             // Set the new length
             h.ThrowTypeErrorOnFailure(JavascriptOperators::SetProperty(dynamicObject, dynamicObject, PropertyIds::length, JavascriptNumber::ToVar(index.GetSmallIndex(), scriptContext), scriptContext, PropertyOperation_ThrowIfNotExtensible));
@@ -4661,7 +4806,7 @@ Case0:
             {
                 element = scriptContext->GetLibrary()->GetUndefined();
             }
-            h.ThrowTypeErrorOnFailure(JavascriptOperators::DeleteItem(dynamicObject, index.GetBigIndex(), PropertyOperation_ThrowIfNotExtensible));
+            h.ThrowTypeErrorOnFailure(JavascriptOperators::DeleteItem(dynamicObject, index.GetBigIndex(), PropertyOperation_ThrowOnDeleteIfNotConfig));
 
             // Set the new length
             h.ThrowTypeErrorOnFailure(JavascriptOperators::SetProperty(dynamicObject, dynamicObject, PropertyIds::length, JavascriptNumber::ToVar(index.GetBigIndex(), scriptContext), scriptContext, PropertyOperation_ThrowIfNotExtensible));
@@ -5011,25 +5156,16 @@ Case0:
             }
         }
 
-        // In ES6-mode, we always load the length property from the object instead of using the internal slot.
-        // Even for arrays, this is now observable via proxies.
-        // If source object is not an array, we fall back to this behavior anyway.
-        if (scriptContext->GetConfig()->IsES6TypedArrayExtensionsEnabled() || pArr == nullptr)
+        if (scriptContext->GetConfig()->IsES6ToLengthEnabled())
         {
-            if (scriptContext->GetConfig()->IsES6ToLengthEnabled())
-            {
-                length = (uint64) JavascriptConversion::ToLength(JavascriptOperators::OP_GetLength(obj, scriptContext), scriptContext);
+            length = (uint64) JavascriptConversion::ToLength(JavascriptOperators::OP_GetLength(obj, scriptContext), scriptContext);
 
-            }
-            else
-            {
-                length = JavascriptConversion::ToUInt32(JavascriptOperators::OP_GetLength(obj, scriptContext), scriptContext);
-            }
         }
         else
         {
-            length = pArr->length;
+            length = JavascriptConversion::ToUInt32(JavascriptOperators::OP_GetLength(obj, scriptContext), scriptContext);
         }
+
         if (length.IsSmallIndex())
         {
             return JavascriptArray::ReverseHelper(pArr, nullptr, obj, length.GetSmallIndex(), scriptContext);
@@ -5227,7 +5363,7 @@ Case0:
                         else
                         {
                             // This will always fail for a TypedArray if lower < length
-                            h.ThrowTypeErrorOnFailure(typedArrayBase->DeleteItem(lower, PropertyOperation_ThrowIfNotExtensible));
+                            h.ThrowTypeErrorOnFailure(typedArrayBase->DeleteItem(lower, PropertyOperation_ThrowOnDeleteIfNotConfig));
                             h.ThrowTypeErrorOnFailure(typedArrayBase->DirectSetItem(upper, lowerValue));
                         }
                     }
@@ -5237,7 +5373,7 @@ Case0:
                         {
                             h.ThrowTypeErrorOnFailure(typedArrayBase->DirectSetItem(lower, upperValue));
                             // This will always fail for a TypedArray if upper < length
-                            h.ThrowTypeErrorOnFailure(typedArrayBase->DeleteItem(upper, PropertyOperation_ThrowIfNotExtensible));
+                            h.ThrowTypeErrorOnFailure(typedArrayBase->DeleteItem(upper, PropertyOperation_ThrowOnDeleteIfNotConfig));
                         }
                     }
                 }
@@ -5264,7 +5400,7 @@ Case0:
                     }
                     else
                     {
-                        h.ThrowTypeErrorOnFailure(JavascriptOperators::DeleteItem(obj, lower, PropertyOperation_ThrowIfNotExtensible));
+                        h.ThrowTypeErrorOnFailure(JavascriptOperators::DeleteItem(obj, lower, PropertyOperation_ThrowOnDeleteIfNotConfig));
                         h.ThrowTypeErrorOnFailure(JavascriptOperators::SetItem(obj, obj, upper, lowerValue, scriptContext, PropertyOperation_ThrowIfNotExtensible));
                     }
                 }
@@ -5273,7 +5409,7 @@ Case0:
                     if (upperExists)
                     {
                         h.ThrowTypeErrorOnFailure(JavascriptOperators::SetItem(obj, obj, lower, upperValue, scriptContext, PropertyOperation_ThrowIfNotExtensible));
-                        h.ThrowTypeErrorOnFailure(JavascriptOperators::DeleteItem(obj, upper, PropertyOperation_ThrowIfNotExtensible));
+                        h.ThrowTypeErrorOnFailure(JavascriptOperators::DeleteItem(obj, upper, PropertyOperation_ThrowOnDeleteIfNotConfig));
                     }
                 }
             }
@@ -5501,7 +5637,7 @@ Case0:
                 }
                 else
                 {
-                    h.ThrowTypeErrorOnFailure(JavascriptOperators::DeleteItem(dynamicObject, i, PropertyOperation_ThrowIfNotExtensible));
+                    h.ThrowTypeErrorOnFailure(JavascriptOperators::DeleteItem(dynamicObject, i, PropertyOperation_ThrowOnDeleteIfNotConfig));
                 }
             }
 
@@ -5514,18 +5650,18 @@ Case0:
                 }
                 else
                 {
-                    h.ThrowTypeErrorOnFailure(JavascriptOperators::DeleteItem(dynamicObject, i, PropertyOperation_ThrowIfNotExtensible));
+                    h.ThrowTypeErrorOnFailure(JavascriptOperators::DeleteItem(dynamicObject, i, PropertyOperation_ThrowOnDeleteIfNotConfig));
                 }
             }
 
             if (length.IsSmallIndex())
             {
-                h.ThrowTypeErrorOnFailure(JavascriptOperators::DeleteItem(dynamicObject, length.GetSmallIndex(), PropertyOperation_ThrowIfNotExtensible));
+                h.ThrowTypeErrorOnFailure(JavascriptOperators::DeleteItem(dynamicObject, length.GetSmallIndex(), PropertyOperation_ThrowOnDeleteIfNotConfig));
                 h.ThrowTypeErrorOnFailure(JavascriptOperators::SetProperty(dynamicObject, dynamicObject, PropertyIds::length, JavascriptNumber::ToVar(length.GetSmallIndex(), scriptContext), scriptContext, PropertyOperation_ThrowIfNotExtensible));
             }
             else
             {
-                h.ThrowTypeErrorOnFailure(JavascriptOperators::DeleteItem(dynamicObject, length.GetBigIndex(), PropertyOperation_ThrowIfNotExtensible));
+                h.ThrowTypeErrorOnFailure(JavascriptOperators::DeleteItem(dynamicObject, length.GetBigIndex(), PropertyOperation_ThrowOnDeleteIfNotConfig));
                 h.ThrowTypeErrorOnFailure(JavascriptOperators::SetProperty(dynamicObject, dynamicObject, PropertyIds::length, JavascriptNumber::ToVar(length.GetBigIndex(), scriptContext), scriptContext, PropertyOperation_ThrowIfNotExtensible));
             }
         }
@@ -5679,24 +5815,14 @@ Case0:
             }
         }
 
-        // In ES6-mode, we always load the length property from the object instead of using the internal slot.
-        // Even for arrays, this is now observable via proxies.
-        // If source object is not an array, we fall back to this behavior anyway.
-        if (scriptContext->GetConfig()->IsES6TypedArrayExtensionsEnabled() || pArr == nullptr)
+        Var lenValue = JavascriptOperators::OP_GetLength(obj, scriptContext);
+        if (scriptContext->GetConfig()->IsES6ToLengthEnabled())
         {
-            Var lenValue = JavascriptOperators::OP_GetLength(obj, scriptContext);
-            if (scriptContext->GetConfig()->IsES6ToLengthEnabled())
-            {
-                length = (uint64) JavascriptConversion::ToLength(lenValue, scriptContext);
-            }
-            else
-            {
-                length = JavascriptConversion::ToUInt32(lenValue, scriptContext);
-            }
+            length = (uint64) JavascriptConversion::ToLength(lenValue, scriptContext);
         }
         else
         {
-            length = pArr->length;
+            length = JavascriptConversion::ToUInt32(lenValue, scriptContext);
         }
 
         if (length.IsSmallIndex())
@@ -5920,7 +6046,7 @@ Case0:
                         continue;
                     }
 
-                    JavascriptArray::SetArrayLikeObjects(newObj, i, element);
+                    ThrowErrorOnFailure(JavascriptArray::SetArrayLikeObjects(newObj, i, element), scriptContext, i);
                 }
             }
         }
@@ -5974,7 +6100,7 @@ Case0:
                     }
                     else
                     {
-                        JavascriptOperators::OP_SetElementI_UInt32(newObj, i, element, scriptContext, PropertyOperation_ThrowIfNotExtensible);
+                        ThrowErrorOnFailure(JavascriptArray::SetArrayLikeObjects(newObj, i, element), scriptContext, i);
                     }
                 }
             }
@@ -7137,7 +7263,7 @@ Case0:
                    }
                    else
                    {
-                       JavascriptArray::SetArrayLikeObjects(pNewObj, i, element);
+                       ThrowErrorOnFailure(JavascriptArray::SetArrayLikeObjects(pNewObj, i, element), scriptContext, i);
                    }
                }
             }
@@ -7169,7 +7295,7 @@ Case0:
                 }
                 else
                 {
-                    h.ThrowTypeErrorOnFailure(JavascriptOperators::DeleteItem(pObj, start + insertLen + j, PropertyOperation_ThrowIfNotExtensible));
+                    h.ThrowTypeErrorOnFailure(JavascriptOperators::DeleteItem(pObj, start + insertLen + j, PropertyOperation_ThrowOnDeleteIfNotConfig));
                 }
                 j++;
             }
@@ -7177,7 +7303,7 @@ Case0:
             // Clean up the rest
             for (uint32 i = len; i > len - deleteLen + insertLen; i--)
             {
-                h.ThrowTypeErrorOnFailure(JavascriptOperators::DeleteItem(pObj, i - 1, PropertyOperation_ThrowIfNotExtensible));
+                h.ThrowTypeErrorOnFailure(JavascriptOperators::DeleteItem(pObj, i - 1, PropertyOperation_ThrowOnDeleteIfNotConfig));
             }
         }
 
@@ -7225,6 +7351,11 @@ Case0:
         }
         else
         {
+            if (TypedArrayBase::IsDetachedTypedArray(args[0]))
+            {
+                JavascriptError::ThrowTypeError(scriptContext, JSERR_DetachedTypedArray, _u("Array.prototype.toLocalString"));
+            }
+
             RecyclableObject* obj = nullptr;
             if (FALSE == JavascriptConversion::ToObject(args[0], scriptContext, &obj))
             {
@@ -7260,7 +7391,7 @@ Case0:
                     }
                     else
                     {
-                        h.ThrowTypeErrorOnFailure(index_trace::DeleteItem(obj, dst, PropertyOperation_ThrowIfNotExtensible));
+                        h.ThrowTypeErrorOnFailure(index_trace::DeleteItem(obj, dst, PropertyOperation_ThrowOnDeleteIfNotConfig));
                     }
 
                     --dst;
@@ -7280,7 +7411,7 @@ Case0:
                 }
                 else
                 {
-                    h.ThrowTypeErrorOnFailure(index_trace::DeleteItem(obj, dst, PropertyOperation_ThrowIfNotExtensible));
+                    h.ThrowTypeErrorOnFailure(index_trace::DeleteItem(obj, dst, PropertyOperation_ThrowOnDeleteIfNotConfig));
                 }
 
                 --dst;
@@ -7706,7 +7837,7 @@ Case0:
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
-        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(ArrayisArrayCount);
+        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(Array_Constructor_isArray);
 
         if (args.Info.Count < 2)
         {
@@ -8000,6 +8131,9 @@ Case0:
             JavascriptError::ThrowTypeError(scriptContext, JSERR_This_NullOrUndefined, _u("Array.prototype.values"));
         }
 
+#if ENABLE_COPYONACCESS_ARRAY
+        JavascriptLibrary::CheckAndConvertCopyOnAccessNativeIntArray<Var>(thisObj);
+#endif
         return scriptContext->GetLibrary()->CreateArrayIterator(thisObj, JavascriptArrayIteratorKind::Value);
     }
 
@@ -8013,7 +8147,7 @@ Case0:
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
-        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(ArrayEveryCount);
+        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(Array_Prototype_every);
 
         if (args.Info.Count == 0)
         {
@@ -8037,24 +8171,15 @@ Case0:
             }
         }
 
-        // In ES6-mode, we always load the length property from the object instead of using the internal slot.
-        // Even for arrays, this is now observable via proxies.
-        // If source object is not an array, we fall back to this behavior anyway.
-        if (scriptContext->GetConfig()->IsES6TypedArrayExtensionsEnabled() || pArr == nullptr)
+        if (scriptContext->GetConfig()->IsES6ToLengthEnabled())
         {
-            if (scriptContext->GetConfig()->IsES6ToLengthEnabled())
-            {
-                length = (uint64) JavascriptConversion::ToLength(JavascriptOperators::OP_GetLength(obj, scriptContext), scriptContext);
-            }
-            else
-            {
-                length = JavascriptConversion::ToUInt32(JavascriptOperators::OP_GetLength(obj, scriptContext), scriptContext);
-            }
+            length = (uint64) JavascriptConversion::ToLength(JavascriptOperators::OP_GetLength(obj, scriptContext), scriptContext);
         }
         else
         {
-            length = pArr->length;
+            length = JavascriptConversion::ToUInt32(JavascriptOperators::OP_GetLength(obj, scriptContext), scriptContext);
         }
+
         if (length.IsSmallIndex())
         {
             return JavascriptArray::EveryHelper(pArr, nullptr, obj, length.GetSmallIndex(), args, scriptContext);
@@ -8168,7 +8293,6 @@ Case0:
                     }
                 }
             }
-
         }
 
         return scriptContext->GetLibrary()->GetTrue();
@@ -8182,7 +8306,7 @@ Case0:
         ScriptContext* scriptContext = function->GetScriptContext();
         AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, _u("Array.prototype.some"));
 
-        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(ArraySomeCount);
+        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(Array_Prototype_some);
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
@@ -8208,26 +8332,17 @@ Case0:
             }
         }
 
-        // In ES6-mode, we always load the length property from the object instead of using the internal slot.
-        // Even for arrays, this is now observable via proxies.
-        // If source object is not an array, we fall back to this behavior anyway.
-        if (scriptContext->GetConfig()->IsES6TypedArrayExtensionsEnabled() || pArr == nullptr)
+        if (scriptContext->GetConfig()->IsES6ToLengthEnabled())
         {
-            if (scriptContext->GetConfig()->IsES6ToLengthEnabled())
-            {
-                length = (uint64) JavascriptConversion::ToLength(JavascriptOperators::OP_GetLength(obj, scriptContext), scriptContext);
+            length = (uint64) JavascriptConversion::ToLength(JavascriptOperators::OP_GetLength(obj, scriptContext), scriptContext);
 
-            }
-            else
-            {
-                length = JavascriptConversion::ToUInt32(JavascriptOperators::OP_GetLength(obj, scriptContext), scriptContext);
-            }
         }
         else
         {
-            length = pArr->length;
+            length = JavascriptConversion::ToUInt32(JavascriptOperators::OP_GetLength(obj, scriptContext), scriptContext);
         }
-        if (length.IsSmallIndex())
+
+            if (length.IsSmallIndex())
         {
             return JavascriptArray::SomeHelper(pArr, nullptr, obj, length.GetSmallIndex(), args, scriptContext);
         }
@@ -8353,7 +8468,7 @@ Case0:
         ScriptContext* scriptContext = function->GetScriptContext();
         AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, _u("Array.prototype.forEach"));
 
-        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(ArrayForEachCount)
+        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(Array_Prototype_forEach)
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
@@ -8389,23 +8504,13 @@ Case0:
             }
         }
 
-        // In ES6-mode, we always load the length property from the object instead of using the internal slot.
-        // Even for arrays, this is now observable via proxies.
-        // If source object is not an array, we fall back to this behavior anyway.
-        if (scriptContext->GetConfig()->IsES6TypedArrayExtensionsEnabled() || pArr == nullptr)
+        if (scriptContext->GetConfig()->IsES6ToLengthEnabled())
         {
-            if (scriptContext->GetConfig()->IsES6ToLengthEnabled())
-            {
-                length = (uint64) JavascriptConversion::ToLength(JavascriptOperators::OP_GetLength(dynamicObject, scriptContext), scriptContext);
-            }
-            else
-            {
-                length = JavascriptConversion::ToUInt32(JavascriptOperators::OP_GetLength(dynamicObject, scriptContext), scriptContext);
-            }
+            length = (uint64) JavascriptConversion::ToLength(JavascriptOperators::OP_GetLength(dynamicObject, scriptContext), scriptContext);
         }
         else
         {
-            length = pArr->length;
+            length = JavascriptConversion::ToUInt32(JavascriptOperators::OP_GetLength(dynamicObject, scriptContext), scriptContext);
         }
 
         if (args.Info.Count < 2 || !JavascriptConversion::IsCallable(args[1]))
@@ -8576,7 +8681,7 @@ Case0:
                 }
                 else
                 {
-                    JavascriptOperators::OP_DeleteElementI(obj, JavascriptNumber::ToVar(toVal, scriptContext), scriptContext, PropertyOperation_ThrowIfNotExtensible);
+                    JavascriptOperators::OP_DeleteElementI(obj, JavascriptNumber::ToVar(toVal, scriptContext), scriptContext, PropertyOperation_ThrowOnDeleteIfNotConfig);
                 }
 
                 fromVal += direction;
@@ -8618,7 +8723,7 @@ Case0:
                 }
                 else
                 {
-                    obj->DeleteItem(toIndex, PropertyOperation_ThrowIfNotExtensible);
+                    obj->DeleteItem(toIndex, PropertyOperation_ThrowOnDeleteIfNotConfig);
                 }
 
                 fromIndex += direction;
@@ -8772,7 +8877,7 @@ Case0:
         ScriptContext* scriptContext = function->GetScriptContext();
         AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, _u("Array.prototype.map"));
 
-        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(ArrayMapCount);
+        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(Array_Prototype_map);
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
@@ -8798,17 +8903,8 @@ Case0:
             }
         }
 
-        // In ES6-mode, we always load the length property from the object instead of using the internal slot.
-        // Even for arrays, this is now observable via proxies.
-        // If source object is not an array, we fall back to this behavior anyway.
-        if (scriptContext->GetConfig()->IsES6TypedArrayExtensionsEnabled() || pArr == nullptr)
-        {
-            length = (uint64) JavascriptConversion::ToLength(JavascriptOperators::OP_GetLength(obj, scriptContext), scriptContext);
-        }
-        else
-        {
-            length = pArr->length;
-        }
+        length = (uint64) JavascriptConversion::ToLength(JavascriptOperators::OP_GetLength(obj, scriptContext), scriptContext);
+
         if (length.IsSmallIndex())
         {
             return JavascriptArray::MapHelper(pArr, nullptr, obj, length.GetSmallIndex(), args, scriptContext);
@@ -8933,7 +9029,7 @@ Case0:
                 }
                 else
                 {
-                    JavascriptArray::SetArrayLikeObjects(RecyclableObject::FromVar(newObj), k, mappedValue);
+                    ThrowErrorOnFailure(JavascriptArray::SetArrayLikeObjects(RecyclableObject::FromVar(newObj), k, mappedValue), scriptContext, k);
                 }
             }
         }
@@ -8994,13 +9090,13 @@ Case0:
                         JavascriptNumber::ToVar(k, scriptContext),
                         obj);
 
-                    if (newArr)
+                    if (newArr && isBuiltinArrayCtor)
                     {
-                        newArr->DirectSetItemAt(k, mappedValue);
+                        newArr->SetItem(k, mappedValue, PropertyOperation_None);
                     }
                     else
                     {
-                        JavascriptArray::SetArrayLikeObjects(RecyclableObject::FromVar(newObj), k, mappedValue);
+                        ThrowErrorOnFailure(JavascriptArray::SetArrayLikeObjects(RecyclableObject::FromVar(newObj), k, mappedValue), scriptContext, k);
                     }
                 }
             }
@@ -9024,7 +9120,7 @@ Case0:
         ScriptContext* scriptContext = function->GetScriptContext();
         AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, _u("Array.prototype.filter"));
 
-        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(ArrayFilterCount);
+        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(Array_Prototype_filter);
 
         Assert(!(callInfo.Flags & CallFlags_New));
         if (args.Info.Count == 0)
@@ -9049,23 +9145,13 @@ Case0:
             }
         }
 
-        // In ES6-mode, we always load the length property from the object instead of using the internal slot.
-        // Even for arrays, this is now observable via proxies.
-        // If source object is not an array, we fall back to this behavior anyway.
-        if (scriptContext->GetConfig()->IsES6TypedArrayExtensionsEnabled() || pArr == nullptr)
+        if (scriptContext->GetConfig()->IsES6ToLengthEnabled())
         {
-            if (scriptContext->GetConfig()->IsES6ToLengthEnabled())
-            {
-                length = (uint64) JavascriptConversion::ToLength(JavascriptOperators::OP_GetLength(dynamicObject, scriptContext), scriptContext);
-            }
-            else
-            {
-                length = JavascriptConversion::ToUInt32(JavascriptOperators::OP_GetLength(dynamicObject, scriptContext), scriptContext);
-            }
+            length = (uint64) JavascriptConversion::ToLength(JavascriptOperators::OP_GetLength(dynamicObject, scriptContext), scriptContext);
         }
         else
         {
-            length = pArr->length;
+            length = JavascriptConversion::ToUInt32(JavascriptOperators::OP_GetLength(dynamicObject, scriptContext), scriptContext);
         }
 
         if (length.IsSmallIndex())
@@ -9144,7 +9230,7 @@ Case0:
                     }
                     else
                     {
-                        JavascriptArray::SetArrayLikeObjects(newObj, i, element);
+                        ThrowErrorOnFailure(JavascriptArray::SetArrayLikeObjects(newObj, i, element), scriptContext, i);
                     }
                     ++i;
                 }
@@ -9173,7 +9259,7 @@ Case0:
                         }
                         else
                         {
-                            JavascriptArray::SetArrayLikeObjects(newObj, i, element);
+                            ThrowErrorOnFailure(JavascriptArray::SetArrayLikeObjects(newObj, i, element), scriptContext, i);
                         }
                         ++i;
                     }
@@ -9199,7 +9285,7 @@ Case0:
         ScriptContext* scriptContext = function->GetScriptContext();
         AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, _u("Array.prototype.reduce"));
 
-        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(ArrayReduceCount);
+        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(Array_Prototype_reduce);
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
@@ -9399,7 +9485,7 @@ Case0:
         ScriptContext* scriptContext = function->GetScriptContext();
         AUTO_TAG_NATIVE_LIBRARY_ENTRY(function, callInfo, _u("Array.prototype.reduceRight"));
 
-        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(ArrayReduceRightCount);
+        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(Array_Prototype_reduceRight);
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
@@ -9425,24 +9511,15 @@ Case0:
             }
         }
 
-        // In ES6-mode, we always load the length property from the object instead of using the internal slot.
-        // Even for arrays, this is now observable via proxies.
-        // If source object is not an array, we fall back to this behavior anyway.
-        if (scriptContext->GetConfig()->IsES6TypedArrayExtensionsEnabled() || pArr == nullptr)
+        if (scriptContext->GetConfig()->IsES6ToLengthEnabled())
         {
-            if (scriptContext->GetConfig()->IsES6ToLengthEnabled())
-            {
-                length = (uint64) JavascriptConversion::ToLength(JavascriptOperators::OP_GetLength(obj, scriptContext), scriptContext);
-            }
-            else
-            {
-                length = JavascriptConversion::ToUInt32(JavascriptOperators::OP_GetLength(obj, scriptContext), scriptContext);
-            }
+            length = (uint64) JavascriptConversion::ToLength(JavascriptOperators::OP_GetLength(obj, scriptContext), scriptContext);
         }
         else
         {
-            length = pArr->length;
+            length = JavascriptConversion::ToUInt32(JavascriptOperators::OP_GetLength(obj, scriptContext), scriptContext);
         }
+
         if (length.IsSmallIndex())
         {
             return JavascriptArray::ReduceRightHelper(pArr, nullptr, obj, length.GetSmallIndex(), args, scriptContext);
@@ -9702,7 +9779,7 @@ Case0:
                 }
                 else
                 {
-                    JavascriptArray::SetArrayLikeObjects(RecyclableObject::FromVar(newObj), k, nextValue);
+                    ThrowErrorOnFailure(JavascriptArray::SetArrayLikeObjects(RecyclableObject::FromVar(newObj), k, nextValue), scriptContext, k);
                 }
 
                 k++;
@@ -9771,7 +9848,7 @@ Case0:
                 }
                 else
                 {
-                    JavascriptArray::SetArrayLikeObjects(RecyclableObject::FromVar(newObj), k, kValue);
+                    ThrowErrorOnFailure(JavascriptArray::SetArrayLikeObjects(RecyclableObject::FromVar(newObj), k, kValue), scriptContext, k);
                 }
             }
 
@@ -9879,7 +9956,7 @@ Case0:
             for (uint32 k = 0; k < len; k++)
             {
                 Var kValue = args[k + 1];
-                JavascriptArray::SetArrayLikeObjects(RecyclableObject::FromVar(newObj), k, kValue);
+                ThrowErrorOnFailure(JavascriptArray::SetArrayLikeObjects(RecyclableObject::FromVar(newObj), k, kValue), scriptContext, k);
             }
         }
 
@@ -9994,59 +10071,6 @@ Case0:
     }
 #endif
 
-    template <typename Fn>
-    void JavascriptArray::ForEachOwnArrayIndexOfObject(RecyclableObject* obj, uint32 startIndex, uint32 limitIndex, Fn fn)
-    {
-        Assert(DynamicObject::IsAnyArray(obj) || JavascriptOperators::IsObject(obj));
-
-        JavascriptArray* arr = nullptr;
-        if (DynamicObject::IsAnyArray(obj))
-        {
-            arr = JavascriptArray::FromAnyArray(obj);
-        }
-        else if (DynamicType::Is(obj->GetTypeId()))
-        {
-            DynamicObject* dynobj = DynamicObject::FromVar(obj);
-            arr = dynobj->GetObjectArray();
-        }
-
-        if (arr != nullptr)
-        {
-            if (JavascriptArray::Is(arr))
-            {
-                ArrayElementEnumerator e(arr, startIndex, limitIndex);
-
-                while(e.MoveNext<Var>())
-                {
-                    fn(e.GetIndex(), e.GetItem<Var>());
-                }
-            }
-            else
-            {
-                ScriptContext* scriptContext = obj->GetScriptContext();
-
-                Assert(ES5Array::Is(arr));
-
-                ES5Array* es5Array = ES5Array::FromVar(arr);
-                ES5ArrayIndexEnumerator<true> e(es5Array);
-
-                while (e.MoveNext())
-                {
-                    uint32 index = e.GetIndex();
-
-                    if (index < startIndex) continue;
-                    else if (index >= limitIndex) break;
-
-                    Var value = nullptr;
-                    if (JavascriptOperators::GetOwnItem(es5Array, index, &value, scriptContext))
-                    {
-                        fn(index, value);
-                    }
-                }
-            }
-        }
-    }
-
     template <typename T, typename Fn>
     void JavascriptArray::ForEachOwnMissingArrayIndexOfObject(JavascriptArray *baseArray, JavascriptArray *destArray, RecyclableObject* obj, uint32 startIndex, uint32 limitIndex, T destIndex, Fn fn)
     {
@@ -10091,7 +10115,7 @@ Case0:
                 Assert(ES5Array::Is(arr));
 
                 ES5Array* es5Array = ES5Array::FromVar(arr);
-                ES5ArrayIndexEnumerator<true> e(es5Array);
+                ES5ArrayIndexStaticEnumerator<true> e(es5Array);
 
                 while (e.MoveNext())
                 {
@@ -10105,7 +10129,7 @@ Case0:
                         if (destArray == nullptr || !destArray->DirectGetItemAt(n, &oldValue))
                         {
                             Var value = nullptr;
-                            if (JavascriptOperators::GetOwnItem(es5Array, index, &value, scriptContext))
+                            if (JavascriptOperators::GetOwnItem(obj, index, &value, scriptContext))
                             {
                                 fn(index, value);
                             }
@@ -11344,7 +11368,7 @@ Case0:
 #if ENABLE_TTD
     void JavascriptArray::MarkVisitKindSpecificPtrs(TTD::SnapshotExtractor* extractor)
     {
-        AssertMsg(this->GetTypeId() == Js::TypeIds_Array || this->GetTypeId() == Js::TypeIds_ES5Array, "Should only be used on basic arrays (or called as super from ES5Array.");
+        TTDAssert(this->GetTypeId() == Js::TypeIds_Array || this->GetTypeId() == Js::TypeIds_ES5Array, "Should only be used on basic arrays (or called as super from ES5Array.");
 
         ScriptContext* ctx = this->GetScriptContext();
 
@@ -11367,7 +11391,7 @@ Case0:
 
     void JavascriptArray::ProcessCorePaths()
     {
-        AssertMsg(this->GetTypeId() == Js::TypeIds_Array, "Should only be used on basic arrays.");
+        TTDAssert(this->GetTypeId() == Js::TypeIds_Array, "Should only be used on basic arrays.");
 
         ScriptContext* ctx = this->GetScriptContext();
 
@@ -11398,7 +11422,7 @@ Case0:
 
     void JavascriptArray::ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc)
     {
-        AssertMsg(this->GetTypeId() == Js::TypeIds_Array, "Should only be used on basic Js arrays.");
+        TTDAssert(this->GetTypeId() == Js::TypeIds_Array, "Should only be used on basic Js arrays.");
 
         TTD::NSSnapObjects::SnapArrayInfo<TTD::TTDVar>* sai = TTD::NSSnapObjects::ExtractArrayValues<TTD::TTDVar>(this, alloc);
         TTD::NSSnapObjects::StdExtractSetKindSpecificInfo<TTD::NSSnapObjects::SnapArrayInfo<TTD::TTDVar>*, TTD::NSSnapObjects::SnapObjectType::SnapArrayObject>(objData, sai);
@@ -11440,15 +11464,21 @@ Case0:
 
     void JavascriptNativeIntArray::ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc)
     {
-        AssertMsg(this->GetTypeId() == Js::TypeIds_NativeIntArray, "Should only be used on native int arrays.");
-
-#if ENABLE_COPYONACCESS_ARRAY
-        AssertMsg(this->GetTypeId() != Js::TypeIds_CopyOnAccessNativeIntArray, "Need to handle this case seperately.");
-#endif
-
         TTD::NSSnapObjects::SnapArrayInfo<int32>* sai = TTD::NSSnapObjects::ExtractArrayValues<int32>(this, alloc);
         TTD::NSSnapObjects::StdExtractSetKindSpecificInfo<TTD::NSSnapObjects::SnapArrayInfo<int32>*, TTD::NSSnapObjects::SnapObjectType::SnapNativeIntArrayObject>(objData, sai);
     }
+
+#if ENABLE_COPYONACCESS_ARRAY
+    TTD::NSSnapObjects::SnapObjectType JavascriptCopyOnAccessNativeIntArray::GetSnapTag_TTD() const
+    {
+        return TTD::NSSnapObjects::SnapObjectType::Invalid;
+    }
+
+    void JavascriptCopyOnAccessNativeIntArray::ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc)
+    {
+        TTDAssert(false, "Not implemented yet!!!");
+    }
+#endif
 #endif
 
     JavascriptNativeFloatArray::JavascriptNativeFloatArray(JavascriptNativeFloatArray * instance, bool boxHead) :
@@ -11480,7 +11510,7 @@ Case0:
 
     void JavascriptNativeFloatArray::ExtractSnapObjectDataInto(TTD::NSSnapObjects::SnapObject* objData, TTD::SlabAllocator& alloc)
     {
-        AssertMsg(this->GetTypeId() == Js::TypeIds_NativeFloatArray, "Should only be used on native float arrays.");
+        TTDAssert(this->GetTypeId() == Js::TypeIds_NativeFloatArray, "Should only be used on native float arrays.");
 
         TTD::NSSnapObjects::SnapArrayInfo<double>* sai = TTD::NSSnapObjects::ExtractArrayValues<double>(this, alloc);
         TTD::NSSnapObjects::StdExtractSetKindSpecificInfo<TTD::NSSnapObjects::SnapArrayInfo<double>*, TTD::NSSnapObjects::SnapObjectType::SnapNativeFloatArrayObject>(objData, sai);
@@ -11586,6 +11616,16 @@ Case0:
             return false;
         }
         return DynamicObject::DeleteProperty(propertyId, flags);
+    }
+
+    BOOL JavascriptArray::DeleteProperty(JavascriptString *propertyNameString, PropertyOperationFlags flags)
+    {
+        JsUtil::CharacterBuffer<WCHAR> propertyName(propertyNameString->GetString(), propertyNameString->GetLength());
+        if (BuiltInPropertyRecords::length.Equals(propertyName))
+        {
+            return false;
+        }
+        return DynamicObject::DeleteProperty(propertyNameString, flags);
     }
 
     BOOL JavascriptArray::HasProperty(PropertyId propertyId)
@@ -11767,16 +11807,18 @@ Case0:
         return false;
     }
 
-    BOOL JavascriptArray::GetEnumerator(Var originalInstance, BOOL enumNonEnumerable, Var* enumerator, ScriptContext* requestContext, bool preferSnapshotSemantics, bool enumSymbols)
+    JavascriptEnumerator * JavascriptArray::GetIndexEnumerator(EnumeratorFlags flags, ScriptContext* requestContext)
     {
-        // JavascriptArray does not support accessors, discard originalInstance.
-        return JavascriptArray::GetEnumerator(enumNonEnumerable, enumerator, requestContext, preferSnapshotSemantics, enumSymbols);
+        if (!!(flags & EnumeratorFlags::SnapShotSemantics))
+        {
+            return RecyclerNew(GetRecycler(), JavascriptArrayIndexSnapshotEnumerator, this, flags, requestContext);
+        }
+        return RecyclerNew(GetRecycler(), JavascriptArrayIndexEnumerator, this, flags, requestContext);
     }
 
-    BOOL JavascriptArray::GetNonIndexEnumerator(Var* enumerator, ScriptContext* requestContext)
+    BOOL JavascriptArray::GetNonIndexEnumerator(JavascriptStaticEnumerator * enumerator, ScriptContext* requestContext)
     {
-        *enumerator = RecyclerNew(GetScriptContext()->GetRecycler(), JavascriptArrayNonIndexSnapshotEnumerator, this, requestContext, false);
-        return true;
+        return enumerator->Initialize(nullptr, nullptr, this, EnumeratorFlags::SnapShotSemantics, requestContext, nullptr);
     }
 
     BOOL JavascriptArray::IsItemEnumerable(uint32 index)
@@ -12172,18 +12214,9 @@ Case0:
         return this->DirectDeleteItemAt<double>(index);
     }
 
-    BOOL JavascriptArray::GetEnumerator(BOOL enumNonEnumerable, Var* enumerator, ScriptContext * requestContext, bool preferSnapshotSemantics, bool enumSymbols)
+    BOOL JavascriptArray::GetEnumerator(JavascriptStaticEnumerator * enumerator, EnumeratorFlags flags, ScriptContext* requestContext, ForInCache * forInCache)
     {
-        if (preferSnapshotSemantics)
-        {
-            *enumerator = RecyclerNew(GetRecycler(), JavascriptArraySnapshotEnumerator, this, requestContext, enumNonEnumerable, enumSymbols);
-        }
-        else
-        {
-            *enumerator = RecyclerNew(GetRecycler(), JavascriptArrayEnumerator, this, requestContext, enumNonEnumerable, enumSymbols);
-        }
-
-        return true;
+        return enumerator->Initialize(nullptr, this, this, flags, requestContext, forInCache);
     }
 
     BOOL JavascriptArray::GetDiagValueString(StringBuilder<ArenaAllocator>* stringBuilder, ScriptContext* requestContext)

@@ -15,6 +15,7 @@ namespace Js {
         {
             ByteCodeGenerator* byteCodeGenerator;
             FuncInfo* func;
+            int nonScopeSymbolCount;
         };
 
         struct SymbolInfo
@@ -28,10 +29,12 @@ namespace Js {
             bool hasFuncAssignment;
             bool isBlockVariable;
             bool isFuncExpr;
+            bool isModuleExportStorage;
+            bool isModuleImport;
         };
 
     private:
-        FunctionBody * const parent;    // link to parent function body
+        FunctionInfo * const parent;    // link to parent function
         ScopeInfo* funcExprScopeInfo;   // optional func expr scope info
         ScopeInfo* paramScopeInfo;      // optional param scope info
 
@@ -43,6 +46,7 @@ namespace Js {
         BYTE areNamesCached : 1;
         BYTE canMergeWithBodyScope : 1;
         BYTE hasLocalInClosure : 1;
+        BYTE parentOnly : 1;
 
         Scope *scope;
         int scopeId;
@@ -50,10 +54,12 @@ namespace Js {
         SymbolInfo symbols[];           // symbol PropertyIDs, index == sym.scopeSlot
 
     private:
-        ScopeInfo(FunctionBody * parent, int symbolCount)
-            : parent(parent), funcExprScopeInfo(nullptr), paramScopeInfo(nullptr), symbolCount(symbolCount), scope(nullptr), areNamesCached(false), canMergeWithBodyScope(true), hasLocalInClosure(false)
+        ScopeInfo(FunctionInfo * parent, int symbolCount)
+            : parent(parent), funcExprScopeInfo(nullptr), paramScopeInfo(nullptr), symbolCount(symbolCount), scope(nullptr), areNamesCached(false), canMergeWithBodyScope(true), hasLocalInClosure(false), parentOnly(false)
         {
         }
+
+        bool IsParentInfoOnly() const { return parentOnly; }
 
         void SetFuncExprScopeInfo(ScopeInfo* funcExprScopeInfo)
         {
@@ -100,6 +106,20 @@ namespace Js {
             symbols[i].isFuncExpr = is;
         }
 
+        void SetIsModuleExportStorage(int i, bool is)
+        {
+            Assert(!areNamesCached);
+            Assert(i >= 0 && i < symbolCount);
+            symbols[i].isModuleExportStorage = is;
+        }
+
+        void SetIsModuleImport(int i, bool is)
+        {
+            Assert(!areNamesCached);
+            Assert(i >= 0 && i < symbolCount);
+            symbols[i].isModuleImport = is;
+        }
+
         void SetPropertyName(int i, PropertyRecord const* name)
         {
             Assert(!areNamesCached);
@@ -126,6 +146,18 @@ namespace Js {
             return symbols[i].hasFuncAssignment;
         }
 
+        bool GetIsModuleExportStorage(int i)
+        {
+            Assert(i >= 0 && i < symbolCount);
+            return symbols[i].isModuleExportStorage;
+        }
+
+        bool GetIsModuleImport(int i)
+        {
+            Assert(i >= 0 && i < symbolCount);
+            return symbols[i].isModuleImport;
+        }
+
         bool GetIsBlockVariable(int i)
         {
             Assert(i >= 0 && i < symbolCount);
@@ -148,19 +180,19 @@ namespace Js {
         void SaveSymbolInfo(Symbol* sym, MapSymbolData* mapSymbolData);
 
         static ScopeInfo* FromParent(FunctionBody* parent);
-        static ScopeInfo* FromScope(ByteCodeGenerator* byteCodeGenerator, FunctionBody* parent, Scope* scope, ScriptContext *scriptContext);
+        static ScopeInfo* FromScope(ByteCodeGenerator* byteCodeGenerator, ParseableFunctionInfo* parent, Scope* scope, ScriptContext *scriptContext);
         static void SaveParentScopeInfo(FuncInfo* parentFunc, FuncInfo* func);
         static void SaveScopeInfo(ByteCodeGenerator* byteCodeGenerator, FuncInfo* parentFunc, FuncInfo* func);
 
     public:
-        FunctionBody * GetParent() const
+        ParseableFunctionInfo * GetParent() const
         {
-            return parent;
+            return parent ? parent->GetParseableFunctionInfo() : nullptr;
         }
 
         ScopeInfo* GetParentScopeInfo() const
         {
-            return parent->GetScopeInfo();
+            return parent ? parent->GetParseableFunctionInfo()->GetScopeInfo() : nullptr;
         }
 
         ScopeInfo* GetFuncExprScopeInfo() const
@@ -220,7 +252,6 @@ namespace Js {
 
         static void SaveScopeInfoForDeferParse(ByteCodeGenerator* byteCodeGenerator, FuncInfo* parentFunc, FuncInfo* func);
 
-        ScopeInfo *CloneFor(ParseableFunctionInfo *body);
         void EnsurePidTracking(ScriptContext* scriptContext);
 
         void GetScopeInfo(Parser *parser, ByteCodeGenerator* byteCodeGenerator, FuncInfo* funcInfo, Scope* scope);

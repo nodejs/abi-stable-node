@@ -62,6 +62,13 @@ namespace Js
     }
 
 #if ENABLE_TTD
+    void JavascriptBooleanObject::SetValue_TTD(Js::Var val)
+    {
+        TTDAssert(val == nullptr || Js::JavascriptBoolean::Is(val), "Only allowable values!");
+
+        this->value = static_cast<Js::JavascriptBoolean*>(val);
+    }
+
     void JavascriptBooleanObject::MarkVisitKindSpecificPtrs(TTD::SnapshotExtractor* extractor)
     {
         if(this->value != nullptr)

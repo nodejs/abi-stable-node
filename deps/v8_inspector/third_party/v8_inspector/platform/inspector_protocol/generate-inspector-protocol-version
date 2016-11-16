@@ -4,7 +4,7 @@
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions are
 # met:
-# 
+#
 #     * Redistributions of source code must retain the above copyright
 # notice, this list of conditions and the following disclaimer.
 #     * Redistributions in binary form must reproduce the above
@@ -14,7 +14,7 @@
 #     * Neither the name of Google Inc. nor the names of its
 # contributors may be used to endorse or promote products derived from
 # this software without specific prior written permission.
-# 
+#
 # THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
 # "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
 # LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
@@ -28,7 +28,7 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 # Inspector protocol validator.
-# 
+#
 # Tests that subsequent protocol changes are not breaking backwards compatibility.
 # Following violations are reported:
 #
@@ -39,7 +39,7 @@
 #   - Event has been removed
 #   - Required event parameter was removed or changed to optional
 #   - Parameter type has changed.
-#   
+#
 # For the parameters with composite types the above checks are also applied
 # recursively to every property of the type.
 #
@@ -60,7 +60,7 @@ except ImportError:
 def list_to_map(items, key):
     result = {}
     for item in items:
-        if not "hidden" in item:
+        if not "experimental" in item and not "hidden" in item:
             result[item[key]] = item
     return result
 
@@ -197,7 +197,7 @@ def extract_type(typed_object, types_map, errors):
         ref = typed_object["$ref"]
         if not ref in types_map:
             errors.append("Can not resolve type: %s" % ref)
-            types_map[ref] = { "id": "<transient>", "type": "object" } 
+            types_map[ref] = { "id": "<transient>", "type": "object" }
         return types_map[ref]
 
 
@@ -287,7 +287,7 @@ def self_test():
                 {
                     "name": "requestWillBeSent",
                     "parameters": [
-                        { "name": "frameId", "type": "string", "hidden": True },
+                        { "name": "frameId", "type": "string", "experimental": True },
                         { "name": "request", "$ref": "Request" },
                         { "name": "becameOptional", "type": "string" },
                         { "name": "removedRequired", "type": "string" },
@@ -451,7 +451,11 @@ def main():
         load_domains_and_baselines(arg_values[1], domains, baseline_domains)
 
     expected_errors = [
-        "Debugger.globalObjectCleared: event has been removed"
+        "Debugger.globalObjectCleared: event has been removed",
+        "Runtime.executionContextCreated.context parameter->Runtime.ExecutionContextDescription.frameId: required property has been removed",
+        "Debugger.canSetScriptSource: command has been removed",
+        "Console.messageRepeatCountUpdated: event has been removed",
+        "Console.messagesCleared: event has been removed"
     ]
 
     errors = compare_schemas(baseline_domains, domains, False)

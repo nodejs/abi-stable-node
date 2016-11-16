@@ -19,6 +19,7 @@ node_g
 /.project
 /.cproject
 icu_config.gypi
+.eslintcache
 
 /out
 
@@ -43,6 +44,7 @@ ipch/
 *.opensdf
 *.VC.opendb
 .vs/
+.vscode/
 
 /config.mk
 /config.gypi

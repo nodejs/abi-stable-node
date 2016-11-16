@@ -5,26 +5,26 @@
 #ifndef V8DebuggerAgentImpl_h
 #define V8DebuggerAgentImpl_h
 
-#include "platform/inspector_protocol/Collections.h"
-#include "platform/inspector_protocol/String16.h"
-#include "platform/v8_inspector/V8DebuggerImpl.h"
+#include "platform/inspector_protocol/InspectorProtocol.h"
+#include "platform/v8_inspector/JavaScriptCallFrame.h"
 #include "platform/v8_inspector/protocol/Debugger.h"
 
 #include <vector>
 
-namespace blink {
+namespace v8_inspector {
 
+struct ScriptBreakpoint;
 class JavaScriptCallFrame;
 class PromiseTracker;
+class V8Debugger;
+class V8DebuggerScript;
+class V8InspectorImpl;
 class V8InspectorSessionImpl;
 class V8Regex;
 class V8StackTraceImpl;
 
-namespace protocol {
-class DictionaryValue;
-}
-
-using protocol::Maybe;
+namespace protocol = blink::protocol;
+using blink::protocol::Maybe;
 
 class V8DebuggerAgentImpl : public protocol::Debugger::Backend {
     PROTOCOL_DISALLOW_COPY(V8DebuggerAgentImpl);
@@ -51,7 +51,7 @@ public:
     void enable(ErrorString*) override;
     void disable(ErrorString*) override;
     void setBreakpointsActive(ErrorString*, bool active) override;
-    void setSkipAllPauses(ErrorString*, bool skipped) override;
+    void setSkipAllPauses(ErrorString*, bool skip) override;
     void setBreakpointByUrl(ErrorString*,
         int lineNumber,
         const Maybe<String16>& optionalURL,
@@ -67,22 +67,17 @@ public:
         std::unique_ptr<protocol::Debugger::Location>* actualLocation) override;
     void removeBreakpoint(ErrorString*, const String16& breakpointId) override;
     void continueToLocation(ErrorString*,
-        std::unique_ptr<protocol::Debugger::Location>,
-        const Maybe<bool>& interstateLocationOpt) override;
-    void getBacktrace(ErrorString*,
-        std::unique_ptr<protocol::Array<protocol::Debugger::CallFrame>>*,
-        Maybe<protocol::Runtime::StackTrace>*) override;
+        std::unique_ptr<protocol::Debugger::Location>) override;
     void searchInContent(ErrorString*,
         const String16& scriptId,
         const String16& query,
         const Maybe<bool>& optionalCaseSensitive,
         const Maybe<bool>& optionalIsRegex,
         std::unique_ptr<protocol::Array<protocol::Debugger::SearchMatch>>*) override;
-    void canSetScriptSource(ErrorString*, bool* result) override { *result = true; }
     void setScriptSource(ErrorString*,
         const String16& inScriptId,
         const String16& inScriptSource,
-        const Maybe<bool>& inPreview,
+        const Maybe<bool>& dryRun,
         Maybe<protocol::Array<protocol::Debugger::CallFrame>>* optOutCallFrames,
         Maybe<bool>* optOutStackChanged,
         Maybe<protocol::Runtime::StackTrace>* optOutAsyncStackTrace,
@@ -103,11 +98,10 @@ public:
         const String16& expression,
         const Maybe<String16>& objectGroup,
         const Maybe<bool>& includeCommandLineAPI,
-        const Maybe<bool>& doNotPauseOnExceptionsAndMuteConsole,
+        const Maybe<bool>& silent,
         const Maybe<bool>& returnByValue,
         const Maybe<bool>& generatePreview,
         std::unique_ptr<protocol::Runtime::RemoteObject>* result,
-        Maybe<bool>* wasThrown,
         Maybe<protocol::Runtime::ExceptionDetails>*) override;
     void setVariableValue(ErrorString*,
         int scopeNumber,
@@ -122,7 +116,6 @@ public:
         std::unique_ptr<protocol::Array<protocol::Debugger::ScriptPosition>> positions) override;
 
     bool enabled();
-    V8DebuggerImpl& debugger() { return *m_debugger; }
 
     void setBreakpointAt(const String16& scriptId, int lineNumber, int columnNumber, BreakpointSource, const String16& condition = String16());
     void removeBreakpointAt(const String16& scriptId, int lineNumber, int columnNumber, BreakpointSource);
@@ -133,7 +126,7 @@ public:
 
     void reset();
 
-    // Interface for V8DebuggerImpl
+    // Interface for V8InspectorImpl
     SkipPauseRequest didPause(v8::Local<v8::Context>, v8::Local<v8::Value> exception, const std::vector<String16>& hitBreakpoints, bool isPromiseRejection);
     void didContinue();
     void didParseSource(std::unique_ptr<V8DebuggerScript>, bool success);
@@ -184,7 +177,8 @@ private:
         StepOut
     };
 
-    V8DebuggerImpl* m_debugger;
+    V8InspectorImpl* m_inspector;
+    V8Debugger* m_debugger;
     V8InspectorSessionImpl* m_session;
     bool m_enabled;
     protocol::DictionaryValue* m_state;
@@ -213,7 +207,6 @@ private:
     protocol::HashMap<String16, std::vector<std::pair<int, int>>> m_blackboxedPositions;
 };
 
-} // namespace blink
-
+} // namespace v8_inspector
 
 #endif // V8DebuggerAgentImpl_h

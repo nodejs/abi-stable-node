@@ -157,8 +157,8 @@ namespace Js
     {
         size_t allocationPlusSize;
         uint alignedInlineElementSlots;
-        DetermineAllocationSize<className, 0>(
-            SparseArraySegmentBase::SMALL_CHUNK_SIZE,
+        DetermineAllocationSizeForArrayObjects<className, 0>(
+            0,
             &allocationPlusSize,
             &alignedInlineElementSlots);
         return RecyclerNewPlusZ(recycler, allocationPlusSize, className, type, alignedInlineElementSlots);
@@ -180,18 +180,8 @@ namespace Js
         size_t allocationPlusSize;
         uint alignedInlineElementSlots;
         className* array;
-        if (!length) // zero length - use default head chunk size
-        {
-            DetermineAllocationSize<className, inlineSlots>(
-                SparseArraySegmentBase::HEAD_CHUNK_SIZE,
-                &allocationPlusSize,
-                &alignedInlineElementSlots);
-        }
-        else //Small array
-        {
-            Assert(length <= SparseArraySegmentBase::HEAD_CHUNK_SIZE);
-            DetermineAllocationSize<className, inlineSlots>(length, &allocationPlusSize, &alignedInlineElementSlots);
-        }
+
+        DetermineAllocationSizeForArrayObjects<className, inlineSlots>(length, &allocationPlusSize, &alignedInlineElementSlots);
 
         array = RecyclerNewPlusZ(recycler, allocationPlusSize, className, length, arrayType);
         SparseArraySegment<unitType> *head =
@@ -843,7 +833,7 @@ SECOND_PASS:
             if (!endSeg)
             {
                 // end is beyond the length of the array
-                Assert(endIndex == this->length - 1);
+                Assert(endIndex == (current->left + current->length - 1));
                 current->next = nullptr;
             }
             else
@@ -1014,6 +1004,7 @@ SECOND_PASS:
 #endif
         return true;
     }
+
     template<typename T>
     bool JavascriptArray::DirectSetItemAtRange(uint32 startIndex, uint32 length, T newValue)
     {
@@ -1033,18 +1024,7 @@ SECOND_PASS:
 
         if (startIndex == 0 && head != EmptySegment && length < head->size)
         {
-            if (newValue == (T)0 || newValue == (T)(-1))
-            {
-                memset(((Js::SparseArraySegment<T>*)head)->elements, ((int)(intptr_t)newValue), sizeof(T)* length);
-            }
-            else
-            {
-                Js::SparseArraySegment<T>* headSegment = ((Js::SparseArraySegment<T>*)head);
-                for (uint32 i = 0; i < length; i++)
-                {
-                    headSegment->elements[i] = newValue;
-                }
-            }
+            CopyValueToSegmentBuferNoCheck(((Js::SparseArraySegment<T>*)head)->elements, length, newValue);
 
             if (length > this->length)
             {
@@ -1082,17 +1062,7 @@ SECOND_PASS:
 
             SetHasNoMissingValues(true);
 
-            if (newValue == (T)0 || newValue == (T)(-1))
-            {
-                memset(((Js::SparseArraySegment<T>*)current)->elements, ((int)(intptr_t)newValue), sizeof(T)* length);
-            }
-            else
-            {
-                for (uint32 i = 0; i < length; i++)
-                {
-                    ((Js::SparseArraySegment<T>*)current)->elements[i] = newValue;
-                }
-            }
+            CopyValueToSegmentBuferNoCheck(((Js::SparseArraySegment<T>*)current)->elements, length, newValue);
             this->SetLastUsedSegment(current);
         }
         else
@@ -1116,17 +1086,9 @@ SECOND_PASS:
         {
             return false;
         }
-        if (newValue == (T)0 || newValue == (T)(-1))
-        {
-            memset((((Js::SparseArraySegment<T>*)current)->elements + (startIndex - current->left)), ((int)(intptr_t)newValue), sizeof(T)* length);
-        }
-        else
-        {
-            for (uint32 i = 0; i < length; i++)
-            {
-                ((Js::SparseArraySegment<T>*)current)->elements[startIndex - current->left + i] = newValue;
-            }
-        }
+        Assert(current->left + current->length >= startIndex + length);
+        T* segmentCopyStart = current->elements + (startIndex - current->left);
+        CopyValueToSegmentBuferNoCheck(segmentCopyStart, length, newValue);
         this->SetLastUsedSegment(current);
 #if DBG
         if (Js::Configuration::Global.flags.MemOpMissingValueValidate)
@@ -1704,6 +1666,57 @@ SECOND_PASS:
 
         return totalSize;
     }
+
+    template<class ArrayType> 
+    void JavascriptArray::EnsureCalculationOfAllocationBuckets()
+    {
+        uint temp;
+        for (uint8 i = 0;i < ArrayType::AllocationBucketsCount;i++)
+        {
+            ArrayType::allocationBuckets[i][AllocationSizeIndex] = (uint)DetermineAllocationSize<ArrayType, 0>(ArrayType::allocationBuckets[i][AllocationBucketIndex], nullptr, &temp);
+            ArrayType::allocationBuckets[i][MissingElementsCountIndex] = temp;
+        }
+    }
+
+    template<class ArrayType, uint InlinePropertySlots>
+    inline size_t JavascriptArray::DetermineAllocationSizeForArrayObjects(
+        const uint inlineElementSlots,
+        size_t *const allocationPlusSizeRef,
+        uint *const alignedInlineElementSlotsRef)
+    {
+        uint8 bucketsCount = ArrayType::AllocationBucketsCount;
+        
+        EnsureCalculationOfAllocationBuckets<ArrayType>();
+
+        if (inlineElementSlots >= 0 && inlineElementSlots <= ArrayType::allocationBuckets[bucketsCount - 1][AllocationBucketIndex])
+        {
+            for (uint8 i = 0;i < bucketsCount;i++)
+            {
+                uint elementsCountToInitialize = ArrayType::allocationBuckets[i][MissingElementsCountIndex];
+                uint allocationSize = ArrayType::allocationBuckets[i][AllocationSizeIndex];
+
+                // Ensure we already have allocation size calculated and within range
+                Assert(elementsCountToInitialize > 0 && elementsCountToInitialize <= ArrayType::allocationBuckets[bucketsCount - 1][MissingElementsCountIndex]);
+                Assert(allocationSize > 0 && allocationSize <= ArrayType::allocationBuckets[bucketsCount - 1][AllocationSizeIndex]);
+
+                if (inlineElementSlots <= ArrayType::allocationBuckets[i][AllocationBucketIndex])
+                {
+                    if (alignedInlineElementSlotsRef)
+                    {
+                        *alignedInlineElementSlotsRef = elementsCountToInitialize;
+                    }
+                    if (allocationPlusSizeRef)
+                    {
+                        *allocationPlusSizeRef = allocationSize - sizeof(ArrayType);
+                    }
+                    return allocationSize;
+                }
+            }
+        }
+
+        return DetermineAllocationSize<ArrayType, InlinePropertySlots>(inlineElementSlots, allocationPlusSizeRef, alignedInlineElementSlotsRef);
+    }
+    
 
     template<class T, uint InlinePropertySlots>
     inline uint JavascriptArray::DetermineAvailableInlineElementSlots(

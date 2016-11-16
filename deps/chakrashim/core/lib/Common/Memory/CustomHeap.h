@@ -16,7 +16,6 @@ namespace Memory
     Output::Flush(); \
 }
 
-
 namespace CustomHeap
 {
 
@@ -33,13 +32,13 @@ enum BucketId
     NumBuckets
 };
 
-BucketId GetBucketForSize(size_t bytes);
+BucketId GetBucketForSize(DECLSPEC_GUARD_OVERFLOW size_t bytes);
 
 struct Page
 {
-    bool         inFullList;
-    bool         isDecommitted;
-    void*        segment;
+    bool inFullList;
+    bool isDecommitted;
+    void* segment;
     BVUnit       freeBitVector;
     char*        address;
     BucketId     currentBucket;
@@ -59,13 +58,13 @@ struct Page
         return freeBitVector.FirstStringOfOnes(targetBucket + 1) != BVInvalidIndex;
     }
 
-    Page(__in char* address, void* segment, BucketId bucket) :
-        address(address),
-        segment(segment),
-        currentBucket(bucket),
-        freeBitVector(0xFFFFFFFF),
-        isDecommitted(false),
-        inFullList(false)
+    Page(__in char* address, void* segment, BucketId bucket):
+      address(address),
+      segment(segment),
+      currentBucket(bucket),
+      freeBitVector(0xFFFFFFFF),
+    isDecommitted(false),
+    inFullList(false)
     {
     }
 
@@ -116,17 +115,7 @@ struct Allocation
         }
         return allocator;
     }
-
-#if defined(_M_ARM32_OR_ARM64)
-    void RegisterPdata(ULONG_PTR functionStart, DWORD length)
-    {
-        Assert(this->xdata.pdataCount > 0);
-        XDataAllocator* xdataAllocator = GetXDataAllocator();
-        xdataAllocator->Register(this->xdata, functionStart, length);
-    }
 #endif
-#endif
-
 };
 
 // Wrapper for the two HeapPageAllocator with and without the prereserved segment.
@@ -140,11 +129,12 @@ public:
         AutoLock(CodePageAllocators * codePageAllocators) : AutoCriticalSection(&codePageAllocators->cs) {};
     };
 
-    CodePageAllocators(AllocationPolicyManager * policyManager, bool allocXdata, PreReservedVirtualAllocWrapper * virtualAllocator) :
-        pageAllocator(policyManager, allocXdata, true /*excludeGuardPages*/, nullptr),
-        preReservedHeapPageAllocator(policyManager, allocXdata, true /*excludeGuardPages*/, virtualAllocator),
+    CodePageAllocators(AllocationPolicyManager * policyManager, bool allocXdata, PreReservedVirtualAllocWrapper * virtualAllocator, HANDLE processHandle) :
+        pageAllocator(policyManager, allocXdata, true /*excludeGuardPages*/, nullptr, processHandle),
+        preReservedHeapPageAllocator(policyManager, allocXdata, true /*excludeGuardPages*/, virtualAllocator, processHandle),
         cs(4000),
-        secondaryAllocStateChangedCount(0)
+        secondaryAllocStateChangedCount(0),
+        processHandle(processHandle)
     {
 #if DBG
         this->preReservedHeapPageAllocator.ClearConcurrentThreadId();
@@ -162,7 +152,7 @@ public:
     {
         // Simple immutable data access, no need for lock
         Assert(segment);
-        return (((Segment*)(segment))->IsInPreReservedHeapPageAllocator());
+        return reinterpret_cast<SegmentBaseCommon*>(segment)->IsInPreReservedHeapPageAllocator();
     }
 
     bool IsInNonPreReservedPageAllocator(__in void *address)
@@ -190,8 +180,7 @@ public:
         }
         return address;
     }
-
-    char * AllocPages(uint pages, void ** pageSegment, bool canAllocInPreReservedHeapPageSegment, bool isAnyJittedCode, bool * isAllJITCodeInPreReservedRegion)
+    char * AllocPages(DECLSPEC_GUARD_OVERFLOW uint pages, void ** pageSegment, bool canAllocInPreReservedHeapPageSegment, bool isAnyJittedCode, bool * isAllJITCodeInPreReservedRegion)
     {
         Assert(this->cs.IsLocked());
         char * address = nullptr;
@@ -380,6 +369,7 @@ private:
     HeapPageAllocator<VirtualAllocWrapper>               pageAllocator;
     HeapPageAllocator<PreReservedVirtualAllocWrapper>    preReservedHeapPageAllocator;
     CriticalSection cs;
+    HANDLE processHandle;
 
     // Track the number of time a segment's secondary allocate change from full to available to allocate.
     // So that we know whether CustomHeap to know when to update their "full page"
@@ -401,14 +391,14 @@ private:
 class Heap
 {
 public:
-    Heap(ArenaAllocator * alloc, CodePageAllocators * codePageAllocators);
+    Heap(ArenaAllocator * alloc, CodePageAllocators * codePageAllocators, HANDLE processHandle);
 
-    Allocation* Alloc(size_t bytes, ushort pdataCount, ushort xdataSize, bool canAllocInPreReservedHeapPageSegment, bool isAnyJittedCode, _Inout_ bool* isAllJITCodeInPreReservedRegion);
+    Allocation* Alloc(DECLSPEC_GUARD_OVERFLOW size_t bytes, ushort pdataCount, ushort xdataSize, bool canAllocInPreReservedHeapPageSegment, bool isAnyJittedCode, _Inout_ bool* isAllJITCodeInPreReservedRegion);
     void Free(__in Allocation* allocation);
     void DecommitAll();
     void FreeAll();
     bool IsInHeap(__in void* address);
-   
+
     // A page should be in full list if:
     // 1. It does not have any space
     // 2. Parent segment cannot allocate any more XDATA
@@ -431,12 +421,12 @@ private:
     /**
      * Inline methods
      */
-    inline unsigned int GetChunkSizeForBytes(size_t bytes)
+    inline unsigned int GetChunkSizeForBytes(DECLSPEC_GUARD_OVERFLOW size_t bytes)
     {
         return (bytes > Page::Alignment ? static_cast<unsigned int>(bytes) / Page::Alignment : 1);
     }
 
-    inline size_t GetNumPagesForSize(size_t bytes)
+    inline size_t GetNumPagesForSize(DECLSPEC_GUARD_OVERFLOW size_t bytes)
     {
         size_t allocSize = AllocSizeMath::Add(bytes, AutoSystemInfo::PageSize);
 
@@ -448,7 +438,7 @@ private:
         return ((allocSize - 1)/ AutoSystemInfo::PageSize);
     }
 
-    inline BVIndex GetFreeIndexForPage(Page* page, size_t bytes)
+    inline BVIndex GetFreeIndexForPage(Page* page, DECLSPEC_GUARD_OVERFLOW size_t bytes)
     {
         unsigned int length = GetChunkSizeForBytes(bytes);
         BVIndex index = page->freeBitVector.FirstStringOfOnes(length);
@@ -459,8 +449,8 @@ private:
     /**
      * Large object methods
      */
-    Allocation* AllocLargeObject(size_t bytes, ushort pdataCount, ushort xdataSize, bool canAllocInPreReservedHeapPageSegment, bool isAnyJittedCode, _Inout_ bool* isAllJITCodeInPreReservedRegion);
-    
+    Allocation* AllocLargeObject(DECLSPEC_GUARD_OVERFLOW size_t bytes, ushort pdataCount, ushort xdataSize, bool canAllocInPreReservedHeapPageSegment, bool isAnyJittedCode, _Inout_ bool* isAllJITCodeInPreReservedRegion);
+
     void FreeLargeObject(Allocation* header);
 
     void FreeLargeObjects();
@@ -478,19 +468,17 @@ private:
     DWORD EnsurePageReadWrite(Page* page)
     {
         Assert(!page->isDecommitted);
-
-        BOOL result = this->codePageAllocators->ProtectPages(page->address, 1, page->segment, readWriteFlags, PAGE_EXECUTE);
-        Assert(result && (PAGE_EXECUTE & readWriteFlags) == 0);
+        this->codePageAllocators->ProtectPages(page->address, 1, page->segment, readWriteFlags, PAGE_EXECUTE);
         return PAGE_EXECUTE;
     }
 
     template<DWORD readWriteFlags>
+
     DWORD EnsureAllocationReadWrite(Allocation* allocation)
     {
         if (allocation->IsLargeAllocation())
         {
-            BOOL result = this->ProtectAllocation(allocation, readWriteFlags, PAGE_EXECUTE);
-            Assert(result && (PAGE_EXECUTE & readWriteFlags) == 0);
+            this->ProtectAllocation(allocation, readWriteFlags, PAGE_EXECUTE);
             return PAGE_EXECUTE;
         }
         else
@@ -506,6 +494,7 @@ private:
     void FreeBucket(DListBase<Page>* bucket, bool freeOnlyEmptyPages);
     void FreePage(Page* page);
     bool FreeAllocation(Allocation* allocation);
+    void FreeAllocationHelper(Allocation * allocation, BVIndex index, uint length);
 
 #if PDATA_ENABLED
     void FreeXdata(XDataAllocation* xdata, void* segment);
@@ -518,18 +507,17 @@ private:
      * Page methods
      */
     Page*       AddPageToBucket(Page* page, BucketId bucket, bool wasFull = false);
-    bool        AllocInPage(Page* page, size_t bytes, ushort pdataCount, ushort xdataSize, Allocation ** allocation);
+    bool        AllocInPage(Page* page, DECLSPEC_GUARD_OVERFLOW size_t bytes, ushort pdataCount, ushort xdataSize, Allocation ** allocation);
     Page*       AllocNewPage(BucketId bucket, bool canAllocInPreReservedHeapPageSegment, bool isAnyJittedCode, _Inout_ bool* isAllJITCodeInPreReservedRegion);
     Page*       FindPageToSplit(BucketId targetBucket, bool findPreReservedHeapPages = false);
+
     bool        UpdateFullPages();
     Page *      GetExistingPage(BucketId bucket, bool canAllocInPreReservedHeapPageSegment);
 
     BVIndex     GetIndexInPage(__in Page* page, __in char* address);
-
-
-    bool IsInHeap(DListBase<Page> const buckets[NumBuckets], __in void *address);
-    bool IsInHeap(DListBase<Page> const& buckets, __in void *address);
-    bool IsInHeap(DListBase<Allocation> const& allocations, __in void *address);
+    bool        IsInHeap(DListBase<Page> const buckets[NumBuckets], __in void *address);
+    bool        IsInHeap(DListBase<Page> const& buckets, __in void *address);
+    bool        IsInHeap(DListBase<Allocation> const& allocations, __in void *address);
 
     /**
      * Stats
@@ -544,8 +532,8 @@ private:
     /**
      * Allocator stuff
      */
-    CodePageAllocators *                              codePageAllocators;
-    ArenaAllocator*                                   auxiliaryAllocator;
+    CodePageAllocators *   codePageAllocators;
+    ArenaAllocator*        auxiliaryAllocator;
 
     /*
      * Various tracking lists
@@ -557,7 +545,8 @@ private:
     DListBase<Page>        decommittedPages;
     DListBase<Allocation>  decommittedLargeObjects;
 
-    uint lastSecondaryAllocStateChangedCount;
+    uint                   lastSecondaryAllocStateChangedCount;
+    HANDLE                 processHandle;
 #if DBG
     bool inDtor;
 #endif
@@ -565,7 +554,7 @@ private:
 
 // Helpers
 unsigned int log2(size_t number);
-BucketId GetBucketForSize(size_t bytes);
-void FillDebugBreak(__out_bcount_full(byteCount) BYTE* buffer, __in size_t byteCount);
-};
-}
+BucketId GetBucketForSize(DECLSPEC_GUARD_OVERFLOW size_t bytes);
+void FillDebugBreak(_In_ BYTE* buffer, __in size_t byteCount, HANDLE processHandle);
+} // namespace CustomHeap
+} // namespace Memory

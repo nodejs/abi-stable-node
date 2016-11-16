@@ -19,8 +19,20 @@
 // IN THE SOFTWARE.
 
 #include "uv.h"
-#include <unordered_map>
 #include <vector>
+
+#if !defined(OSX_SDK_TR1) && defined(__APPLE__)
+#include <AvailabilityMacros.h>
+#if __ENVIRONMENT_MAC_OS_X_VERSION_MIN_REQUIRED__ < MAC_OS_X_VERSION_10_9
+#define OSX_SDK_TR1
+#endif
+#endif
+
+#ifdef OSX_SDK_TR1
+#include <tr1/unordered_map>
+#else
+#include <unordered_map>
+#endif
 
 namespace v8 {
 
@@ -45,7 +57,7 @@ enum CachedSymbolPropertyIdRef {
 
 class IsolateShim {
  public:
-
+  v8::ArrayBuffer::Allocator* arrayBufferAllocator;
   bool NewContext(JsContextRef * context, bool exposeGC,
                                JsValueRef globalObjectTemplateInstance);
   bool GetMemoryUsage(size_t * memoryUsage);
@@ -98,8 +110,13 @@ class IsolateShim {
     }
   }
 
+  JsValueRef GetChakraShimJsArrayBuffer();
+  JsValueRef GetChakraDebugShimJsArrayBuffer();
+
   void SetData(unsigned int slot, void* data);
   void* GetData(unsigned int slot);
+
+  ContextShim* debugContext;
 
   inline uv_prepare_t* idleGc_prepare_handle() {
     return &idleGc_prepare_handle_;
@@ -161,10 +178,14 @@ class IsolateShim {
   static IsolateShim * s_isolateList;
 
   static THREAD_LOCAL IsolateShim * s_currentIsolate;
+  static THREAD_LOCAL IsolateShim * s_previousIsolate;
 
   uv_prepare_t idleGc_prepare_handle_;
   uv_timer_t idleGc_timer_handle_;
   bool jsScriptExecuted = false;
   bool isIdleGcScheduled = false;
+
+  JsValueRef chakraShimArrayBuffer;
+  JsValueRef chakraDebugShimArrayBuffer;
 };
 }  // namespace jsrt

@@ -176,7 +176,7 @@ namespace Js
 
     Var JavascriptExternalFunction::ExternalFunctionThunk(RecyclableObject* function, CallInfo callInfo, ...)
     {
-        RUNTIME_ARGUMENTS(args, callInfo);
+        ARGUMENTS(args, callInfo);
         JavascriptExternalFunction* externalFunction = static_cast<JavascriptExternalFunction*>(function);
 
         ScriptContext * scriptContext = externalFunction->type->GetScriptContext();
@@ -190,50 +190,18 @@ namespace Js
 #if ENABLE_TTD
         Var result = nullptr;
 
-        if(scriptContext->ShouldPerformDebugAction())
+        if(scriptContext->ShouldPerformRecordOrReplayAction())
         {
-            TTD::TTDReplayExternalFunctionCallActionPopper logPopper(externalFunction);
-
-            scriptContext->GetThreadContext()->TTDLog->ReplayExternalCallEvent(externalFunction, args.Info.Count, args.Values, &result);
+            result = JavascriptExternalFunction::HandleRecordReplayExternalFunction_Thunk(externalFunction, callInfo, args, scriptContext);
         }
-        else if(scriptContext->ShouldPerformRecordAction())
+        else
         {
-            //Root nesting depth handled in logPopper constructor, destructor, and Normal return paths -- the increment of nesting is handled by the popper but we need to add 1 to the value we record (so it matches)
-            TTD::NSLogEvents::EventLogEntry* callEvent = scriptContext->GetThreadContext()->TTDLog->RecordExternalCallEvent(externalFunction, scriptContext->TTDRootNestingCount + 1, args.Info.Count, args.Values);
-            TTD::TTDRecordExternalFunctionCallActionPopper logPopper(externalFunction, callEvent);
-
             BEGIN_LEAVE_SCRIPT_WITH_EXCEPTION(scriptContext)
             {
                 // Don't do stack probe since BEGIN_LEAVE_SCRIPT_WITH_EXCEPTION does that for us already
                 result = externalFunction->nativeMethod(function, callInfo, args.Values);
             }
             END_LEAVE_SCRIPT_WITH_EXCEPTION(scriptContext);
-
-            //no exception check below so I assume the external call cannot have an exception registered
-            logPopper.NormalReturn(false, result);
-        }
-        else
-        {
-            if(externalFunction->nativeMethod == nullptr)
-            {
-                //
-                //TODO: we really shouldn't be seeing this and should suppress the eval of getters/setters instead to avoid any statefullness.
-                //
-
-                //The only way this should happen is if the debugger is requesting a value to display that is an external accessor.
-                //We don't support this so it should be ok to return a Js string message.
-                LPCWSTR msg = _u("Non-Inspectable External Value");
-                result = Js::JavascriptString::NewCopyBuffer(msg, (charcount_t)wcslen(msg), scriptContext);
-            }
-            else
-            {
-                BEGIN_LEAVE_SCRIPT_WITH_EXCEPTION(scriptContext)
-                {
-                    // Don't do stack probe since BEGIN_LEAVE_SCRIPT_WITH_EXCEPTION does that for us already
-                    result = externalFunction->nativeMethod(function, callInfo, args.Values);
-                }
-                END_LEAVE_SCRIPT_WITH_EXCEPTION(scriptContext);
-            }
         }
 #else
         Var result = nullptr;
@@ -244,6 +212,7 @@ namespace Js
         }
         END_LEAVE_SCRIPT_WITH_EXCEPTION(scriptContext);
 #endif
+
         if (result == nullptr)
         {
 #pragma warning(push)
@@ -261,7 +230,7 @@ namespace Js
 
     Var JavascriptExternalFunction::WrappedFunctionThunk(RecyclableObject* function, CallInfo callInfo, ...)
     {
-        RUNTIME_ARGUMENTS(args, callInfo);
+        ARGUMENTS(args, callInfo);
         JavascriptExternalFunction* externalFunction = static_cast<JavascriptExternalFunction*>(function);
         ScriptContext* scriptContext = externalFunction->type->GetScriptContext();
         Assert(!scriptContext->GetThreadContext()->IsDisableImplicitException());
@@ -285,7 +254,7 @@ namespace Js
 
     Var JavascriptExternalFunction::StdCallExternalFunctionThunk(RecyclableObject* function, CallInfo callInfo, ...)
     {
-        RUNTIME_ARGUMENTS(args, callInfo);
+        ARGUMENTS(args, callInfo);
         JavascriptExternalFunction* externalFunction = static_cast<JavascriptExternalFunction*>(function);
 
         externalFunction->PrepareExternalCall(&args);
@@ -295,26 +264,9 @@ namespace Js
         Var result = NULL;
 
 #if ENABLE_TTD
-        if(scriptContext->ShouldPerformDebugAction())
+        if(scriptContext->ShouldPerformRecordOrReplayAction())
         {
-            TTD::TTDReplayExternalFunctionCallActionPopper logPopper(externalFunction);
-
-            scriptContext->GetThreadContext()->TTDLog->ReplayExternalCallEvent(externalFunction, args.Info.Count, args.Values, &result);
-        }
-        else if(scriptContext->ShouldPerformRecordAction())
-        {
-            //Root nesting depth handled in logPopper constructor, destructor, and Normal return paths -- the increment of nesting is handled by the popper but we need to add 1 to the value we record (so it matches)
-            TTD::NSLogEvents::EventLogEntry* callEvent = scriptContext->GetThreadContext()->TTDLog->RecordExternalCallEvent(externalFunction, scriptContext->TTDRootNestingCount + 1, args.Info.Count, args.Values);
-            TTD::TTDRecordExternalFunctionCallActionPopper logPopper(externalFunction, callEvent);
-
-            BEGIN_LEAVE_SCRIPT(scriptContext)
-            {
-                result = externalFunction->stdCallNativeMethod(function, ((callInfo.Flags & CallFlags_New) != 0), args.Values, args.Info.Count, externalFunction->callbackState);
-            }
-            END_LEAVE_SCRIPT(scriptContext);
-
-            //exception check is done explicitly below call can have an exception registered
-            logPopper.NormalReturn(true, result);
+            result = JavascriptExternalFunction::HandleRecordReplayExternalFunction_StdThunk(function, callInfo, args, scriptContext);
         }
         else
         {
@@ -398,6 +350,90 @@ namespace Js
         alloc.CopyStringIntoWLength(nameString->GetSz(), nameString->GetLength(), *snapName);
 
         TTD::NSSnapObjects::StdExtractSetKindSpecificInfo<TTD::TTString*, TTD::NSSnapObjects::SnapObjectType::SnapExternalFunctionObject>(objData, snapName);
+    }
+
+    Var JavascriptExternalFunction::HandleRecordReplayExternalFunction_Thunk(Js::JavascriptFunction* function, CallInfo& callInfo, Arguments& args, ScriptContext* scriptContext)
+    {
+        JavascriptExternalFunction* externalFunction = static_cast<JavascriptExternalFunction*>(function);
+
+        Var result = nullptr;
+
+        if(scriptContext->ShouldPerformReplayAction())
+        {
+            TTD::TTDNestingDepthAutoAdjuster logPopper(scriptContext->GetThreadContext());
+            scriptContext->GetThreadContext()->TTDLog->ReplayExternalCallEvent(externalFunction, args.Info.Count, args.Values, &result);
+        }
+        else
+        {
+            TTDAssert(scriptContext->ShouldPerformRecordAction(), "Check either record/replay before calling!!!");
+
+            TTD::EventLog* elog = scriptContext->GetThreadContext()->TTDLog;
+
+            TTD::TTDNestingDepthAutoAdjuster logPopper(scriptContext->GetThreadContext());
+            TTD::NSLogEvents::EventLogEntry* callEvent = elog->RecordExternalCallEvent(externalFunction, scriptContext->GetThreadContext()->TTDRootNestingCount, args.Info.Count, args.Values, false);
+
+            BEGIN_LEAVE_SCRIPT_WITH_EXCEPTION(scriptContext)
+            {
+                // Don't do stack probe since BEGIN_LEAVE_SCRIPT_WITH_EXCEPTION does that for us already
+                result = externalFunction->nativeMethod(function, callInfo, args.Values);
+            }
+            END_LEAVE_SCRIPT_WITH_EXCEPTION(scriptContext);
+
+            //Exceptions should be prohibited so no need to do extra work
+            elog->RecordExternalCallEvent_Complete(externalFunction, callEvent, result);
+        }
+
+        return result;
+    }
+
+    Var JavascriptExternalFunction::HandleRecordReplayExternalFunction_StdThunk(Js::RecyclableObject* function, CallInfo& callInfo, Arguments& args, ScriptContext* scriptContext)
+    {
+        JavascriptExternalFunction* externalFunction = static_cast<JavascriptExternalFunction*>(function);
+
+        Var result = nullptr;
+
+        if(scriptContext->ShouldPerformReplayAction())
+        {
+            TTD::TTDNestingDepthAutoAdjuster logPopper(scriptContext->GetThreadContext());
+            scriptContext->GetThreadContext()->TTDLog->ReplayExternalCallEvent(externalFunction, args.Info.Count, args.Values, &result);
+        }
+        else
+        {
+            TTDAssert(scriptContext->ShouldPerformRecordAction(), "Check either record/replay before calling!!!");
+
+            TTD::EventLog* elog = scriptContext->GetThreadContext()->TTDLog;
+
+            TTD::TTDNestingDepthAutoAdjuster logPopper(scriptContext->GetThreadContext());
+            TTD::NSLogEvents::EventLogEntry* callEvent = elog->RecordExternalCallEvent(externalFunction, scriptContext->GetThreadContext()->TTDRootNestingCount, args.Info.Count, args.Values, true);
+
+            BEGIN_LEAVE_SCRIPT(scriptContext)
+            {
+                result = externalFunction->stdCallNativeMethod(function, ((callInfo.Flags & CallFlags_New) != 0), args.Values, args.Info.Count, externalFunction->callbackState);
+            }
+            END_LEAVE_SCRIPT(scriptContext);
+
+            elog->RecordExternalCallEvent_Complete(externalFunction, callEvent, result);
+        }
+
+        return result;
+    }
+
+    Var __stdcall JavascriptExternalFunction::TTDReplayDummyExternalMethod(Js::Var callee, bool isConstructCall, Var *args, USHORT cargs, void *callbackState)
+    {
+        JavascriptExternalFunction* externalFunction = static_cast<JavascriptExternalFunction*>(callee);
+
+        ScriptContext* scriptContext = externalFunction->type->GetScriptContext();
+        TTD::EventLog* elog = scriptContext->GetThreadContext()->TTDLog;
+        TTDAssert(elog != nullptr, "How did this get created then???");
+
+        //If this flag is set then this is ok (the debugger may be evaluating this so just return undef -- otherwise this is an error
+        if(!elog->IsDebugModeFlagSet())
+        {
+            TTDAssert(false, "This should never be reached in pure replay mode!!!");
+            return nullptr;
+        }
+
+        return scriptContext->GetLibrary()->GetUndefined();
     }
 #endif
 }

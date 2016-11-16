@@ -114,9 +114,67 @@ def CreateBuildTasks = { machine, configTag, buildExtra, testExtra, runCodeAnaly
     }
 }
 
+def CreateXPlatBuildTask = { isPR, buildType, staticBuild, machine, platform, configTag,
+    xplatBranch, nonDefaultTaskSetup, customOption, testVariant ->
+
+    def config = (platform == "osx" ? "osx_${buildType}" : "linux_${buildType}")
+    def numConcurrentCommand = (platform == "osx" ? "sysctl -n hw.logicalcpu" : "nproc")
+
+    config = (configTag == null) ? config : "${configTag}_${config}"
+    config = staticBuild ? "${config}_static" : config
+
+    // params: Project, BaseTaskName, IsPullRequest (appends '_prtest')
+    def jobName = Utilities.getFullJobName(project, config, isPR) + customOption.replaceAll(/[-]+/, "_")
+
+    def infoScript = "bash jenkins/get_system_info.sh --${platform}"
+    def buildFlag = buildType == "release" ? "" : (buildType == "debug" ? "--debug" : "--test-build")
+    def staticFlag = staticBuild ? "--static" : ""
+    def icuFlag = (platform == "osx" ? "--icu=/usr/local/opt/icu4c/include" : "")
+    def compilerPaths = (platform == "osx") ? "" : "--cxx=/usr/bin/clang++-3.8 --cc=/usr/bin/clang-3.8"
+    def buildScript = "bash ./build.sh ${staticFlag} -j=`${numConcurrentCommand}` ${buildFlag} ${compilerPaths} ${icuFlag} ${customOption}"
+    def testScript = "bash test/runtests.sh \"${testVariant}\""
+
+    def newJob = job(jobName) {
+        steps {
+            shell(infoScript)
+            shell(buildScript)
+            shell(testScript)
+        }
+    }
+
+    def archivalString = "BuildLinux/build.log"
+    Utilities.addArchival(newJob, archivalString,
+        '', // no exclusions from archival
+        true, // doNotFailIfNothingArchived=false ~= failIfNothingArchived (true ~= doNotFail)
+        false) // archiveOnlyIfSuccessful=false ~= archiveAlways
+
+    Utilities.setMachineAffinity(newJob, machine, 'latest-or-auto')
+    Utilities.standardJobSetup(newJob, project, isPR, "*/${branch}")
+
+    if (nonDefaultTaskSetup == null) {
+        if (isPR) {
+            def osTag = machineTypeToOSTagMap.get(machine)
+            // Set up checks which apply to PRs targeting any branch
+            Utilities.addGithubPRTriggerForBranch(newJob, xplatBranch, "${osTag} ${config}")
+        } else {
+            Utilities.addGithubPushTrigger(newJob)
+        }
+    } else {
+        // nonDefaultTaskSetup is e.g. DailyBuildTaskSetup (which sets up daily builds)
+        // These jobs will only be configured for the branch specified below,
+        // which is the name of the branch netci.groovy was processed for.
+        // See list of such branches at:
+        // https://github.com/dotnet/dotnet-ci/blob/master/jobs/data/repolist.txt
+        nonDefaultTaskSetup(newJob, isPR, config)
+    }
+}
+
 // Generic task to trigger clang-based cross-plat build tasks
 def CreateXPlatBuildTasks = { machine, platform, configTag, xplatBranch, nonDefaultTaskSetup ->
     [true, false].each { isPR ->
+        CreateXPlatBuildTask(isPR, "test", "", machine, platform,
+            configTag, xplatBranch, nonDefaultTaskSetup, "--no-jit", "--variants disable_jit")
+
         ['debug', 'test', 'release'].each { buildType ->
             def staticBuildConfigs = [true, false]
             if (platform == "osx") {
@@ -124,56 +182,8 @@ def CreateXPlatBuildTasks = { machine, platform, configTag, xplatBranch, nonDefa
             }
 
             staticBuildConfigs.each { staticBuild ->
-                def config = (platform == "osx" ? "osx_${buildType}" : "linux_${buildType}")
-                def numConcurrentCommand = (platform == "osx" ? "sysctl -n hw.logicalcpu" : "nproc")
-
-                config = (configTag == null) ? config : "${configTag}_${config}"
-                config = staticBuild ? "${config}_static" : config
-
-                // params: Project, BaseTaskName, IsPullRequest (appends '_prtest')
-                def jobName = Utilities.getFullJobName(project, config, isPR)
-
-                def infoScript = "bash jenkins/get_system_info.sh --${platform}"
-                def buildFlag = buildType == "release" ? "" : (buildType == "debug" ? "--debug" : "--test-build")
-                def staticFlag = staticBuild ? "--static" : ""
-                def icuFlag = (platform == "osx" ? "--icu=/usr/local/opt/icu4c/include" : "")
-                def compilerPaths = (platform == "osx") ? "" : "--cxx=/usr/bin/clang++-3.8 --cc=/usr/bin/clang-3.8"
-                def buildScript = "bash ./build.sh ${staticFlag} -j=`${numConcurrentCommand}` ${buildFlag} ${compilerPaths} ${icuFlag}"
-                def testScript = "bash test/runtests.sh"
-
-                def newJob = job(jobName) {
-                    steps {
-                        shell(infoScript)
-                        shell(buildScript)
-                        shell(testScript)
-                    }
-                }
-
-                def archivalString = "BuildLinux/build.log"
-                Utilities.addArchival(newJob, archivalString,
-                    '', // no exclusions from archival
-                    true, // doNotFailIfNothingArchived=false ~= failIfNothingArchived (true ~= doNotFail)
-                    false) // archiveOnlyIfSuccessful=false ~= archiveAlways
-
-                Utilities.setMachineAffinity(newJob, machine, 'latest-or-auto')
-                Utilities.standardJobSetup(newJob, project, isPR, "*/${branch}")
-
-                if (nonDefaultTaskSetup == null) {
-                    if (isPR) {
-                        def osTag = machineTypeToOSTagMap.get(machine)
-                        // Set up checks which apply to PRs targeting any branch
-                        Utilities.addGithubPRTriggerForBranch(newJob, xplatBranch, "${osTag} ${config}")
-                    } else {
-                        Utilities.addGithubPushTrigger(newJob)
-                    }
-                } else {
-                    // nonDefaultTaskSetup is e.g. DailyBuildTaskSetup (which sets up daily builds)
-                    // These jobs will only be configured for the branch specified below,
-                    // which is the name of the branch netci.groovy was processed for.
-                    // See list of such branches at:
-                    // https://github.com/dotnet/dotnet-ci/blob/master/jobs/data/repolist.txt
-                    nonDefaultTaskSetup(newJob, isPR, config)
-                }
+                CreateXPlatBuildTask(isPR, buildType, staticBuild, machine, platform,
+                    configTag, xplatBranch, nonDefaultTaskSetup, "", "")
             }
         }
     }
@@ -254,21 +264,39 @@ if (!branch.endsWith('-ci')) {
 // CODE STYLE TASKS
 // ----------------
 
-CreateStyleCheckTasks('./jenkins/check_eol.sh', 'ubuntu_check_eol', 'EOL Check')
 CreateStyleCheckTasks('./jenkins/check_copyright.sh', 'ubuntu_check_copyright', 'Copyright Check')
+CreateStyleCheckTasks('./jenkins/check_eol.sh', 'ubuntu_check_eol', 'EOL Check')
+CreateStyleCheckTasks('./jenkins/check_tabs.sh', 'ubuntu_check_tabs', 'Tab Check')
+
+// --------------
+// XPLAT BRANCHES
+// --------------
+
+// Explicitly enumerate xplat-incompatible branches, because we don't anticipate any future incompatible branches
+def isXPlatCompatibleBranch = !(branch in ['release/1.1', 'release/1.1-ci', 'release/1.2', 'release/1.2-ci'])
+
+// Include these explicitly-named branches
+def isXPlatDailyBranch = branch in ['master', 'linux', 'xplat']
+// Include some release/* branches
+if (branch.startsWith('release')) {
+    // Allows all current and future release/* branches on which we should run daily builds of XPlat configs.
+    // RegEx matches e.g. release/1.1, release/1.2, release/1.3-ci, but not e.g. release/2.0, release/1.3, or release/1.10
+    includeReleaseBranch = !(branch =~ /^release\/((1\.[12](\D.*)?)|(\d+\.\d+\D.*))$/)
+    isXPlatDailyBranch |= includeReleaseBranch
+}
 
 // -----------------
 // LINUX BUILD TASKS
 // -----------------
 
-if (branch.startsWith('linux') || branch.startsWith('master')) {
+if (isXPlatCompatibleBranch) {
     def osString = 'Ubuntu16.04'
 
     // PR and CI checks
     CreateXPlatBuildTasks(osString, "linux", "ubuntu", branch, null)
 
-    // daily builds - explicit branch names only
-    if (branch in ['linux', 'master']) {
+    // daily builds
+    if (isXPlatDailyBranch) {
         CreateXPlatBuildTasks(osString, "linux", "daily_ubuntu", branch,
             /* nonDefaultTaskSetup */ { newJob, isPR, config ->
                 DailyBuildTaskSetup(newJob, isPR,
@@ -277,18 +305,18 @@ if (branch.startsWith('linux') || branch.startsWith('master')) {
     }
 }
 
-// -----------------
+// ---------------
 // OSX BUILD TASKS
-// -----------------
+// ---------------
 
-if (branch.startsWith('linux') || branch.startsWith('master')) {
+if (isXPlatCompatibleBranch) {
     def osString = 'OSX'
 
     // PR and CI checks
     CreateXPlatBuildTasks(osString, "osx", "osx", branch, null)
 
-    // daily builds - explicit branch names only
-    if (branch in ['linux', 'master']) {
+    // daily builds
+    if (isXPlatDailyBranch) {
         CreateXPlatBuildTasks(osString, "osx", "daily_osx", branch,
             /* nonDefaultTaskSetup */ { newJob, isPR, config ->
                 DailyBuildTaskSetup(newJob, isPR,
@@ -296,3 +324,17 @@ if (branch.startsWith('linux') || branch.startsWith('master')) {
                     'linux\\s+tests')})
     }
 }
+
+// ------------
+// HELP MESSAGE
+// ------------
+
+Utilities.createHelperJob(this, project, branch,
+    "Welcome to the ${project} Repository",  // This is prepended to the help message
+    "For additional documentation on ChakraCore CI checks, please see:\n" +
+    "\n" +
+    "* https://github.com/Microsoft/ChakraCore/wiki/Jenkins-CI-Checks\n" +
+    "* https://github.com/Microsoft/ChakraCore/wiki/Jenkins-Build-Triggers\n" +
+    "* https://github.com/Microsoft/ChakraCore/wiki/Jenkins-Repro-Steps\n" +
+    "\n" +
+    "Have a nice day!")  // This is appended to the help message.  You might put known issues here.

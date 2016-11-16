@@ -4,6 +4,9 @@
 //-------------------------------------------------------------------------------------------------------
 #include "stdafx.h"
 #include "Core/AtomLockGuids.h"
+#ifdef _WIN32
+#include <process.h>
+#endif
 
 unsigned int MessageBase::s_messageCount = 0;
 Debugger* Debugger::debugger = nullptr;
@@ -18,12 +21,12 @@ JsRuntimeHandle chRuntime = JS_INVALID_RUNTIME_HANDLE;
 
 BOOL doTTRecord = false;
 BOOL doTTDebug = false;
-char* ttUri = nullptr;
+byte ttUri[MAX_PATH * sizeof(wchar_t)];
+size_t ttUriByteLength = 0;
 UINT32 snapInterval = MAXUINT32;
 UINT32 snapHistoryLength = MAXUINT32;
-
-const char16* dbgIPAddr = nullptr;
-unsigned short dbgPort = 0;
+LPWSTR connectionUuidString = NULL;
+UINT32 startEventCount = 1;
 
 extern "C"
 HRESULT __stdcall OnChakraCoreLoadedEntry(TestHooks& testHooks)
@@ -37,6 +40,9 @@ int HostExceptionFilter(int exceptionCode, _EXCEPTION_POINTERS *ep)
 {
     ChakraRTInterface::NotifyUnhandledException(ep);
 
+#if ENABLE_NATIVE_CODEGEN && _WIN32
+    JITProcessManager::TerminateJITServer();
+#endif
     bool crashOnException = false;
     ChakraRTInterface::GetCrashOnExceptionFlag(&crashOnException);
 
@@ -74,7 +80,8 @@ void __stdcall PrintUsage()
 
 // On success the param byteCodeBuffer will be allocated in the function.
 // The caller of this function should de-allocate the memory.
-HRESULT GetSerializedBuffer(LPCSTR fileContents, __out BYTE **byteCodeBuffer, __out DWORD *byteCodeBufferSize)
+HRESULT GetSerializedBuffer(LPCSTR fileContents, __out BYTE **byteCodeBuffer,
+    __out DWORD *byteCodeBufferSize)
 {
     HRESULT hr = S_OK;
     *byteCodeBuffer = nullptr;
@@ -83,8 +90,13 @@ HRESULT GetSerializedBuffer(LPCSTR fileContents, __out BYTE **byteCodeBuffer, __
 
     unsigned int bcBufferSize = 0;
     unsigned int newBcBufferSize = 0;
-    IfJsErrorFailLog(ChakraRTInterface::JsSerializeScriptUtf8(fileContents, bcBuffer, &bcBufferSize));
-    // Above call will return the size of the buffer only, once succeed we need to allocate memory of that much and call it again.
+    JsValueRef scriptSource;
+    IfJsErrorFailLog(ChakraRTInterface::JsCreateExternalArrayBuffer((void*)fileContents,
+        (unsigned int)strlen(fileContents), nullptr, nullptr, &scriptSource));
+    IfJsErrorFailLog(ChakraRTInterface::JsSerialize(scriptSource, bcBuffer,
+        &bcBufferSize, JsParseScriptAttributeNone));
+    // Call above will return the size of the buffer only, once succeed
+    // we need to allocate memory of that much and call it again.
     if (bcBufferSize == 0)
     {
         AssertMsg(false, "bufferSize should not be zero");
@@ -92,7 +104,8 @@ HRESULT GetSerializedBuffer(LPCSTR fileContents, __out BYTE **byteCodeBuffer, __
     }
     bcBuffer = new BYTE[bcBufferSize];
     newBcBufferSize = bcBufferSize;
-    IfJsErrorFailLog(ChakraRTInterface::JsSerializeScriptUtf8(fileContents, bcBuffer, &newBcBufferSize));
+    IfJsErrorFailLog(ChakraRTInterface::JsSerialize(scriptSource, bcBuffer,
+        &newBcBufferSize, JsParseScriptAttributeNone));
     Assert(bcBufferSize == newBcBufferSize);
 
 Error:
@@ -207,27 +220,32 @@ static void CALLBACK PromiseContinuationCallback(JsValueRef task, void *callback
     MessageQueue * messageQueue = (MessageQueue *)callbackState;
 
     WScriptJsrt::CallbackMessage *msg = new WScriptJsrt::CallbackMessage(0, task);
-
-#if ENABLE_TTD
-    ChakraRTInterface::JsTTDNotifyHostCallbackCreatedOrCanceled(true /*isCreate*/, false /*isCancel*/, false /*isRepeating*/, task, msg->GetId());
-#endif
-
     messageQueue->InsertSorted(msg);
 }
 
-static bool CHAKRA_CALLBACK DummyJsSerializedScriptLoadUtf8Source(_In_ JsSourceContext sourceContext, _Outptr_result_z_ const char** scriptBuffer)
+static bool CHAKRA_CALLBACK DummyJsSerializedScriptLoadUtf8Source(
+    JsSourceContext sourceContext,
+    JsValueRef* scriptBuffer,
+    JsParseScriptAttributes *parseAttributes)
 {
-    // sourceContext is source ptr, see RunScript below
-    *scriptBuffer = reinterpret_cast<const char*>(sourceContext);
-    return true;
-}
+    const char* script = reinterpret_cast<const char*>(sourceContext);
+    size_t length = strlen(script);
 
-static void CHAKRA_CALLBACK DummyJsSerializedScriptUnload(_In_ JsSourceContext sourceContext)
-{
     // sourceContext is source ptr, see RunScript below
-    // source memory was originally allocated with malloc() in
-    // Helpers::LoadScriptFromFile. No longer needed, free() it.
-    free(reinterpret_cast<void*>(sourceContext));
+    if (ChakraRTInterface::JsCreateExternalArrayBuffer((void*)script, (unsigned int)length,
+        [](void* data)
+        {
+            // sourceContext is source ptr, see RunScript below
+            // source memory was originally allocated with malloc() in
+            // Helpers::LoadScriptFromFile. No longer needed, free() it.
+            free(data);
+        }, nullptr, scriptBuffer) != JsNoError)
+    {
+        return false;
+    }
+
+    *parseAttributes = JsParseScriptAttributeNone;
+    return true;
 }
 
 HRESULT RunScript(const char* fileName, LPCSTR fileContents, BYTE *bcBuffer, char *fullPath)
@@ -250,22 +268,33 @@ HRESULT RunScript(const char* fileName, LPCSTR fileContents, BYTE *bcBuffer, cha
             return E_FAIL;
         }
 
-        ChakraRTInterface::JsTTDStartTimeTravelDebugging();
+        ChakraRTInterface::JsTTDStart();
 
         try
         {
-            INT64 snapEventTime = -1;
-            INT64 nextEventTime = -2;
+            JsTTDMoveMode moveMode = (JsTTDMoveMode)(JsTTDMoveMode::JsTTDMoveKthEvent | ((int64) startEventCount) << 32);
+            int64_t snapEventTime = -1;
+            int64_t nextEventTime = -2;
 
             while(true)
             {
-                IfJsErrorFailLog(ChakraRTInterface::JsTTDPrepContextsForTopLevelEventMove(chRuntime, nextEventTime, &snapEventTime));
+                JsErrorCode error = ChakraRTInterface::JsTTDGetSnapTimeTopLevelEventMove(chRuntime, moveMode, &nextEventTime, &snapEventTime, nullptr);
 
-                ChakraRTInterface::JsTTDMoveToTopLevelEvent(snapEventTime, nextEventTime);
+                if(error != JsNoError)
+                {
+                    if(error == JsErrorCategoryUsage)
+                    {
+                        wprintf(_u("Start time not in log range.\n"));
+                    }
 
-                JsErrorCode res = ChakraRTInterface::JsTTDReplayExecution(&nextEventTime);
+                    return error;
+                }
 
-                //handle any uncaught exception by immediately time-traveling to the throwing line
+                IfFailedReturn(ChakraRTInterface::JsTTDMoveToTopLevelEvent(chRuntime, moveMode, snapEventTime, nextEventTime));
+
+                JsErrorCode res = ChakraRTInterface::JsTTDReplayExecution(&moveMode, &nextEventTime);
+
+                //handle any uncaught exception by immediately time-traveling to the throwing line in the debugger -- in replay just report and exit
                 if(res == JsErrorCategoryScript)
                 {
                     wprintf(_u("An unhandled script exception occoured!!!\n"));
@@ -282,7 +311,7 @@ HRESULT RunScript(const char* fileName, LPCSTR fileContents, BYTE *bcBuffer, cha
         }
         catch(...)
         {
-            wprintf(_u("Terminal exception in Replay -- exiting."));
+            wprintf(_u("Terminal exception in Replay -- exiting.\n"));
             ExitProcess(0);
         }
 #endif
@@ -292,32 +321,47 @@ HRESULT RunScript(const char* fileName, LPCSTR fileContents, BYTE *bcBuffer, cha
         Assert(fileContents != nullptr || bcBuffer != nullptr);
 
         JsErrorCode runScript;
+        JsValueRef fname;
+        IfJsErrorFailLog(ChakraRTInterface::JsCreateStringUtf8((const uint8_t*)fullPath,
+            strlen(fullPath), &fname));
+
         if(bcBuffer != nullptr)
         {
-            runScript = ChakraRTInterface::JsRunSerializedScriptUtf8(
-                DummyJsSerializedScriptLoadUtf8Source, DummyJsSerializedScriptUnload,
+            runScript = ChakraRTInterface::JsRunSerialized(
                 bcBuffer,
+                DummyJsSerializedScriptLoadUtf8Source,
                 reinterpret_cast<JsSourceContext>(fileContents),
                 // Use source ptr as sourceContext
-                fullPath, nullptr /*result*/);
+                fname, nullptr /*result*/);
         }
         else
         {
+            JsValueRef scriptSource;
+            IfJsErrorFailLog(ChakraRTInterface::JsCreateExternalArrayBuffer((void*)fileContents,
+                (unsigned int)strlen(fileContents),
+                [](void *data)
+                {
+                    free(data);
+                }, nullptr, &scriptSource));
 #if ENABLE_TTD
             if(doTTRecord)
             {
-                ChakraRTInterface::JsTTDStartTimeTravelRecording();
+                ChakraRTInterface::JsTTDStart();
             }
 
-            runScript = ChakraRTInterface::JsTTDRunScript(-1, fileContents, WScriptJsrt::GetNextSourceContext(), fullPath, nullptr /*result*/);
-
+            runScript = ChakraRTInterface::JsRun(scriptSource,
+                WScriptJsrt::GetNextSourceContext(), fname,
+                JsParseScriptAttributeNone, nullptr /*result*/);
             if (runScript == JsErrorCategoryUsage)
             {
                 wprintf(_u("FATAL ERROR: Core was compiled without ENABLE_TTD is defined. CH is trying to use TTD interface\n"));
                 abort();
             }
 #else
-            runScript = ChakraRTInterface::JsRunScriptUtf8(fileContents, WScriptJsrt::GetNextSourceContext(), fullPath, nullptr /*result*/);
+            runScript = ChakraRTInterface::JsRun(scriptSource,
+                WScriptJsrt::GetNextSourceContext(), fname,
+                JsParseScriptAttributeNone,
+                nullptr /*result*/);
 #endif
         }
 
@@ -343,7 +387,8 @@ Error:
 #if ENABLE_TTD
     if(doTTRecord)
     {
-        ChakraRTInterface::JsTTDStopTimeTravelRecording();
+        ChakraRTInterface::JsTTDEmitRecording();
+        ChakraRTInterface::JsTTDStop();
     }
 #endif
 
@@ -449,16 +494,19 @@ HRESULT ExecuteTest(const char* fileName)
 
         jsrtAttributes = static_cast<JsRuntimeAttributes>(jsrtAttributes | JsRuntimeAttributeEnableExperimentalFeatures);
 
-        IfJsErrorFailLog(ChakraRTInterface::JsTTDCreateDebugRuntime(jsrtAttributes, ttUri, (charcount_t) strlen(ttUri), nullptr, &runtime));
+        IfJsErrorFailLog(ChakraRTInterface::JsTTDCreateReplayRuntime(jsrtAttributes, ttUri, ttUriByteLength, Helpers::TTInitializeForWriteLogStreamCallback, Helpers::TTCreateStreamCallback, Helpers::TTReadBytesFromStreamCallback, Helpers::TTWriteBytesToStreamCallback, Helpers::TTFlushAndCloseStreamCallback, nullptr, &runtime));
         chRuntime = runtime;
 
-        ChakraRTInterface::JsTTDSetIOCallbacks(runtime, &Helpers::GetTTDDirectory, &Helpers::TTInitializeForWriteLogStreamCallback, &Helpers::TTGetLogStreamCallback, &Helpers::TTGetSnapshotStreamCallback, &Helpers::TTGetSrcCodeStreamCallback, &Helpers::TTReadBytesFromStreamCallback, &Helpers::TTWriteBytesToStreamCallback, &Helpers::TTFlushAndCloseStreamCallback);
-
         JsContextRef context = JS_INVALID_REFERENCE;
-        IfJsErrorFailLog(ChakraRTInterface::JsTTDCreateContext(runtime, &context));
+        IfJsErrorFailLog(ChakraRTInterface::JsTTDCreateContext(runtime, true, &context));
         IfJsErrorFailLog(ChakraRTInterface::JsSetCurrentContext(context));
 
         IfFailGo(RunScript(fileName, fileContents, nullptr, nullptr));
+
+        unsigned int rcount = 0;
+        IfJsErrorFailLog(ChakraRTInterface::JsSetCurrentContext(nullptr));
+        ChakraRTInterface::JsRelease(context, &rcount);
+        AssertMsg(rcount == 0, "Should only have had 1 ref from replay code and one ref from current context??");
 #endif
     }
     else
@@ -483,13 +531,17 @@ HRESULT ExecuteTest(const char* fileName)
             //Ensure we run with experimental features (as that is what Node does right now).
             jsrtAttributes = static_cast<JsRuntimeAttributes>(jsrtAttributes | JsRuntimeAttributeEnableExperimentalFeatures);
 
-            IfJsErrorFailLog(ChakraRTInterface::JsTTDCreateRecordRuntime(jsrtAttributes, ttUri, (charcount_t) strlen(ttUri), snapInterval, snapHistoryLength, nullptr, &runtime));
+            IfJsErrorFailLog(ChakraRTInterface::JsTTDCreateRecordRuntime(jsrtAttributes, ttUri, ttUriByteLength, snapInterval, snapHistoryLength, Helpers::TTInitializeForWriteLogStreamCallback, Helpers::TTCreateStreamCallback, Helpers::TTReadBytesFromStreamCallback, Helpers::TTWriteBytesToStreamCallback, Helpers::TTFlushAndCloseStreamCallback, nullptr, &runtime));
             chRuntime = runtime;
 
-            ChakraRTInterface::JsTTDSetIOCallbacks(runtime, &Helpers::GetTTDDirectory, &Helpers::TTInitializeForWriteLogStreamCallback, &Helpers::TTGetLogStreamCallback, &Helpers::TTGetSnapshotStreamCallback, &Helpers::TTGetSrcCodeStreamCallback, &Helpers::TTReadBytesFromStreamCallback, &Helpers::TTWriteBytesToStreamCallback, &Helpers::TTFlushAndCloseStreamCallback);
-
             JsContextRef context = JS_INVALID_REFERENCE;
-            IfJsErrorFailLog(ChakraRTInterface::JsTTDCreateContext(runtime, &context));
+            IfJsErrorFailLog(ChakraRTInterface::JsTTDCreateContext(runtime, true, &context));
+
+#if ENABLE_TTD
+            //We need this here since this context is created in record
+            IfJsErrorFailLog(ChakraRTInterface::JsSetObjectBeforeCollectCallback(context, nullptr, WScriptJsrt::JsContextBeforeCollectCallback));
+#endif
+
             IfJsErrorFailLog(ChakraRTInterface::JsSetCurrentContext(context));
         }
         else
@@ -507,6 +559,9 @@ HRESULT ExecuteTest(const char* fileName)
 
             JsContextRef context = JS_INVALID_REFERENCE;
             IfJsErrorFailLog(ChakraRTInterface::JsCreateContext(runtime, &context));
+
+            //Don't need collect callback since this is always in replay
+
             IfJsErrorFailLog(ChakraRTInterface::JsSetCurrentContext(context));
         }
 #else
@@ -526,6 +581,9 @@ HRESULT ExecuteTest(const char* fileName)
 
 #ifdef DEBUG
         ChakraRTInterface::SetCheckOpHelpersFlag(true);
+#endif
+#ifdef ENABLE_DEBUG_CONFIG_OPTIONS
+        ChakraRTInterface::SetOOPCFGRegistrationFlag(false);
 #endif
 
         if (!WScriptJsrt::Initialize())
@@ -627,6 +685,83 @@ HRESULT ExecuteTestWithMemoryCheck(char* fileName)
     return hr;
 }
 
+#ifdef _WIN32
+bool HandleJITServerFlag(int& argc, _Inout_updates_to_(argc, argc) LPWSTR argv[])
+{
+    LPCWSTR flag = L"-jitserver:";
+    LPCWSTR flagWithoutColon = L"-jitserver";
+    size_t flagLen = wcslen(flag);
+
+    int i = 0;
+    for (i = 1; i < argc; ++i)
+    {
+        if (!_wcsicmp(argv[i], flagWithoutColon))
+        {
+            connectionUuidString = L"";
+            break;
+        }
+        else if (!_wcsnicmp(argv[i], flag, flagLen))
+        {
+            connectionUuidString = argv[i] + flagLen;
+            if (wcslen(connectionUuidString) == 0)
+            {
+                fwprintf(stdout, L"[FAILED]: must pass a UUID to -jitserver:\n");
+                return false;
+            }
+            else
+            {
+                break;
+            }
+        }
+    }
+
+    if (i == argc)
+    {
+        return false;
+    }
+
+    // remove this flag now
+    HostConfigFlags::RemoveArg(argc, argv, i);
+
+    return true;
+}
+
+typedef HRESULT(WINAPI *JsInitializeJITServerPtr)(UUID* connectionUuid, void* securityDescriptor, void* alpcSecurityDescriptor);
+
+int _cdecl RunJITServer(int argc, __in_ecount(argc) LPWSTR argv[])
+{
+    ChakraRTInterface::ArgInfo argInfo = { argc, argv, PrintUsage, nullptr };
+    HINSTANCE chakraLibrary = nullptr;
+    bool success = ChakraRTInterface::LoadChakraDll(&argInfo, &chakraLibrary);
+
+    if (!success)
+    {
+        wprintf(L"\nDll load failed\n");
+        return ERROR_DLL_INIT_FAILED;
+    }
+
+    UUID connectionUuid;
+    DWORD status = UuidFromStringW((RPC_WSTR)connectionUuidString, &connectionUuid);
+    if (status != RPC_S_OK)
+    {
+        return status;
+    }
+
+    JsInitializeJITServerPtr initRpcServer = (JsInitializeJITServerPtr)GetProcAddress(chakraLibrary, "JsInitializeJITServer");
+    HRESULT hr = initRpcServer(&connectionUuid, nullptr, nullptr);
+    if (FAILED(hr))
+    {
+        wprintf(L"InitializeJITServer failed by 0x%x\n", hr);
+        return hr;
+    }
+
+    if (chakraLibrary)
+    {
+        ChakraRTInterface::UnloadChakraDll(chakraLibrary);
+    }
+    return 0;
+}
+#endif
 
 unsigned int WINAPI StaticThreadProc(void *lpParam)
 {
@@ -650,6 +785,10 @@ int _cdecl wmain(int argc, __in_ecount(argc) LPWSTR argv[])
 {
 #endif
 
+#ifdef _WIN32
+    bool runJITServer = HandleJITServerFlag(argc, argv);
+#endif
+
     if (argc < 2)
     {
         PrintUsage();
@@ -657,35 +796,42 @@ int _cdecl wmain(int argc, __in_ecount(argc) LPWSTR argv[])
         return EXIT_FAILURE;
     }
 
-    int cpos = 0;
-    for(int i = 0; i < argc; ++i)
+#ifdef _WIN32
+    if (runJITServer)
     {
-        if(wcsstr(argv[i], _u("-TTRecord:")) == argv[i])
+        return RunJITServer(argc, argv);
+    }
+#endif
+
+    int cpos = 1;
+    for(int i = 1; i < argc; ++i)
+    {
+        if(wcsstr(argv[i], _u("-TTRecord=")) == argv[i])
         {
             doTTRecord = true;
-            ttUri = utf8::WideToNarrow(argv[i] + wcslen(_u("-TTRecord:"))).Detach();
+            wchar* ruri = argv[i] + wcslen(_u("-TTRecord="));
+            Helpers::GetTTDDirectory(ruri, &ttUriByteLength, ttUri);
         }
-        else if(wcsstr(argv[i], _u("-TTDebug:")) == argv[i])
+        else if(wcsstr(argv[i], _u("-TTDebug=")) == argv[i])
         {
             doTTDebug = true;
-            ttUri = utf8::WideToNarrow(argv[i] + wcslen(_u("-TTDebug:"))).Detach();
+            wchar* ruri = argv[i] + wcslen(_u("-TTDebug="));
+            Helpers::GetTTDDirectory(ruri, &ttUriByteLength, ttUri);
         }
-        else if(wcsstr(argv[i], _u("-TTSnapInterval:")) == argv[i])
+        else if(wcsstr(argv[i], _u("-TTSnapInterval=")) == argv[i])
         {
-            LPCWSTR intervalStr = argv[i] + wcslen(_u("-TTSnapInterval:"));
+            LPCWSTR intervalStr = argv[i] + wcslen(_u("-TTSnapInterval="));
             snapInterval = (UINT32)_wtoi(intervalStr);
         }
-        else if(wcsstr(argv[i], _u("-TTHistoryLength:")) == argv[i])
+        else if(wcsstr(argv[i], _u("-TTHistoryLength=")) == argv[i])
         {
-            LPCWSTR historyStr = argv[i] + wcslen(_u("-TTHistoryLength:"));
+            LPCWSTR historyStr = argv[i] + wcslen(_u("-TTHistoryLength="));
             snapHistoryLength = (UINT32)_wtoi(historyStr);
         }
-        else if(wcsstr(argv[i], _u("--debug-brk=")) == argv[i])
+        else if(wcsstr(argv[i], _u("-TTDStartEvent=")) == argv[i])
         {
-            dbgIPAddr = _u("127.0.0.1");
-
-            LPCWSTR portStr = argv[i] + wcslen(_u("--debug-brk="));
-            dbgPort = (unsigned short)_wtoi(portStr);
+            LPCWSTR startEventStr = argv[i] + wcslen(_u("-TTDStartEvent="));
+            startEventCount = (UINT32)_wtoi(startEventStr);
         }
         else
         {
@@ -730,6 +876,15 @@ int _cdecl wmain(int argc, __in_ecount(argc) LPWSTR argv[])
     if (success)
     {
 #ifdef _WIN32
+#if ENABLE_NATIVE_CODEGEN
+        if (HostConfigFlags::flags.OOPJIT)
+        {
+            // TODO: Error checking
+            JITProcessManager::StartRpcServer(argc, argv);
+            ChakraRTInterface::ConnectJITServer(JITProcessManager::GetRpcProccessHandle(), nullptr, JITProcessManager::GetRpcConnectionId());
+        }
+#endif
+
         HANDLE threadHandle;
         threadHandle = reinterpret_cast<HANDLE>(_beginthreadex(0, 0, &StaticThreadProc, &argInfo, STACK_SIZE_PARAM_IS_A_RESERVATION, 0));
 
@@ -748,13 +903,18 @@ int _cdecl wmain(int argc, __in_ecount(argc) LPWSTR argv[])
         // On linux, execute on the same thread
         ExecuteTestWithMemoryCheck(argInfo.filename);
 #endif
+
+#if ENABLE_NATIVE_CODEGEN && defined(_WIN32)
+        JITProcessManager::StopRpcServer(chakraLibrary);
+#endif
         ChakraRTInterface::UnloadChakraDll(chakraLibrary);
     }
-
-    if (ttUri != nullptr)
+#if ENABLE_NATIVE_CODEGEN && defined(_WIN32)
+    else
     {
-        free(ttUri);
+        JITProcessManager::TerminateJITServer();
     }
+#endif
 
     PAL_Shutdown();
     return 0;

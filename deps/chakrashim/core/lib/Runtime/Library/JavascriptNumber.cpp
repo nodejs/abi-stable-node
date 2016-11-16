@@ -220,7 +220,8 @@ namespace Js
             }
         }
 
-        return ::pow(x, y);
+        // always call pow(double, double) in C runtime which has a bug to process pow(double, int).
+        return ::pow(x, static_cast<double>(y));
     }
 
 #if _M_IX86
@@ -229,6 +230,12 @@ namespace Js
 
     static const double d1_0 = 1.0;
 
+#if !ENABLE_NATIVE_CODEGEN
+    double JavascriptNumber::DirectPow(double x, double y)
+    {
+        return ::pow(x, y);
+    }
+#else
     __declspec(naked)
     double JavascriptNumber::DirectPow(double x, double y)
     {
@@ -269,6 +276,7 @@ namespace Js
             ret
         }
     }
+#endif
 
 #elif defined(_M_AMD64) || defined(_M_ARM32_OR_ARM64)
 
@@ -282,6 +290,7 @@ namespace Js
         // For AMD64/ARM calling convention already uses SSE2/VFP registers so we don't have to use assembler.
         // We can't just use "if (0 == y)" because NaN compares
         // equal to 0 according to our compilers.
+        int32 intY;
         if (0 == NumberUtilities::LuLoDbl(y) && 0 == (NumberUtilities::LuHiDbl(y) & 0x7FFFFFFF))
         {
             // pow(x, 0) = 1 even if x is NaN.
@@ -291,6 +300,11 @@ namespace Js
         {
             // pow([+/-] 1, Infinity) = NaN according to javascript, but not for CRT pow.
             return JavascriptNumber::NaN;
+        }
+        else if (TryGetInt32Value(y, &intY))
+        {
+            // check fast path
+            return DirectPowDoubleInt(x, intY);
         }
 
         return ::pow(x, y);
@@ -399,7 +413,7 @@ namespace Js
         ScriptContext* scriptContext = function->GetScriptContext();
 
         Assert(!(callInfo.Flags & CallFlags_New));
-        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(IsNaNCount);
+        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(Number_Constructor_isNaN);
 
         if (args.Info.Count < 2 || !JavascriptOperators::IsAnyNumberValue(args[1]))
         {
@@ -427,7 +441,7 @@ namespace Js
         ScriptContext* scriptContext = function->GetScriptContext();
 
         Assert(!(callInfo.Flags & CallFlags_New));
-        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(IsFiniteCount);
+        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(Number_Constructor_isFinite);
 
         if (args.Info.Count < 2 || !JavascriptOperators::IsAnyNumberValue(args[1]))
         {
@@ -452,7 +466,7 @@ namespace Js
         ScriptContext* scriptContext = function->GetScriptContext();
 
         Assert(!(callInfo.Flags & CallFlags_New));
-        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(IsIntegerCount);
+        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(Number_Constructor_isInteger);
 
         if (args.Info.Count < 2 || !JavascriptOperators::IsAnyNumberValue(args[1]))
         {
@@ -480,7 +494,7 @@ namespace Js
         ScriptContext* scriptContext = function->GetScriptContext();
 
         Assert(!(callInfo.Flags & CallFlags_New));
-        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(IsSafeIntegerCount);
+        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(Number_Constructor_isSafeInteger);
 
         if (args.Info.Count < 2 || !JavascriptOperators::IsAnyNumberValue(args[1]))
         {

@@ -384,7 +384,7 @@ namespace Js
             HRESULT hr;
 
             DelayLoadWindowsGlobalization *library = scriptContext->GetThreadContext()->GetWindowsGlobalizationLibrary();
-            
+
             JavascriptString* initType = nullptr;
 
             //Ensure we have initialized all appropriate COM objects for the adapter (we will be using them now)
@@ -414,7 +414,7 @@ namespace Js
                     break;
             }
 
-            Js::ScriptFunction *function = scriptContext->GetLibrary()->CreateScriptFunction(intlByteCode->GetNestedFunc(0)->EnsureDeserialized());
+            Js::ScriptFunction *function = scriptContext->GetLibrary()->CreateScriptFunction(intlByteCode->GetNestedFunctionForExecution(0));
 
             // If we are profiling, we need to register the script to the profiler callback, so the script compiled event will be sent.
             if (scriptContext->IsProfiling())
@@ -441,9 +441,9 @@ namespace Js
                 deletePrototypePropertyHelper(scriptContext, intlObject, Js::PropertyIds::DateTimeFormat, Js::PropertyIds::format);
             }
         }
-        catch (JavascriptExceptionObject* exceptionObject)
+        catch (const JavascriptException& err)
         {
-            pExceptionObject = exceptionObject;
+            pExceptionObject = err.GetAndClear();
         }
 
         if (pExceptionObject)
@@ -477,8 +477,8 @@ namespace Js
                     globAdapter->ResetNumberFormatFactoryObjects();
                     break;
                 }
-                pExceptionObject = pExceptionObject->CloneIfStaticExceptionObject(scriptContext);
-                throw pExceptionObject;
+
+                JavascriptExceptionOperators::DoThrowCheckClone(pExceptionObject, scriptContext);
             }
             JavascriptError::ThrowTypeError(scriptContext, JSERR_IntlNotAvailable);
         }

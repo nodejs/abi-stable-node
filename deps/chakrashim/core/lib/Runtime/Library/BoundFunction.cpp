@@ -238,6 +238,13 @@ namespace Js
         }
     }
 
+#if ENABLE_TTD
+    void BoundFunction::MarshalCrossSite_TTDInflate()
+    {
+        AssertMsg(VirtualTableInfo<BoundFunction>::HasVirtualTable(this), "Derived class need to define marshal");
+        VirtualTableInfo<Js::CrossSiteObject<BoundFunction>>::SetVirtualTable(this);
+    }
+#endif
 
     JavascriptFunction * BoundFunction::GetTargetFunction() const
     {
@@ -425,6 +432,17 @@ namespace Js
         return JavascriptFunction::DeleteProperty(propertyId, flags);
     }
 
+    BOOL BoundFunction::DeleteProperty(JavascriptString *propertyNameString, PropertyOperationFlags flags)
+    {
+        JsUtil::CharacterBuffer<WCHAR> propertyName(propertyNameString->GetString(), propertyNameString->GetLength());
+        if (BuiltInPropertyRecords::length.Equals(propertyName))
+        {
+            return false;
+        }
+
+        return JavascriptFunction::DeleteProperty(propertyNameString, flags);
+    }
+
     BOOL BoundFunction::IsWritable(PropertyId propertyId)
     {
         if (propertyId == PropertyIds::length)
@@ -481,7 +499,7 @@ namespace Js
         this->GetScriptContext()->TTDWellKnownInfo->EnqueueNewPathVarAsNeeded(this, this->targetFunction, _u("!targetFunction"));
         this->GetScriptContext()->TTDWellKnownInfo->EnqueueNewPathVarAsNeeded(this, this->boundThis, _u("!boundThis"));
 
-        AssertMsg(this->count == 0, "Should only have empty args in core image");
+        TTDAssert(this->count == 0, "Should only have empty args in core image");
     }
 
     TTD::NSSnapObjects::SnapObjectType BoundFunction::GetSnapTag_TTD() const
@@ -504,17 +522,25 @@ namespace Js
             bfi->ArgArray = alloc.SlabAllocateArray<TTD::TTDVar>(bfi->ArgCount);
         }
 
-        uint32 depCount = 2;
-        TTD_PTR_ID* depArray = alloc.SlabReserveArraySpace<TTD_PTR_ID>(depCount + bfi->ArgCount);
+        TTD_PTR_ID* depArray = alloc.SlabReserveArraySpace<TTD_PTR_ID>(bfi->ArgCount + 2 /*this and bound function*/);
+
         depArray[0] = bfi->TargetFunction;
-        depArray[1] = bfi->BoundThis;
+        uint32 depCount = 1;
+
+        if(this->boundThis != nullptr && TTD::JsSupport::IsVarComplexKind(this->boundThis))
+        {
+            depArray[depCount] = bfi->BoundThis;
+            depCount++;
+        }
 
         if(bfi->ArgCount > 0)
         {
             for(uint32 i = 0; i < bfi->ArgCount; ++i)
             {
                 bfi->ArgArray[i] = this->boundArgs[i];
-                if(TTD::JsSupport::IsVarPtrValued(this->boundArgs[i]))
+
+                //Primitive kinds always inflated first so we only need to deal with complex kinds as depends on
+                if(TTD::JsSupport::IsVarComplexKind(this->boundArgs[i]))
                 {
                     depArray[depCount] = TTD_CONVERT_VAR_TO_PTR_ID(this->boundArgs[i]);
                     depCount++;

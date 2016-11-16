@@ -6,10 +6,16 @@
 
 namespace Js
 {
-    PropertyId const ArrayBuffer::specialPropertyIds[] =
+    bool ArrayBufferBase::Is(Var value)
     {
-        PropertyIds::byteLength
-    };
+        return ArrayBuffer::Is(value) || SharedArrayBuffer::Is(value);
+    }
+
+    ArrayBufferBase* ArrayBufferBase::FromVar(Var value)
+    {
+        Assert(ArrayBufferBase::Is(value));
+        return static_cast<ArrayBuffer *> (value);
+    }
 
     ArrayBuffer* ArrayBuffer::NewFromDetachedState(DetachedStateBase* state, JavascriptLibrary *library)
     {
@@ -145,23 +151,43 @@ namespace Js
         }
     }
 
-    uint32 ArrayBuffer::GetByteLengthFromVar(ScriptContext* scriptContext, Var length)
+    uint32 ArrayBuffer::ToIndex(Var value, int32 errorCode, ScriptContext *scriptContext, uint32 MaxAllowedLength, bool checkSameValueZero)
     {
-        Var firstArgument = length;
-        if (TaggedInt::Is(firstArgument))
+        if (JavascriptOperators::IsUndefined(value))
         {
-            int32 byteCount = TaggedInt::ToInt32(firstArgument);
-            if (byteCount < 0)
+            return 0;
+        }
+
+        if (TaggedInt::Is(value))
+        {
+            int64 index = TaggedInt::ToInt64(value);
+            if (index < 0 || index > (int64)MaxAllowedLength)
             {
-                JavascriptError::ThrowRangeError(
-                    scriptContext, JSERR_ArrayLengthConstructIncorrect);
+                JavascriptError::ThrowRangeError(scriptContext, errorCode);
             }
-            return byteCount;
+
+            return  (uint32)index;
         }
-        else
+
+        // Slower path
+
+        double d = JavascriptConversion::ToInteger(value, scriptContext);
+        if (d < 0.0 || d > (double)MaxAllowedLength)
         {
-            return JavascriptConversion::ToUInt32(firstArgument, scriptContext);
+            JavascriptError::ThrowRangeError(scriptContext, errorCode);
         }
+
+        if (checkSameValueZero)
+        {
+            Var integerIndex = JavascriptNumber::ToVarNoCheck(d, scriptContext);
+            Var index = JavascriptNumber::ToVar(JavascriptConversion::ToLength(integerIndex, scriptContext), scriptContext);
+            if (!JavascriptConversion::SameValueZero(integerIndex, index))
+            {
+                JavascriptError::ThrowRangeError(scriptContext, errorCode);
+            }
+        }
+
+        return (uint32)d;
     }
 
     Var ArrayBuffer::NewInstance(RecyclableObject* function, CallInfo callInfo, ...)
@@ -185,7 +211,7 @@ namespace Js
         uint32 byteLength = 0;
         if (args.Info.Count > 1)
         {
-            byteLength = GetByteLengthFromVar(scriptContext, args[1]);
+            byteLength = ToIndex(args[1], JSERR_ArrayLengthConstructIncorrect, scriptContext, MaxArrayBufferLength, false);
         }
 
         RecyclableObject* newArr = scriptContext->GetLibrary()->CreateArrayBuffer(byteLength);
@@ -263,7 +289,7 @@ namespace Js
 
         Assert(!(callInfo.Flags & CallFlags_New));
 
-        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(ArrayBufferTransfer);
+        CHAKRATEL_LANGSTATS_INC_BUILTINCOUNT(ArrayBuffer_Constructor_transfer);
 
         if (args.Info.Count < 2 || !ArrayBuffer::Is(args[1]))
         {
@@ -280,12 +306,7 @@ namespace Js
         uint32 newBufferLength = arrayBuffer->bufferLength;
         if (args.Info.Count >= 3)
         {
-            newBufferLength = GetByteLengthFromVar(scriptContext, args[2]);
-        }
-
-        if (newBufferLength > MaxArrayBufferLength)
-        {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_FunctionArgument_Invalid);
+            newBufferLength = ToIndex(args[2], JSERR_ArrayLengthConstructIncorrect, scriptContext, MaxArrayBufferLength);
         }
 
         return arrayBuffer->TransferInternal(newBufferLength);
@@ -431,7 +452,7 @@ namespace Js
 
     template <class Allocator>
     ArrayBuffer::ArrayBuffer(uint32 length, DynamicType * type, Allocator allocator) :
-        DynamicObject(type), mIsAsmJsBuffer(false), isBufferCleared(false),isDetached(false)
+        ArrayBufferBase(type), mIsAsmJsBuffer(false), isBufferCleared(false),isDetached(false)
     {
         buffer = nullptr;
         bufferLength = 0;
@@ -478,271 +499,12 @@ namespace Js
     }
 
     ArrayBuffer::ArrayBuffer(byte* buffer, uint32 length, DynamicType * type) :
-        buffer(buffer), bufferLength(length), DynamicObject(type), mIsAsmJsBuffer(false), isDetached(false)
+        buffer(buffer), bufferLength(length), ArrayBufferBase(type), mIsAsmJsBuffer(false), isDetached(false)
     {
         if (length > MaxArrayBufferLength)
         {
             JavascriptError::ThrowTypeError(GetScriptContext(), JSERR_FunctionArgument_Invalid);
         }
-    }
-
-    inline BOOL ArrayBuffer::IsBuiltinProperty(PropertyId propertyId)
-    {
-        // byteLength is only an instance property in pre-ES6
-        if (propertyId == PropertyIds::byteLength
-            && !GetScriptContext()->GetConfig()->IsES6TypedArrayExtensionsEnabled())
-        {
-            return TRUE;
-        }
-
-        return FALSE;
-    }
-
-    BOOL ArrayBuffer::HasProperty(PropertyId propertyId)
-    {
-        if (IsBuiltinProperty(propertyId))
-        {
-            return true;
-        }
-
-        return DynamicObject::HasProperty(propertyId);
-    }
-
-    BOOL ArrayBuffer::DeleteProperty(PropertyId propertyId, PropertyOperationFlags flags)
-    {
-        if (IsBuiltinProperty(propertyId))
-        {
-            return false;
-        }
-
-        return DynamicObject::DeleteProperty(propertyId, flags);
-    }
-
-    BOOL ArrayBuffer::GetSpecialPropertyName(uint32 index, Var *propertyName, ScriptContext * requestContext)
-    {
-        uint length = GetSpecialPropertyCount();
-        if (index < length)
-        {
-            *propertyName = requestContext->GetPropertyString(specialPropertyIds[index]);
-            return true;
-        }
-
-        return false;
-    }
-
-    // Returns the number of special non-enumerable properties this type has.
-    uint ArrayBuffer::GetSpecialPropertyCount() const
-    {
-        return this->GetScriptContext()->GetConfig()->IsES6TypedArrayExtensionsEnabled() ?
-            0 : _countof(specialPropertyIds);
-    }
-
-    // Returns the list of special non-enumerable properties for the type.
-    PropertyId const * ArrayBuffer::GetSpecialPropertyIds() const
-    {
-        return specialPropertyIds;
-    }
-
-    BOOL ArrayBuffer::GetPropertyReference(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
-    {
-        return ArrayBuffer::GetProperty(originalInstance, propertyId, value, info, requestContext);
-    }
-
-    BOOL ArrayBuffer::GetProperty(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
-    {
-        BOOL result;
-        if (GetPropertyBuiltIns(propertyId, value, &result))
-        {
-            return result;
-        }
-
-        return DynamicObject::GetProperty(originalInstance, propertyId, value, info, requestContext);
-    }
-
-    BOOL ArrayBuffer::GetProperty(Var originalInstance, JavascriptString* propertyNameString, Var* value, PropertyValueInfo* info, ScriptContext* requestContext)
-    {
-        BOOL result;
-        PropertyRecord const* propertyRecord;
-        this->GetScriptContext()->FindPropertyRecord(propertyNameString, &propertyRecord);
-
-        if (propertyRecord != nullptr && GetPropertyBuiltIns(propertyRecord->GetPropertyId(), value, &result))
-        {
-            return result;
-        }
-
-        return DynamicObject::GetProperty(originalInstance, propertyNameString, value, info, requestContext);
-    }
-
-    bool ArrayBuffer::GetPropertyBuiltIns(PropertyId propertyId, Var* value, BOOL* result)
-    {
-        // byteLength is only an instance property in pre-ES6
-        if (propertyId == PropertyIds::byteLength
-            && !GetScriptContext()->GetConfig()->IsES6TypedArrayExtensionsEnabled())
-        {
-            *value = JavascriptNumber::ToVar(this->GetByteLength(), GetScriptContext());
-            *result = true;
-            return true;
-        }
-
-        return false;
-    }
-
-    BOOL ArrayBuffer::SetProperty(PropertyId propertyId, Var value, PropertyOperationFlags flags, PropertyValueInfo* info)
-    {
-        if (IsBuiltinProperty(propertyId))
-        {
-            return false;
-        }
-        else
-        {
-            return DynamicObject::SetProperty(propertyId, value, flags, info);
-        }
-    }
-
-    BOOL ArrayBuffer::SetProperty(JavascriptString* propertyNameString, Var value, PropertyOperationFlags flags, PropertyValueInfo* info)
-    {
-        PropertyRecord const* propertyRecord;
-        this->GetScriptContext()->FindPropertyRecord(propertyNameString, &propertyRecord);
-
-        if (propertyRecord != nullptr && IsBuiltinProperty(propertyRecord->GetPropertyId()))
-        {
-            return false;
-        }
-        else
-        {
-            return DynamicObject::SetProperty(propertyNameString, value, flags, info);
-        }
-    }
-
-
-    BOOL ArrayBuffer::IsEnumerable(PropertyId propertyId)
-    {
-        if (IsBuiltinProperty(propertyId))
-        {
-            return false;
-        }
-        return DynamicObject::IsEnumerable(propertyId);
-    }
-
-    BOOL ArrayBuffer::IsConfigurable(PropertyId propertyId)
-    {
-        if (IsBuiltinProperty(propertyId))
-        {
-            return false;
-        }
-        return DynamicObject::IsConfigurable(propertyId);
-    }
-
-
-    BOOL ArrayBuffer::InitProperty(Js::PropertyId propertyId, Js::Var value, PropertyOperationFlags flags, Js::PropertyValueInfo* info)
-    {
-        return SetProperty(propertyId, value, flags, info);
-    }
-
-    BOOL ArrayBuffer::IsWritable(PropertyId propertyId)
-    {
-        if (IsBuiltinProperty(propertyId))
-        {
-            return false;
-        }
-        return DynamicObject::IsWritable(propertyId);
-    }
-
-
-    BOOL ArrayBuffer::SetEnumerable(PropertyId propertyId, BOOL value)
-    {
-        ScriptContext* scriptContext = GetScriptContext();
-        if (IsBuiltinProperty(propertyId))
-        {
-            if (value)
-            {
-                JavascriptError::ThrowTypeError(scriptContext, JSERR_DefineProperty_NotConfigurable,
-                    scriptContext->GetThreadContext()->GetPropertyName(propertyId)->GetBuffer());
-            }
-            return true;
-        }
-
-        return __super::SetEnumerable(propertyId, value);
-    }
-
-    BOOL ArrayBuffer::SetWritable(PropertyId propertyId, BOOL value)
-    {
-        ScriptContext* scriptContext = GetScriptContext();
-        if (IsBuiltinProperty(propertyId))
-        {
-            if (value)
-            {
-                JavascriptError::ThrowTypeError(scriptContext, JSERR_DefineProperty_NotConfigurable,
-                    scriptContext->GetThreadContext()->GetPropertyName(propertyId)->GetBuffer());
-            }
-            return true;
-        }
-
-        return __super::SetWritable(propertyId, value);
-    }
-
-    BOOL ArrayBuffer::SetConfigurable(PropertyId propertyId, BOOL value)
-    {
-        ScriptContext* scriptContext = GetScriptContext();
-        if (IsBuiltinProperty(propertyId))
-        {
-            if (value)
-            {
-                JavascriptError::ThrowTypeError(scriptContext, JSERR_DefineProperty_NotConfigurable,
-                    scriptContext->GetThreadContext()->GetPropertyName(propertyId)->GetBuffer());
-            }
-            return true;
-        }
-
-        return __super::SetConfigurable(propertyId, value);
-    }
-
-    BOOL ArrayBuffer::SetAttributes(PropertyId propertyId, PropertyAttributes attributes)
-    {
-        ScriptContext* scriptContext = this->GetScriptContext();
-
-        if (IsBuiltinProperty(propertyId))
-        {
-            if (attributes != PropertyNone)
-            {
-                JavascriptError::ThrowTypeError(scriptContext, JSERR_DefineProperty_NotConfigurable,
-                    scriptContext->GetThreadContext()->GetPropertyName(propertyId)->GetBuffer());
-            }
-            return true;
-        }
-
-        return __super::SetAttributes(propertyId, attributes);
-    }
-
-    BOOL ArrayBuffer::SetAccessors(PropertyId propertyId, Var getter, Var setter, PropertyOperationFlags flags)
-    {
-        ScriptContext* scriptContext = this->GetScriptContext();
-        if (IsBuiltinProperty(propertyId))
-        {
-            JavascriptError::ThrowTypeError(scriptContext, JSERR_DefineProperty_NotConfigurable,
-                GetScriptContext()->GetThreadContext()->GetPropertyName(propertyId)->GetBuffer());
-        }
-
-        return __super::SetAccessors(propertyId, getter, setter, flags);
-    }
-
-
-
-    BOOL ArrayBuffer::SetPropertyWithAttributes(PropertyId propertyId, Var value, PropertyAttributes attributes, PropertyValueInfo* info, PropertyOperationFlags flags, SideEffects possibleSideEffects)
-    {
-        ScriptContext* scriptContext = GetScriptContext();
-
-        if (IsBuiltinProperty(propertyId))
-        {
-            if (attributes != PropertyNone)
-            {
-                JavascriptError::ThrowTypeError(scriptContext, JSERR_DefineProperty_NotConfigurable,
-                    scriptContext->GetThreadContext()->GetPropertyName(propertyId)->GetBuffer());
-            }
-            return true;
-        }
-
-        return __super::SetPropertyWithAttributes(propertyId, value, attributes, info, flags, possibleSideEffects);
     }
 
     BOOL ArrayBuffer::GetDiagTypeString(StringBuilder<ArenaAllocator>* stringBuilder, ScriptContext* requestContext)

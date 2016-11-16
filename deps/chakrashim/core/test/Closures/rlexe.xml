@@ -69,8 +69,26 @@
   </test>
   <test>
     <default>
+      <files>closure_ole.js</files>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>closure_ole.js</files>
+      <compile-flags>-force:deferparse</compile-flags>
+    </default>
+  </test>
+  <test>
+    <default>
       <files>delaycapture-loopbody.js</files>
       <compile-flags>-lic:1 -off:simplejit -bgjit- -off:stackfunc -InitializeInterpreterSlotsWithInvalidStackVar</compile-flags>
+      <tags>exclude_fre</tags>
+    </default>
+  </test>
+  <test>
+    <default>
+      <files>delaycapture-loopbody2.js</files>
+      <compile-flags>-lic:1 -bgjit- -InitializeInterpreterSlotsWithInvalidStackVar</compile-flags>
       <tags>exclude_fre</tags>
     </default>
   </test>
@@ -100,6 +118,7 @@
       <compile-flags>-Serialized</compile-flags>
       <files>invalcachedscope.js</files>
       <baseline>invalcachedscope.baseline</baseline>
+      <tags>exclude_forceserialized</tags>
     </default>
   </test>
   <test>

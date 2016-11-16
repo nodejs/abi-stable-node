@@ -54,7 +54,7 @@ JsErrorCode GetProperty(JsValueRef ref,
   JsPropertyIdRef idRef;
   JsErrorCode error;
 
-  error = JsGetPropertyIdFromNameUtf8(propertyName, &idRef);
+  error = JsCreatePropertyIdUtf8(propertyName, strlen(propertyName), &idRef);
 
   if (error != JsNoError) {
     return error;
@@ -169,7 +169,10 @@ JsErrorCode GetPropertyOfGlobal(const char *propertyName,
   JsErrorCode error;
   JsPropertyIdRef propertyIdRef, globalRef;
 
-  error = JsGetPropertyIdFromNameUtf8(propertyName, &propertyIdRef);
+  error = JsCreatePropertyIdUtf8(propertyName,
+                                 strlen(propertyName),
+                                 &propertyIdRef);
+
   if (error != JsNoError) {
     return error;
   }
@@ -188,7 +191,10 @@ JsErrorCode SetPropertyOfGlobal(const char *propertyName,
   JsErrorCode error;
   JsPropertyIdRef propertyIdRef, globalRef;
 
-  error = JsGetPropertyIdFromNameUtf8(propertyName, &propertyIdRef);
+  error = JsCreatePropertyIdUtf8(propertyName,
+                                 strlen(propertyName),
+                                 &propertyIdRef);
+
   if (error != JsNoError) {
     return error;
   }
@@ -605,7 +611,7 @@ JsErrorCode GetPropertyIdFromName(JsValueRef nameRef,
       }
     }
   } else {
-    error = JsGetPropertyIdFromNameUtf8(str, idRef);
+    error = JsCreatePropertyIdUtf8(str, str.length(), idRef);
   }
 
   return error;
@@ -708,18 +714,28 @@ JsErrorCode HasIndexedProperty(JsValueRef object,
   return error;
 }
 
-JsErrorCode ParseScript(const char *script,
+JsErrorCode ParseScript(StringUtf8 *script,
                         JsSourceContext sourceContext,
-                        const char *sourceUrl,
+                        JsValueRef sourceUrl,
                         bool isStrictMode,
                         JsValueRef *result) {
   if (isStrictMode) {
     // do not append new line so the line numbers on error stack are correct
     std::string useStrictTag("'use strict'; ");
-    return JsParseScriptUtf8(useStrictTag.append(script).c_str(), sourceContext,
-                  sourceUrl, result);
+    useStrictTag.append(*script);
+    JsValueRef scriptToParse;
+    CHAKRA_VERIFY(JsCreateStringUtf8((uint8_t*)useStrictTag.c_str(),
+                                     useStrictTag.length(),
+                                     &scriptToParse) == JsNoError);
+    return JsParse(scriptToParse, sourceContext, sourceUrl,
+                   JsParseScriptAttributeNone, result);
   } else {
-    return JsParseScriptUtf8(script, sourceContext, sourceUrl, result);
+    JsValueRef scriptToParse;
+    CHAKRA_VERIFY(JsCreateStringUtf8((uint8_t*)(script->operator*()),
+                                     script->length(),
+                                     &scriptToParse) == JsNoError);
+    return JsParse(scriptToParse, sourceContext, sourceUrl,
+                   JsParseScriptAttributeNone, result);
   }
 }
 
@@ -978,17 +994,23 @@ StringUtf8::StringUtf8() : _str(nullptr), _length(0) {
 
 StringUtf8::~StringUtf8() {
   if (_str != nullptr) {
-    JsErrorCode err = JsStringFree(_str);
-    CHAKRA_ASSERT(err == JsNoError);
-    UNUSED(err);
+    free(_str);
+    _str = nullptr;
+    _length = 0;
   }
 }
 
 JsErrorCode StringUtf8::From(JsValueRef strRef) {
   CHAKRA_ASSERT(!_str);
   size_t len = 0;
-  JsErrorCode errorCode = JsStringToPointerUtf8Copy(strRef, &_str, &len);
+  IfJsErrorRet(JsCopyStringUtf8(strRef, nullptr, 0, &len));
+  uint8_t* buffer = (uint8_t*)malloc(len+1);
+  size_t written = 0;
+  JsErrorCode errorCode = JsCopyStringUtf8(strRef, buffer, len, &written);
   if (errorCode == JsNoError) {
+    CHAKRA_ASSERT(len == written);
+    buffer[len] = '\0';
+    _str = (char*)buffer;
     _length = static_cast<int>(len);
   }
   return errorCode;

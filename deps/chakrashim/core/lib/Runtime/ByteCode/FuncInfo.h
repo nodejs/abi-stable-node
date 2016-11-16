@@ -80,7 +80,8 @@ private:
     Scope *currentChildScope;
     SymbolTable *capturedSyms;
     CapturedSymMap *capturedSymMap;
-
+    uint        nextForInLoopLevel;
+    uint        maxForInLoopLevel;
 public:
     ArenaAllocator *alloc;
     // set in Bind/Assign pass
@@ -138,6 +139,10 @@ public:
     uint hasEscapedUseNestedFunc : 1;
     uint needEnvRegister : 1;
     uint hasCapturedThis : 1;
+#if DBG
+    // FunctionBody was reused on recompile of a redeferred enclosing function.
+    uint isReused:1;
+#endif
 
     typedef JsUtil::BaseDictionary<uint, Js::RegSlot, ArenaAllocator, PrimeSizePolicy> ConstantRegisterMap;
     ConstantRegisterMap constantToRegister; // maps uint constant to register
@@ -171,14 +176,19 @@ public:
     typedef JsUtil::BaseDictionary<SlotKey, Js::ProfileId, ArenaAllocator, PowerOf2SizePolicy, SlotKeyComparer> SlotProfileIdMap;
     SlotProfileIdMap slotProfileIdMap;
     Js::PropertyId thisScopeSlot;
+    Js::PropertyId innerThisScopeSlot; // Used in case of split scope
     Js::PropertyId superScopeSlot;
+    Js::PropertyId innerSuperScopeSlot; // Used in case of split scope
     Js::PropertyId superCtorScopeSlot;
+    Js::PropertyId innerSuperCtorScopeSlot; // Used in case of split scope
     Js::PropertyId newTargetScopeSlot;
+    Js::PropertyId innerNewTargetScopeSlot; // Used in case of split scope
     bool isThisLexicallyCaptured;
     bool isSuperLexicallyCaptured;
     bool isSuperCtorLexicallyCaptured;
     bool isNewTargetLexicallyCaptured;
     Symbol *argumentsSymbol;
+    Symbol *innerArgumentsSymbol;
     JsUtil::List<Js::RegSlot, ArenaAllocator> nonUserNonTempRegistersToInitialize;
 
     // constRegsCount is set to 2 because R0 is the return register, and R1 is the root object.
@@ -286,6 +296,22 @@ public:
     {
         Assert(argumentsSymbol == nullptr || argumentsSymbol == sym);
         argumentsSymbol = sym;
+    }
+
+    Symbol *GetInnerArgumentsSymbol() const
+    {
+        return innerArgumentsSymbol;
+    }
+
+    void SetInnerArgumentsSymbol(Symbol *sym)
+    {
+        Assert(innerArgumentsSymbol == nullptr || innerArgumentsSymbol == sym);
+        innerArgumentsSymbol = sym;
+    }
+
+    bool IsInnerArgumentsSymbol(Symbol* sym)
+    {
+        return innerArgumentsSymbol != nullptr && innerArgumentsSymbol == sym;
     }
 
     bool GetCallsEval() const {
@@ -408,7 +434,7 @@ public:
     Js::FunctionBody* GetParsedFunctionBody() const
     {
         AssertMsg(this->byteCodeFunction->IsFunctionParsed(), "Function must be parsed in order to call this method");
-        Assert(!IsDeferred());
+        Assert(!IsDeferred() || this->byteCodeFunction->GetFunctionBody()->GetByteCode() != nullptr);
 
         return this->byteCodeFunction->GetFunctionBody();
     }
@@ -600,6 +626,20 @@ public:
         Assert(outArgsDepth != 0 || outArgsCurrentExpr == 0);
     }
 
+    uint GetMaxForInLoopLevel() const { return this->maxForInLoopLevel;  }
+    uint AcquireForInLoopLevel()
+    {
+        uint forInLoopLevel = this->nextForInLoopLevel++;
+        this->maxForInLoopLevel = max(this->maxForInLoopLevel, this->nextForInLoopLevel);
+        return forInLoopLevel;
+    }
+
+    void ReleaseForInLoopLevel(uint forInLoopLevel)
+    {
+        Assert(this->nextForInLoopLevel == forInLoopLevel + 1);
+        this->nextForInLoopLevel = forInLoopLevel;
+    }
+
     Js::RegSlot AcquireLoc(ParseNode *pnode);
     Js::RegSlot AcquireTmpRegister();
     void ReleaseLoc(ParseNode *pnode);
@@ -742,10 +782,11 @@ public:
         return profileId;
     }
 
-    void EnsureThisScopeSlot(Scope* scope);
-    void EnsureSuperScopeSlot(Scope* scope);
-    void EnsureSuperCtorScopeSlot(Scope* scope);
-    void EnsureNewTargetScopeSlot(Scope* scope);
+    void EnsureThisScopeSlot();
+    void EnsureSuperScopeSlot();
+    void EnsureSuperCtorScopeSlot();
+    void EnsureNewTargetScopeSlot();
+    void UseInnerSpecialScopeSlots();
 
     void SetIsThisLexicallyCaptured()
     {

@@ -51,7 +51,7 @@ namespace Js
             static FunctionInfo UnEscape;
             static FunctionInfo CollectGarbage;
 
-#if ENABLE_TTD && ENABLE_DEBUG_CONFIG_OPTIONS
+#if ENABLE_TTD
             static FunctionInfo TelemetryLog;
 #endif
 
@@ -77,7 +77,7 @@ namespace Js
 
         static Var EntryCollectGarbage(RecyclableObject* function, CallInfo callInfo, ...);
 
-#if ENABLE_TTD && ENABLE_DEBUG_CONFIG_OPTIONS
+#if ENABLE_TTD
         static Var EntryTelemetryLog(RecyclableObject* function, CallInfo callInfo, ...);
 #endif
 
@@ -129,6 +129,7 @@ namespace Js
         virtual BOOL SetProperty(PropertyId propertyId, Var value, PropertyOperationFlags flags, PropertyValueInfo* info) override;
         virtual BOOL SetProperty(JavascriptString* propertyNameString, Var value, PropertyOperationFlags flags, PropertyValueInfo* info) override;
         virtual BOOL DeleteProperty(PropertyId propertyId, PropertyOperationFlags flags) override;
+        virtual BOOL DeleteProperty(JavascriptString *propertyNameString, PropertyOperationFlags flags) override;
         virtual BOOL GetPropertyReference(Var originalInstance, PropertyId propertyId, Var* value, PropertyValueInfo* info, ScriptContext* requestContext) override;
         virtual BOOL HasItem(uint32 index) override;
         virtual BOOL HasOwnItem(uint32 index) override sealed;
@@ -142,8 +143,8 @@ namespace Js
         virtual DescriptorFlags GetSetter(PropertyId propertyId, Var* setterValue, PropertyValueInfo* info, ScriptContext* requestContext) override;
         virtual DescriptorFlags GetSetter(JavascriptString* propertyNameString, Var* setterValue, PropertyValueInfo* info, ScriptContext* requestContext) override;
 
-        virtual BOOL Equals(Var other, BOOL* value, ScriptContext * requestContext) override;
-        virtual BOOL StrictEquals(Var other, BOOL* value, ScriptContext * requestContext) override;
+        virtual BOOL Equals(__in Var other, __out BOOL* value, ScriptContext * requestContext) override;
+        virtual BOOL StrictEquals(__in Var other, __out BOOL* value, ScriptContext * requestContext) override;
         virtual BOOL GetDiagValueString(StringBuilder<ArenaAllocator>* stringBuilder, ScriptContext* requestContext) override;
         virtual BOOL GetDiagTypeString(StringBuilder<ArenaAllocator>* stringBuilder, ScriptContext* requestContext) override;
 

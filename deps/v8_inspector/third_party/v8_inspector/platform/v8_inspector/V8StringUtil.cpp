@@ -4,22 +4,17 @@
 
 #include "platform/v8_inspector/V8StringUtil.h"
 
-#include "platform/inspector_protocol/String16.h"
-#include "platform/v8_inspector/V8DebuggerImpl.h"
+#include "platform/v8_inspector/V8InspectorImpl.h"
 #include "platform/v8_inspector/V8InspectorSessionImpl.h"
 #include "platform/v8_inspector/V8Regex.h"
-#include "platform/v8_inspector/public/V8ContentSearchUtil.h"
 
-namespace blink {
+namespace v8_inspector {
 
 namespace {
 
-String16 findMagicComment(const String16& content, const String16& name, bool multiline, bool* deprecated)
+String16 findMagicComment(const String16& content, const String16& name, bool multiline)
 {
-    DCHECK(name.find("=") == kNotFound);
-    if (deprecated)
-        *deprecated = false;
-
+    DCHECK(name.find("=") == String16::kNotFound);
     unsigned length = content.length();
     unsigned nameLength = name.length();
 
@@ -28,7 +23,7 @@ String16 findMagicComment(const String16& content, const String16& name, bool mu
     size_t closingCommentPos = 0;
     while (true) {
         pos = content.reverseFind(name, pos);
-        if (pos == kNotFound)
+        if (pos == String16::kNotFound)
             return String16();
 
         // Check for a /\/[\/*][@#][ \t]/ regexp (length of 4) before found name.
@@ -49,15 +44,12 @@ String16 findMagicComment(const String16& content, const String16& name, bool mu
             continue;
         if (multiline) {
             closingCommentPos = content.find("*/", equalSignPos + 1);
-            if (closingCommentPos == kNotFound)
+            if (closingCommentPos == String16::kNotFound)
                 return String16();
         }
 
         break;
     }
-
-    if (deprecated && content[pos + 2] == '@')
-        *deprecated = true;
 
     DCHECK(equalSignPos);
     DCHECK(!multiline || closingCommentPos);
@@ -67,13 +59,13 @@ String16 findMagicComment(const String16& content, const String16& name, bool mu
         : content.substring(urlPos);
 
     size_t newLine = match.find("\n");
-    if (newLine != kNotFound)
+    if (newLine != String16::kNotFound)
         match = match.substring(0, newLine);
     match = match.stripWhiteSpace();
 
-    String16 disallowedChars("\"' \t");
     for (unsigned i = 0; i < match.length(); ++i) {
-        if (disallowedChars.find(match[i]) != kNotFound)
+        UChar c = match[i];
+        if (c == '"' || c == '\'' || c == ' ' || c == '\t')
             return "";
     }
 
@@ -83,11 +75,14 @@ String16 findMagicComment(const String16& content, const String16& name, bool mu
 String16 createSearchRegexSource(const String16& text)
 {
     String16Builder result;
-    String16 specials("[](){}+-*.,?\\^$|");
 
     for (unsigned i = 0; i < text.length(); i++) {
-        if (specials.find(text[i]) != kNotFound)
+        UChar c = text[i];
+        if (c == '[' || c == ']' || c == '(' || c == ')' || c == '{' || c == '}'
+            || c == '+' || c == '-' || c == '*' || c == '.' || c == ',' || c == '?'
+            || c == '\\' || c == '^' || c == '$' || c == '|') {
             result.append('\\');
+        }
         result.append(text[i]);
     }
 
@@ -98,10 +93,11 @@ std::unique_ptr<std::vector<unsigned>> lineEndings(const String16& text)
 {
     std::unique_ptr<std::vector<unsigned>> result(new std::vector<unsigned>());
 
+    const String16 lineEndString = "\n";
     unsigned start = 0;
     while (start < text.length()) {
-        size_t lineEnd = text.find('\n', start);
-        if (lineEnd == kNotFound)
+        size_t lineEnd = text.find(lineEndString, start);
+        if (lineEnd == String16::kNotFound)
             break;
 
         result->push_back(static_cast<unsigned>(lineEnd));
@@ -124,7 +120,7 @@ std::vector<std::pair<int, String16>> scriptRegexpMatchesByLines(const V8Regex& 
     for (unsigned lineNumber = 0; lineNumber < size; ++lineNumber) {
         unsigned lineEnd = endings->at(lineNumber);
         String16 line = text.substring(start, lineEnd - start);
-        if (line.endsWith('\r'))
+        if (line.length() && line[line.length() - 1] == '\r')
             line = line.substring(0, line.length() - 1);
 
         int matchLength;
@@ -144,10 +140,10 @@ std::unique_ptr<protocol::Debugger::SearchMatch> buildObjectForSearchMatch(int l
         .build();
 }
 
-std::unique_ptr<V8Regex> createSearchRegex(V8DebuggerImpl* debugger, const String16& query, bool caseSensitive, bool isRegex)
+std::unique_ptr<V8Regex> createSearchRegex(V8InspectorImpl* inspector, const String16& query, bool caseSensitive, bool isRegex)
 {
     String16 regexSource = isRegex ? query : createSearchRegexSource(query);
-    return wrapUnique(new V8Regex(debugger, regexSource, caseSensitive));
+    return wrapUnique(new V8Regex(inspector, regexSource, caseSensitive));
 }
 
 } // namespace
@@ -166,6 +162,11 @@ v8::Local<v8::String> toV8StringInternalized(v8::Isolate* isolate, const String1
     return v8::String::NewFromTwoByte(isolate, reinterpret_cast<const uint16_t*>(string.characters16()), v8::NewStringType::kInternalized, string.length()).ToLocalChecked();
 }
 
+v8::Local<v8::String> toV8StringInternalized(v8::Isolate* isolate, const char* str)
+{
+    return v8::String::NewFromUtf8(isolate, str, v8::NewStringType::kInternalized).ToLocalChecked();
+}
+
 String16 toProtocolString(v8::Local<v8::String> value)
 {
     if (value.IsEmpty() || value->IsNull() || value->IsUndefined())
@@ -182,31 +183,26 @@ String16 toProtocolStringWithTypeCheck(v8::Local<v8::Value> value)
     return toProtocolString(value.As<v8::String>());
 }
 
-namespace V8ContentSearchUtil {
-
-String16 findSourceURL(const String16& content, bool multiline, bool* deprecated)
+std::vector<std::unique_ptr<protocol::Debugger::SearchMatch>> searchInTextByLinesImpl(V8InspectorSession* session, const String16& text, const String16& query, const bool caseSensitive, const bool isRegex)
 {
-    return findMagicComment(content, "sourceURL", multiline, deprecated);
-}
-
-String16 findSourceMapURL(const String16& content, bool multiline, bool* deprecated)
-{
-    return findMagicComment(content, "sourceMappingURL", multiline, deprecated);
-}
-
-std::unique_ptr<protocol::Array<protocol::Debugger::SearchMatch>> searchInTextByLines(V8InspectorSession* session, const String16& text, const String16& query, const bool caseSensitive, const bool isRegex)
-{
-    std::unique_ptr<protocol::Array<protocol::Debugger::SearchMatch>> result = protocol::Array<protocol::Debugger::SearchMatch>::create();
-    std::unique_ptr<V8Regex> regex = createSearchRegex(static_cast<V8InspectorSessionImpl*>(session)->debugger(), query, caseSensitive, isRegex);
+    std::unique_ptr<V8Regex> regex = createSearchRegex(static_cast<V8InspectorSessionImpl*>(session)->inspector(), query, caseSensitive, isRegex);
     std::vector<std::pair<int, String16>> matches = scriptRegexpMatchesByLines(*regex.get(), text);
 
+    std::vector<std::unique_ptr<protocol::Debugger::SearchMatch>> result;
     for (const auto& match : matches)
-        result->addItem(buildObjectForSearchMatch(match.first, match.second));
-
+        result.push_back(buildObjectForSearchMatch(match.first, match.second));
     return result;
 }
 
-} // namespace V8ContentSearchUtil
+String16 findSourceURL(const String16& content, bool multiline)
+{
+    return findMagicComment(content, "sourceURL", multiline);
+}
+
+String16 findSourceMapURL(const String16& content, bool multiline)
+{
+    return findMagicComment(content, "sourceMappingURL", multiline);
+}
 
 std::unique_ptr<protocol::Value> toProtocolValue(v8::Local<v8::Context> context, v8::Local<v8::Value> value, int maxDepth)
 {
@@ -281,4 +277,4 @@ std::unique_ptr<protocol::Value> toProtocolValue(v8::Local<v8::Context> context,
     return nullptr;
 }
 
-} // namespace blink
+} // namespace v8_inspector

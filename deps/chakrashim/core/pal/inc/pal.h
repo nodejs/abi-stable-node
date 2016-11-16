@@ -47,6 +47,24 @@ Abstract:
 #include <ctype.h>
 #endif
 
+#if defined(__APPLE__)
+#ifndef __IOS__
+#include "TargetConditionals.h"
+#if TARGET_IPHONE_SIMULATOR
+#define __IOS__
+#elif TARGET_OS_IPHONE
+#define __IOS__
+#elif TARGET_OS_MAC
+// macOS
+#endif
+#endif // __IOS__ ?
+#ifndef INCLUDE_PAL_INTERNAL_
+namespace std {
+    typedef decltype(nullptr) nullptr_t;
+}
+#endif
+#endif // __APPLE__ ?
+
 #ifdef  __cplusplus
 extern "C" {
 #endif
@@ -353,6 +371,18 @@ PAL_IsDebuggerPresent();
 #define LONG_MAX      2147483647L
 #define ULONG_MAX     0xffffffffUL
 
+#define LONGLONG_MIN    (-9223372036854775807i64 - 1)
+#define LONG64_MIN      (-9223372036854775807i64 - 1)
+#define INT64_MIN       (-9223372036854775807i64 - 1)
+#define LONGLONG_MAX    9223372036854775807i64
+#define LONG64_MAX      9223372036854775807i64
+#define INT64_MAX       9223372036854775807i64
+#define ULONGLONG_MAX   0xffffffffffffffffui64
+#define DWORDLONG_MAX   0xffffffffffffffffui64
+#define ULONG64_MAX     0xffffffffffffffffui64
+#define DWORD64_MAX     0xffffffffffffffffui64
+#define UINT64_MAX      0xffffffffffffffffui64
+
 #define FLT_MAX 3.402823466e+38F
 #define DBL_MAX 1.7976931348623157e+308
 
@@ -480,6 +510,8 @@ typedef long time_t;
 #define PAL_INITIALIZE_NONE            0x00
 #define PAL_INITIALIZE_SYNC_THREAD     0x01
 #define PAL_INITIALIZE_EXEC_ALLOCATOR  0x02
+#define PAL_INITIALIZE_REGISTER_SIGTERM_HANDLER     0x08
+#define PAL_INITIALIZE_DEBUGGER_EXCEPTIONS          0x10
 
 // PAL_Initialize() flags
 #define PAL_INITIALIZE                 PAL_INITIALIZE_SYNC_THREAD
@@ -2757,6 +2789,8 @@ typedef struct _CONTEXT {
 
 #define CONTEXT_ALL (CONTEXT_CONTROL | CONTEXT_INTEGER | CONTEXT_SEGMENTS | CONTEXT_FLOATING_POINT | CONTEXT_DEBUG_REGISTERS)
 
+#define CONTEXT_XSTATE (CONTEXT_AMD64 | 0x40L)
+
 #define CONTEXT_EXCEPTION_ACTIVE 0x8000000
 #define CONTEXT_SERVICE_ACTIVE 0x10000000
 #define CONTEXT_EXCEPTION_REQUEST 0x40000000
@@ -3413,33 +3447,6 @@ GetThreadTimes(
         OUT LPFILETIME lpKernelTime,
         OUT LPFILETIME lpUserTime);
 
-#define TLS_OUT_OF_INDEXES ((DWORD)0xFFFFFFFF)
-
-PALIMPORT
-DWORD
-PALAPI
-TlsAlloc(
-     VOID);
-
-PALIMPORT
-LPVOID
-PALAPI
-TlsGetValue(
-        IN DWORD dwTlsIndex);
-
-PALIMPORT
-BOOL
-PALAPI
-TlsSetValue(
-        IN DWORD dwTlsIndex,
-        IN LPVOID lpTlsValue);
-
-PALIMPORT
-BOOL
-PALAPI
-TlsFree(
-    IN DWORD dwTlsIndex);
-
 PALIMPORT
 void *
 PALAPI
@@ -3489,6 +3496,8 @@ PALIMPORT BOOL PALAPI PAL_VirtualUnwindOutOfProc(CONTEXT *context,
 #define PAL_CS_NATIVE_DATA_SIZE 76
 #elif defined(__APPLE__) && defined(__x86_64__)
 #define PAL_CS_NATIVE_DATA_SIZE 120
+#elif defined(__LINUX__) && defined(__i386__)
+#define PAL_CS_NATIVE_DATA_SIZE 56
 #elif defined(__LINUX__) && defined(__x86_64__)
 #define PAL_CS_NATIVE_DATA_SIZE 96
 #elif defined(__LINUX__) && defined(_ARM_)
@@ -3814,6 +3823,18 @@ GetModuleHandleW(
 #define GetModuleHandle GetModuleHandleW
 #endif
 
+PALIMPORT
+BOOL
+PALAPI
+GetModuleHandleExW(
+    IN DWORD dwFlags,
+    IN OPTIONAL LPCWSTR lpModuleName,
+    OUT HMODULE *phModule);
+
+#ifdef UNICODE
+#define GetModuleHandleEx GetModuleHandleExW
+#endif
+
 // Get base address of the module containing a given symbol
 PALAPI
 LPCVOID
@@ -3829,9 +3850,29 @@ VirtualAlloc(
          IN DWORD flProtect);
 
 PALIMPORT
+LPVOID
+PALAPI
+VirtualAllocEx(
+         IN HANDLE hProcess,
+         IN LPVOID lpAddress,
+         IN SIZE_T dwSize,
+         IN DWORD flAllocationType,
+         IN DWORD flProtect);
+
+PALIMPORT
 BOOL
 PALAPI
 VirtualFree(
+        IN LPVOID lpAddress,
+        IN SIZE_T dwSize,
+        IN DWORD dwFreeType);
+
+
+PALIMPORT
+BOOL
+PALAPI
+VirtualFreeEx(
+        IN HANDLE hProcess,
         IN LPVOID lpAddress,
         IN SIZE_T dwSize,
         IN DWORD dwFreeType);
@@ -3840,6 +3881,16 @@ PALIMPORT
 BOOL
 PALAPI
 VirtualProtect(
+           IN LPVOID lpAddress,
+           IN SIZE_T dwSize,
+           IN DWORD flNewProtect,
+           OUT PDWORD lpflOldProtect);
+
+PALIMPORT
+BOOL
+PALAPI
+VirtualProtectEx(
+           IN HANDLE hProcess,
            IN LPVOID lpAddress,
            IN SIZE_T dwSize,
            IN DWORD flNewProtect,
@@ -3877,6 +3928,15 @@ PALIMPORT
 SIZE_T
 PALAPI
 VirtualQuery(
+         IN LPCVOID lpAddress,
+         OUT PMEMORY_BASIC_INFORMATION lpBuffer,
+         IN SIZE_T dwLength);
+
+PALIMPORT
+SIZE_T
+PALAPI
+VirtualQueryEx(
+         IN HANDLE hProcess,
          IN LPCVOID lpAddress,
          OUT PMEMORY_BASIC_INFORMATION lpBuffer,
          IN SIZE_T dwLength);
@@ -5271,7 +5331,9 @@ BitScanForward(
     IN UINT qwMask)
 {
     unsigned char bRet = FALSE;
-    int iIndex = __builtin_ffsl(qwMask);
+    static_assert(sizeof(qwMask) <= sizeof(int),
+                  "use correct __builtin_ffs??? variant");
+    int iIndex = __builtin_ffs(qwMask);
     if (iIndex != 0)
     {
         // Set the Index after deducting unity
@@ -5292,7 +5354,9 @@ BitScanForward64(
     IN UINT64 qwMask)
 {
     unsigned char bRet = FALSE;
-    int iIndex = __builtin_ffsl(qwMask);
+    static_assert(sizeof(qwMask) <= sizeof(long long),
+                  "use correct __builtin_ffs??? variant");
+    int iIndex = __builtin_ffsll(qwMask);
     if (iIndex != 0)
     {
         // Set the Index after deducting unity
@@ -5316,6 +5380,8 @@ BitScanReverse(
     unsigned char bRet = FALSE;
     if (qwMask != 0)
     {
+        static_assert(sizeof(qwMask) <= sizeof(unsigned int),
+                      "use correct __builtin_clz??? variant");
         int countLeadingZero = __builtin_clz(qwMask);
         *Index = (DWORD)(sizeof(qwMask) * 8 - 1 - countLeadingZero);
         bRet = TRUE;
@@ -5337,7 +5403,9 @@ BitScanReverse64(
     unsigned char bRet = FALSE;
     if (qwMask != 0)
     {
-        int countLeadingZero = __builtin_clz(qwMask);
+        static_assert(sizeof(qwMask) <= sizeof(unsigned long long),
+                      "use correct __builtin_clz??? variant");
+        int countLeadingZero = __builtin_clzll(qwMask);
         *Index = (DWORD)(sizeof(qwMask) * 8 - 1 - countLeadingZero);
         bRet = TRUE;
     }
@@ -5462,6 +5530,30 @@ The function returns the initial value pointed to by Target.
 EXTERN_C
 PALIMPORT
 inline
+char
+PALAPI
+InterlockedExchange8(
+    IN OUT char volatile *Target,
+    IN char Value)
+{
+    return __sync_swap(Target, Value);
+}
+
+EXTERN_C
+PALIMPORT
+inline
+short
+PALAPI
+InterlockedExchange16(
+    IN OUT short volatile *Target,
+    IN short Value)
+{
+    return __sync_swap(Target, Value);
+}
+
+EXTERN_C
+PALIMPORT
+inline
 LONG
 PALAPI
 InterlockedExchange(
@@ -5506,6 +5598,38 @@ Return Values
 The return value is the initial value of the destination.
 
 --*/
+EXTERN_C
+PALIMPORT
+inline
+char
+PALAPI
+InterlockedCompareExchange8(
+    IN OUT char volatile *Destination,
+    IN char Exchange,
+    IN char Comperand)
+{
+    return __sync_val_compare_and_swap(
+        Destination, /* The pointer to a variable whose value is to be compared with. */
+        Comperand, /* The value to be compared */
+        Exchange /* The value to be stored */);
+}
+
+EXTERN_C
+PALIMPORT
+inline
+short
+PALAPI
+InterlockedCompareExchange16(
+    IN OUT short volatile *Destination,
+    IN short Exchange,
+    IN short Comperand)
+{
+    return __sync_val_compare_and_swap(
+        Destination, /* The pointer to a variable whose value is to be compared with. */
+        Comperand, /* The value to be compared */
+        Exchange /* The value to be stored */);
+}
+
 EXTERN_C
 PALIMPORT
 inline
@@ -5593,6 +5717,30 @@ The return value is the original value that 'Addend' pointed to.
 EXTERN_C
 PALIMPORT
 inline
+char
+PALAPI
+InterlockedExchangeAdd8(
+    IN OUT char volatile *Addend,
+    IN char Value)
+{
+    return __sync_fetch_and_add(Addend, Value);
+}
+
+EXTERN_C
+PALIMPORT
+inline
+short
+PALAPI
+InterlockedExchangeAdd16(
+    IN OUT short volatile *Addend,
+    IN short Value)
+{
+    return __sync_fetch_and_add(Addend, Value);
+}
+
+EXTERN_C
+PALIMPORT
+inline
 LONG
 PALAPI
 InterlockedExchangeAdd(
@@ -5629,6 +5777,30 @@ InterlockedExchangeAdd64(
 EXTERN_C
 PALIMPORT
 inline
+char
+PALAPI
+InterlockedAnd8(
+    IN OUT char volatile *Destination,
+    IN char Value)
+{
+    return __sync_fetch_and_and(Destination, Value);
+}
+
+EXTERN_C
+PALIMPORT
+inline
+short
+PALAPI
+InterlockedAnd16(
+    IN OUT short volatile *Destination,
+    IN short Value)
+{
+    return __sync_fetch_and_and(Destination, Value);
+}
+
+EXTERN_C
+PALIMPORT
+inline
 LONG
 PALAPI
 InterlockedAnd(
@@ -5641,6 +5813,30 @@ InterlockedAnd(
 EXTERN_C
 PALIMPORT
 inline
+char
+PALAPI
+InterlockedOr8(
+    IN OUT char volatile *Destination,
+    IN char Value)
+{
+    return __sync_fetch_and_or(Destination, Value);
+}
+
+EXTERN_C
+PALIMPORT
+inline
+short
+PALAPI
+InterlockedOr16(
+    IN OUT short volatile *Destination,
+    IN short Value)
+{
+    return __sync_fetch_and_or(Destination, Value);
+}
+
+EXTERN_C
+PALIMPORT
+inline
 LONG
 PALAPI
 InterlockedOr(
@@ -5648,6 +5844,42 @@ InterlockedOr(
     IN LONG Value)
 {
     return __sync_fetch_and_or(Destination, Value);
+}
+
+EXTERN_C
+PALIMPORT
+inline
+char
+PALAPI
+InterlockedXor8(
+    IN OUT char volatile *Destination,
+    IN char Value)
+{
+    return __sync_fetch_and_xor(Destination, Value);
+}
+
+EXTERN_C
+PALIMPORT
+inline
+short
+PALAPI
+InterlockedXor16(
+    IN OUT short volatile *Destination,
+    IN short Value)
+{
+    return __sync_fetch_and_xor(Destination, Value);
+}
+
+EXTERN_C
+PALIMPORT
+inline
+LONG
+PALAPI
+InterlockedXor(
+    IN OUT LONG volatile *Destination,
+    IN LONG Value)
+{
+    return __sync_fetch_and_xor(Destination, Value);
 }
 
 #define BITS_IN_BYTE 8
@@ -5862,7 +6094,7 @@ PALAPI
 FlushProcessWriteBuffers();
 
 typedef void (*PAL_ActivationFunction)(CONTEXT *context);
-typedef BOOL (*PAL_SafeActivationCheckFunction)(SIZE_T ip);
+typedef BOOL (*PAL_SafeActivationCheckFunction)(SIZE_T ip, BOOL checkingCurrentThread);
 
 PALIMPORT
 VOID
@@ -6108,6 +6340,7 @@ CoCreateGuid(OUT GUID * pguid);
 #define wcsspn        PAL_wcsspn
 #define wcstod        PAL_wcstod
 #define wcstol        PAL_wcstol
+#define wcstoll       PAL_wcstoll
 #define wcstoul       PAL_wcstoul
 #define wcscat        PAL_wcscat
 #define wcscpy        PAL_wcscpy
@@ -6177,6 +6410,7 @@ CoCreateGuid(OUT GUID * pguid);
 #define log           PAL_log
 #define log10         PAL_log10
 #define malloc        PAL_malloc
+#define memmove       memmove_xplat
 #define free          PAL_free
 #define mkstemp       PAL_mkstemp
 #define rename        PAL_rename
@@ -6187,11 +6421,6 @@ CoCreateGuid(OUT GUID * pguid);
 #define _close        PAL__close
 #define _wcstoui64    PAL__wcstoui64
 #define _flushall     PAL__flushall
-
-#ifdef _AMD64_
-#define _mm_getcsr    PAL__mm_getcsr
-#define _mm_setcsr    PAL__mm_setcsr
-#endif // _AMD64_
 
 #endif // !PAL_STDCPP_COMPAT
 #endif // PLATFORM_UNIX
@@ -6224,7 +6453,6 @@ PALIMPORT div_t div(int numer, int denom);
 PALIMPORT void * __cdecl memcpy(void *, const void *, size_t);
 PALIMPORT int    __cdecl memcmp(const void *, const void *, size_t);
 PALIMPORT void * __cdecl memset(void *, int, size_t);
-PALIMPORT void * __cdecl memmove(void *, const void *, size_t);
 PALIMPORT void * __cdecl memchr(const void *, int, size_t);
 
 PALIMPORT size_t __cdecl strlen(const char *);
@@ -6266,6 +6494,7 @@ PALIMPORT int __cdecl toupper(int);
 
 PALIMPORT errno_t __cdecl memcpy_s(void *, size_t, const void *, size_t);
 PALIMPORT errno_t __cdecl memmove_s(void *, size_t, const void *, size_t);
+PALIMPORT void * __cdecl memmove_xplat(void *, const void *, size_t);
 PALIMPORT char * __cdecl _strlwr(char *);
 PALIMPORT int __cdecl _stricmp(const char *, const char *);
 PALIMPORT int __cdecl _snprintf(char *, size_t, const char *, ...);
@@ -6303,6 +6532,7 @@ PALIMPORT int __cdecl _snwprintf(WCHAR *, size_t, const WCHAR *, ...);
 PALIMPORT int __cdecl PAL_swscanf(const WCHAR *, const WCHAR *, ...);
 PALIMPORT LONG __cdecl PAL_wcstol(const WCHAR *, WCHAR **, int);
 PALIMPORT ULONG __cdecl PAL_wcstoul(const WCHAR *, WCHAR **, int);
+PALIMPORT LONGLONG __cdecl PAL_wcstoll(const WCHAR *, WCHAR **, int);
 PALIMPORT size_t __cdecl PAL_wcsspn (const WCHAR *, const WCHAR *);
 PALIMPORT double __cdecl PAL_wcstod(const WCHAR *, WCHAR **);
 PALIMPORT int __cdecl PAL_iswalpha(WCHAR);
@@ -6358,6 +6588,24 @@ unsigned int __cdecl _rotl(unsigned int value, int shift)
 
 /*++
 Function:
+_rotl64
+
+See MSDN doc.
+--*/
+EXTERN_C
+PALIMPORT
+inline
+unsigned long long __cdecl _rotl64(unsigned long long value, int shift)
+{
+    unsigned long long retval = 0;
+
+    shift &= 0x3f;
+    retval = (value << shift) | (value >> (sizeof(unsigned long long) * CHAR_BIT - shift));
+    return retval;
+}
+
+/*++
+Function:
 _rotr
 
 See MSDN doc.
@@ -6371,6 +6619,24 @@ unsigned int __cdecl _rotr(unsigned int value, int shift)
 
     shift &= 0x1f;
     retval = (value >> shift) | (value << (sizeof(int) * CHAR_BIT - shift));
+    return retval;
+}
+
+/*++
+Function:
+_rotr64
+
+See MSDN doc.
+--*/
+EXTERN_C
+PALIMPORT
+inline
+unsigned long long __cdecl _rotr64(unsigned long long value, int shift)
+{
+    unsigned long long retval;
+
+    shift &= 0x3f;
+    retval = (value >> shift) | (value << (sizeof(unsigned long long) * CHAR_BIT - shift));
     return retval;
 }
 
@@ -6539,6 +6805,7 @@ PALIMPORT LONG __cdecl PAL_ftell(PAL_FILE *);
 PALIMPORT int __cdecl PAL_feof(PAL_FILE *);
 PALIMPORT int __cdecl PAL_ferror(PAL_FILE *);
 PALIMPORT PAL_FILE * __cdecl PAL_fopen(const char *, const char *);
+PALIMPORT char * __cdecl PAL_strtok(char *, const char *);
 PALIMPORT int __cdecl PAL_getc(PAL_FILE *stream);
 PALIMPORT int __cdecl PAL_fgetc(PAL_FILE *stream);
 PALIMPORT int __cdecl PAL_ungetc(int c, PAL_FILE *stream);
@@ -6633,14 +6900,6 @@ INT64
 PALAPI
 PAL_GetCpuTickCount(VOID);
 #endif // PAL_PERF
-
-/******************* PAL functions for SIMD extensions *****************/
-
-PALIMPORT
-unsigned int _mm_getcsr(void);
-
-PALIMPORT
-void _mm_setcsr(unsigned int i);
 
 /******************* PAL side-by-side support  ************************/
 
@@ -6874,7 +7133,8 @@ public:
     }
 };
 
-typedef VOID (PALAPI *PHARDWARE_EXCEPTION_HANDLER)(PAL_SEHException* ex);
+typedef BOOL (PALAPI *PHARDWARE_EXCEPTION_HANDLER)(PAL_SEHException* ex);
+typedef DWORD (PALAPI *PGET_GCMARKER_EXCEPTION_CODE)(LPVOID ip);
 
 PALIMPORT
 VOID

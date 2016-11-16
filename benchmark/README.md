@@ -14,9 +14,25 @@ This folder contains benchmarks to measure the performance of the Node.js APIs.
 
 ## Prerequisites
 
-Most of the http benchmarks require [`wrk`][wrk] to be installed. It may be
-available through your preferred package manager. If not, `wrk` can be built
-[from source][wrk] via `make`.
+Most of the HTTP benchmarks require a benchmarker to be installed, this can be
+either [`wrk`][wrk] or [`autocannon`][autocannon].
+
+`Autocannon` is a Node script that can be installed using
+`npm install -g autocannon`. It will use the Node executable that is in the
+path, hence if you want to compare two HTTP benchmark runs make sure that the
+Node version in the path is not altered.
+
+`wrk` may be available through your preferred package manger. If not, you can
+easily build it [from source][wrk] via `make`.
+
+By default `wrk` will be used as benchmarker. If it is not available
+`autocannon` will be used in it its place. When creating a HTTP benchmark you
+can specify which benchmarker should be used. You can force a specific
+benchmarker to be used by providing it as an argument, e. g.:
+
+`node benchmark/run.js --set benchmarker=autocannon http`
+
+`node benchmark/http/simple.js benchmarker=autocannon`
 
 To analyze the results `R` should be installed. Check you package manager or
 download it from https://www.r-project.org/.
@@ -30,8 +46,6 @@ install.packages("ggplot2")
 install.packages("plyr")
 ```
 
-[wrk]: https://github.com/wg/wrk
-
 ## Running benchmarks
 
 ### Running individual benchmarks
@@ -43,7 +57,7 @@ conclusions about the performance.
 Individual benchmarks can be executed by simply executing the benchmark script
 with node.
 
-```
+```console
 $ node benchmark/buffers/buffer-tostring.js
 
 buffers/buffer-tostring.js n=10000000 len=0 arg=true: 62710590.393305704
@@ -65,7 +79,7 @@ measured in ops/sec (higher is better).**
 Furthermore you can specify a subset of the configurations, by setting them in
 the process arguments:
 
-```
+```console
 $ node benchmark/buffers/buffer-tostring.js len=1024
 
 buffers/buffer-tostring.js n=10000000 len=1024 arg=true: 3498295.68561504
@@ -78,7 +92,7 @@ Similar to running individual benchmarks, a group of benchmarks can be executed
 by using the `run.js` tool. Again this does not provide the statistical
 information to make any conclusions.
 
-```
+```console
 $ node benchmark/run.js arrays
 
 arrays/var-int.js
@@ -98,7 +112,7 @@ arrays/zero-int.js n=25 type=Buffer: 90.49906662339653
 ```
 
 It is possible to execute more groups by adding extra process arguments.
-```
+```console
 $ node benchmark/run.js arrays buffers
 ```
 
@@ -119,13 +133,13 @@ First build two versions of node, one from the master branch (here called
 
 The `compare.js` tool will then produce a csv file with the benchmark results.
 
-```
+```console
 $ node benchmark/compare.js --old ./node-master --new ./node-pr-5134 string_decoder > compare-pr-5134.csv
 ```
 
 For analysing the benchmark results use the `compare.R` tool.
 
-```
+```console
 $ cat compare-pr-5134.csv | Rscript benchmark/compare.R
 
                                                                                       improvement significant      p.value
@@ -159,8 +173,6 @@ _For the statistically minded, the R script performs an [independent/unpaired
 same for both versions. The significant field will show a star if the p-value
 is less than `0.05`._
 
-[t-test]: https://en.wikipedia.org/wiki/Student%27s_t-test#Equal_or_unequal_sample_sizes.2C_unequal_variances
-
 The `compare.R` tool can also produce a box plot by using the `--plot filename`
 option. In this case there are 48 different benchmark combinations, thus you
 may want to filter the csv file. This can be done while benchmarking using the
@@ -168,7 +180,7 @@ may want to filter the csv file. This can be done while benchmarking using the
 afterwards using tools such as `sed` or `grep`. In the `sed` case be sure to
 keep the first line since that contains the header information.
 
-```
+```console
 $ cat compare-pr-5134.csv | sed '1p;/encoding=ascii/!d' | Rscript benchmark/compare.R --plot compare-plot.png
 
                                                                                improvement significant      p.value
@@ -190,7 +202,7 @@ example to analyze the time complexity.
 To do this use the `scatter.js` tool, this will run a benchmark multiple times
 and generate a csv with the results.
 
-```
+```console
 $ node benchmark/scatter.js benchmark/string_decoder/string-decoder.js > scatter.csv
 ```
 
@@ -198,7 +210,7 @@ After generating the csv, a comparison table can be created using the
 `scatter.R` tool. Even more useful it creates an actual scatter plot when using
 the `--plot filename` option.
 
-```
+```console
 $ cat scatter.csv | Rscript benchmark/scatter.R --xaxis chunk --category encoding --plot scatter-plot.png --log
 
 aggregating variable: inlen
@@ -229,7 +241,7 @@ can be solved by filtering. This can be done while benchmarking using the
 afterwards using tools such as `sed` or `grep`. In the `sed` case be
 sure to keep the first line since that contains the header information.
 
-```
+```console
 $ cat scatter.csv | sed -E '1p;/([^,]+, ){3}128,/!d' | Rscript benchmark/scatter.R --xaxis chunk --category encoding --plot scatter-plot.png --log
 
 chunk     encoding       mean confidence.interval
@@ -290,3 +302,49 @@ function main(conf) {
   bench.end(conf.n);
 }
 ```
+
+## Creating HTTP benchmark
+
+The `bench` object returned by `createBenchmark` implements
+`http(options, callback)` method. It can be used to run external tool to
+benchmark HTTP servers.
+
+```js
+'use strict';
+
+const common = require('../common.js');
+
+const bench = common.createBenchmark(main, {
+  kb: [64, 128, 256, 1024],
+  connections: [100, 500]
+});
+
+function main(conf) {
+  const http = require('http');
+  const len = conf.kb * 1024;
+  const chunk = Buffer.alloc(len, 'x'); 
+  const server = http.createServer(function(req, res) {
+    res.end(chunk);
+  });
+
+  server.listen(common.PORT, function() {
+    bench.http({
+      connections: conf.connections,
+    }, function() {
+      server.close();
+    });
+  });
+}
+```
+
+Supported options keys are:
+* `port` - defaults to `common.PORT`
+* `path` - defaults to `/`
+* `connections` - number of concurrent connections to use, defaults to 100
+* `duration` - duration of the benchmark in seconds, defaults to 10
+* `benchmarker` - benchmarker to use, defaults to
+`common.default_http_benchmarker`
+
+[autocannon]: https://github.com/mcollina/autocannon
+[wrk]: https://github.com/wg/wrk
+[t-test]: https://en.wikipedia.org/wiki/Student%27s_t-test#Equal_or_unequal_sample_sizes.2C_unequal_variances

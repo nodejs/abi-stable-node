@@ -137,12 +137,17 @@ var tests = [
             assert.areEqual(x, Symbol.prototype[Symbol.toPrimitive].call(x), "x == Symbol.prototype[Symbol.toPrimitive].call(x)");
 
             // TypeError scenarios
-            assert.throws(function () { x[Symbol.toPrimitive].call("x") }, TypeError, "x[Symbol.toPrimitive].call('x'), toPrimitive throws TypeError for values that does not have SymbolData", "Symbol[Symbol.toPrimitive]: invalid argument");
-            assert.throws(function () { Symbol.prototype[Symbol.toPrimitive]() }, TypeError, "toPrimitive throws TypeError if no arguments are passed", "Symbol[Symbol.toPrimitive]: invalid argument");
-            assert.throws(function () { Symbol.prototype[Symbol.toPrimitive].call("") }, TypeError, "toPrimitive throws TypeError for values that does not have SymbolData", "Symbol[Symbol.toPrimitive]: invalid argument");
-            assert.throws(function () { Symbol.prototype[Symbol.toPrimitive].call(null) }, TypeError, "toPrimitive throws TypeError for null", "Symbol[Symbol.toPrimitive]: invalid argument");
-            assert.throws(function () { Symbol.prototype[Symbol.toPrimitive].call(undefined) }, TypeError, "toPrimitive throws TypeError for undefined", "Symbol[Symbol.toPrimitive]: invalid argument");
-            assert.throws(function () { Symbol.prototype[Symbol.toPrimitive].call({}) }, TypeError, "toPrimitive throws TypeError for object", "Symbol[Symbol.toPrimitive]: invalid argument");
+            assert.throws(function () { x[Symbol.toPrimitive].call("x") }, TypeError, "x[Symbol.toPrimitive].call('x'), toPrimitive throws TypeError for values that does not have SymbolData", "Symbol[Symbol.toPrimitive]: 'this' is not a Symbol object");
+            assert.throws(function () { Symbol.prototype[Symbol.toPrimitive]() }, TypeError, "toPrimitive throws TypeError if no arguments are passed", "Symbol[Symbol.toPrimitive]: 'this' is not a Symbol object");
+            assert.throws(function () { Symbol.prototype[Symbol.toPrimitive].call(true) }, TypeError, "toPrimitive throws TypeError for boolean true", "Symbol[Symbol.toPrimitive]: 'this' is not a Symbol object");
+            assert.throws(function () { Symbol.prototype[Symbol.toPrimitive].call(false) }, TypeError, "toPrimitive throws TypeError for boolean false", "Symbol[Symbol.toPrimitive]: 'this' is not a Symbol object");
+            assert.throws(function () { Symbol.prototype[Symbol.toPrimitive].call(0) }, TypeError, "toPrimitive throws TypeError for number", "Symbol[Symbol.toPrimitive]: 'this' is not a Symbol object");
+            assert.throws(function () { Symbol.prototype[Symbol.toPrimitive].call(NaN) }, TypeError, "toPrimitive throws TypeError for NaN", "Symbol[Symbol.toPrimitive]: 'this' is not a Symbol object");
+            assert.throws(function () { Symbol.prototype[Symbol.toPrimitive].call("") }, TypeError, "toPrimitive throws TypeError for values that does not have SymbolData", "Symbol[Symbol.toPrimitive]: 'this' is not a Symbol object");
+            assert.throws(function () { Symbol.prototype[Symbol.toPrimitive].call("abc") }, TypeError, "toPrimitive throws TypeError for values that does not have SymbolData", "Symbol[Symbol.toPrimitive]: 'this' is not a Symbol object");
+            assert.throws(function () { Symbol.prototype[Symbol.toPrimitive].call(null) }, TypeError, "toPrimitive throws TypeError for null", "Symbol[Symbol.toPrimitive]: 'this' is not a Symbol object");
+            assert.throws(function () { Symbol.prototype[Symbol.toPrimitive].call(undefined) }, TypeError, "toPrimitive throws TypeError for undefined", "Symbol[Symbol.toPrimitive]: 'this' is not a Symbol object");
+            assert.throws(function () { Symbol.prototype[Symbol.toPrimitive].call({}) }, TypeError, "toPrimitive throws TypeError for object", "Symbol[Symbol.toPrimitive]: 'this' is not a Symbol object");
 
             var z = Object(y);
             assert.areEqual(y, Symbol.prototype[Symbol.toPrimitive].call(z), "y == Symbol.prototype[Symbol.toPrimitive].call(z)");
@@ -956,7 +961,17 @@ var tests = [
             assert.areEqual('Symbol()', Symbol(undefined).toString(), 'Symbol(undefined).toString() === "Symbol()"');
             assert.areEqual('Symbol()', Symbol("").toString(), 'Symbol("").toString() === "Symbol()"');
         }
-    }
+    },
+    {
+        name: 'Calling symbol property on object that does not exist should give appropriate error',
+        body: function () {
+            // https://github.com/microsoft/ChakraCore/issues/1409
+            var o = Object.create(null);
+            assert.throws(function () { o[Symbol()](); }, TypeError, "Calling non-existent symbol property with no description fails", "Object doesn't support property or method 'Symbol()'");
+            assert.throws(function () { o[Symbol('foo')](); }, TypeError, "Calling non-existent symbol property with description fails", "Object doesn't support property or method 'Symbol(foo)'");
+            assert.throws(function () { o[Symbol.iterator](); }, TypeError, "Calling non-existent built-in symbol property with description fails", "Object doesn't support property or method 'Symbol(Symbol.iterator)'");
+        }
+    },
 ];
 
 testRunner.runTests(tests, { verbose: WScript.Arguments[0] != "summary" });

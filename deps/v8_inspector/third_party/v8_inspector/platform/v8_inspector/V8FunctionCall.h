@@ -31,37 +31,36 @@
 #ifndef V8FunctionCall_h
 #define V8FunctionCall_h
 
-#include "platform/inspector_protocol/String16.h"
+#include "platform/inspector_protocol/InspectorProtocol.h"
 
 #include <v8.h>
 
-namespace blink {
+namespace v8_inspector {
 
-class V8DebuggerImpl;
+class V8InspectorImpl;
+
+namespace protocol = blink::protocol;
 
 class V8FunctionCall {
 public:
-    V8FunctionCall(V8DebuggerImpl*, v8::Local<v8::Context>, v8::Local<v8::Value>, const String16& name);
+    V8FunctionCall(V8InspectorImpl*, v8::Local<v8::Context>, v8::Local<v8::Value>, const String16& name);
 
     void appendArgument(v8::Local<v8::Value>);
     void appendArgument(const String16&);
     void appendArgument(int);
     void appendArgument(bool);
-    void appendUndefinedArgument();
 
     v8::Local<v8::Value> call(bool& hadException, bool reportExceptions = true);
-    v8::Local<v8::Function> function();
     v8::Local<v8::Value> callWithoutExceptionHandling();
-    v8::Local<v8::Context> context() { return m_context; }
 
 protected:
-    V8DebuggerImpl* m_debugger;
+    V8InspectorImpl* m_inspector;
     v8::Local<v8::Context> m_context;
     std::vector<v8::Local<v8::Value>> m_arguments;
     v8::Local<v8::String> m_name;
     v8::Local<v8::Value> m_value;
 };
 
-} // namespace blink
+} // namespace v8_inspector
 
 #endif // V8FunctionCall

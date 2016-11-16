@@ -18,7 +18,7 @@ public:
     static Js::SourceDynamicProfileManager * Load(__in_z char16 const * filename, Fn loadFn);
     static void SaveRecord(__in_z char16 const * filename, __in_ecount(sizeof(DWORD) + *record) char const * record);
 
-    static char * AllocRecord(DWORD bufferSize);
+    static char * AllocRecord(DECLSPEC_GUARD_OVERFLOW DWORD bufferSize);
     static void DeleteRecord(__in_ecount(sizeof(DWORD) + *record) char const * record);
     static char const * GetRecordBuffer(__in_ecount(sizeof(DWORD) + *record) char const * record);
     static char * GetRecordBuffer(__in_ecount(sizeof(DWORD) + *record) char * record);
@@ -50,7 +50,14 @@ private:
     static char16 catalogFilename[_MAX_PATH];
     static DWORD const MagicNumber;
     static DWORD const FileFormatVersion;
-    static DWORD creationTime;
+#ifdef _WIN32
+    typedef DWORD TimeType;
+    static inline TimeType GetCreationTime() { return _time32(NULL); }
+#else
+    typedef time_t TimeType;
+    static inline TimeType GetCreationTime() { return time(NULL); }
+#endif
+    static TimeType creationTime;
     static int32 lastOffset;
     static HANDLE mutex;
     static CriticalSection cs;
