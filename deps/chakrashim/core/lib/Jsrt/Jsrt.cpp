@@ -3364,6 +3364,35 @@ CHAKRA_API JsRunSerializedScriptWithCallback(_In_ JsSerializedScriptLoadSourceCa
 }
 #endif // _WIN32
 
+CHAKRA_API JsCreateWeakReference(
+    _In_ JsValueRef strongRef,
+    _Out_ JsWeakRef* weakRef)
+{
+    VALIDATE_JSREF(strongRef);
+
+    ThreadContext* threadContext = ThreadContext::GetContextForCurrentThread();
+    if (threadContext == nullptr)
+    {
+        return JsErrorNoCurrentContext;
+    }
+
+    Recycler* recycler = threadContext->GetRecycler();
+    Memory::RecyclerWeakReference<char>* recyclerWeakReference = recycler->CreateWeakReferenceHandle<char>(reinterpret_cast<char*>(strongRef));
+    *weakRef = reinterpret_cast<JsWeakRef>(recyclerWeakReference);
+    return JsNoError;
+}
+
+CHAKRA_API JsGetWeakReferenceValue(
+    _In_ JsWeakRef weakRef,
+    _Out_ JsValueRef* value)
+{
+    VALIDATE_JSREF(weakRef);
+
+    Memory::RecyclerWeakReference<char>* recyclerWeakReference = reinterpret_cast<Memory::RecyclerWeakReference<char>*>(weakRef);
+    *value = reinterpret_cast<JsValueRef>(recyclerWeakReference->Get());
+    return JsNoError;
+}
+
 /////////////////////
 
 CHAKRA_API JsTTDCreateRecordRuntime(_In_ JsRuntimeAttributes attributes, _In_reads_(infoUriCount) const byte* infoUri, _In_ size_t infoUriCount, _In_ size_t snapInterval, _In_ size_t snapHistoryLength,
@@ -3441,35 +3470,6 @@ CHAKRA_API JsTTDNotifyContextDestroy(_In_ JsContextRef context)
 
     return JsNoError;
 #endif
-}
-
-CHAKRA_API JsCreateWeakReference(
-    _In_ JsValueRef strongRef,
-    _Out_ JsWeakRef* weakRef)
-{
-    VALIDATE_JSREF(strongRef);
-
-    ThreadContext* threadContext = ThreadContext::GetContextForCurrentThread();
-    if (threadContext == nullptr)
-    {
-        return JsErrorNoCurrentContext;
-    }
-
-    Recycler* recycler = threadContext->GetRecycler();
-    Memory::RecyclerWeakReference<char>* recyclerWeakReference = recycler->CreateWeakReferenceHandle<char>(reinterpret_cast<char*>(strongRef));
-    *weakRef = reinterpret_cast<JsWeakRef>(recyclerWeakReference);
-    return JsNoError;
-}
-
-CHAKRA_API JsGetWeakReferenceValue(
-    _In_ JsWeakRef weakRef,
-    _Out_ JsValueRef* value)
-{
-    VALIDATE_JSREF(weakRef);
-
-    Memory::RecyclerWeakReference<char>* recyclerWeakReference = reinterpret_cast<Memory::RecyclerWeakReference<char>*>(weakRef);
-    *value = reinterpret_cast<JsValueRef>(recyclerWeakReference->Get());
-    return JsNoError;
 }
 
 CHAKRA_API JsTTDStart()
@@ -3554,7 +3554,7 @@ CHAKRA_API JsTTDPauseTimeTravelBeforeRuntimeOperation()
     return JsErrorCategoryUsage;
 #else
     JsrtContext *currentContext = JsrtContext::GetCurrent();
-    JsErrorCode cCheck = CheckContext(currentContext, true); 
+    JsErrorCode cCheck = CheckContext(currentContext, true);
     TTDAssert(cCheck == JsNoError, "Must have valid context when changing debugger mode.");
 
     Js::ScriptContext* scriptContext = currentContext->GetScriptContext();

@@ -384,12 +384,12 @@ typedef UINT32 DWORD;
     /// </remarks>
     typedef JsRef JsPropertyIdRef;
 
-    ///	<summary>
+    /// <summary>
     ///     A weakref identifier.
-    ///	</summary>
-    ///	<remarks>
+    /// </summary>
+    /// <remarks>
     ///     To-Do need to write remarks here.
-    ///	</remarks>
+    /// </remarks>
     typedef JsRef JsWeakRef;
 
     /// <summary>
@@ -2376,30 +2376,12 @@ typedef UINT32 DWORD;
             _In_ JsPromiseContinuationCallback promiseContinuationCallback,
             _In_opt_ void *callbackState);
 
-<<<<<<< HEAD
-=======
     /// <summary>
-    ///     Free the memory used for Utf8 buffer copy
+    ///     Create a weak reference out of a passed strong reference
     /// </summary>
     /// <remarks>
     ///     <para>
     ///     Experimental. We may update the name or behavior until it is stable.
-    ///     </para>
-    /// </remarks>
-    /// <param name="stringValue">Pointer to string memory.</param>
-    /// <returns>
-    ///     The code <c>JsNoError</c> if the operation succeeded, a failure code otherwise.
-    /// </returns>
-    CHAKRA_API
-        JsStringFree(
-            _In_ char* stringValue);
-
-    /// <summary>
-    ///			Create a weak reference out of a passed strong reference
-    /// </summary>
-    /// <remarks>
-    ///     <para>
-    ///     To-Do
     ///     </para>
     /// </remarks>
     /// <param name="strongRef">Passed strong reference of a handle.</param>
@@ -2413,11 +2395,11 @@ typedef UINT32 DWORD;
             _Out_ JsWeakRef* weakRef);
 
     /// <summary>
-    ///			To-Do
+    ///     To-Do
     /// </summary>
     /// <remarks>
     ///     <para>
-    ///     To-Do
+    ///     Experimental. We may update the name or behavior until it is stable.
     ///     </para>
     /// </remarks>
     /// <param name="weakRef">To-Do</param>
@@ -2430,52 +2412,6 @@ typedef UINT32 DWORD;
             _In_ JsWeakRef weakRef,
             _Out_ JsValueRef* value);
 
-    // -------- Experimental new String APIs ----------------------------------
-
-    CHAKRA_API
-        JsCreateString(
-            const char *content,
-            size_t length,
-            _Out_ JsValueRef *value);
-
-    CHAKRA_API
-        JsCreateStringUtf8(
-            const uint8_t *content,
-            size_t length,
-            _Out_ JsValueRef *value);
-
-    CHAKRA_API
-        JsCreateStringUtf16(
-            const uint16_t *content,
-            size_t length,
-            _Out_ JsValueRef *value);
-
-
-    CHAKRA_API
-        JsWriteString(
-            JsValueRef value,
-            int start,
-            int length,
-            char* buffer,
-            _Out_opt_ size_t* written);
-
-    CHAKRA_API
-        JsWriteStringUtf16(
-            JsValueRef value,
-            int start,
-            int length,
-            uint16_t* buffer,
-            _Out_opt_ size_t* written);
-
-    CHAKRA_API
-        JsWriteStringUtf8(
-            JsValueRef value,
-            uint8_t* buffer,
-            size_t bufferSize,
-            _Out_opt_ size_t* length);
-
-
->>>>>>> f3fc635... Fix weak ref, object wrap, and create constructor functionality for Jsrt
 #ifdef _WIN32
 #include "ChakraCommonWindows.h"
 #endif // _WIN32

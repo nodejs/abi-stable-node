@@ -58,6 +58,27 @@ struct napi_module_struct {
 
 NODE_EXTERN void napi_module_register(void* mod);
 
+#ifndef NODE_MODULE_EXPORT
+# ifdef _WIN32
+#   define NODE_MODULE_EXPORT __declspec(dllexport)
+# else
+#   define NODE_MODULE_EXPORT __attribute__((visibility("default")))
+# endif
+#endif
+
+#if defined(_MSC_VER)
+#pragma section(".CRT$XCU", read)
+#define NODE_ABI_CTOR(fn)                                             \
+  static void __cdecl fn(void);                                       \
+  __declspec(dllexport, allocate(".CRT$XCU"))                         \
+      void (__cdecl*fn ## _)(void) = fn;                              \
+  static void __cdecl fn(void)
+#else
+#define NODE_ABI_CTOR(fn)                                             \
+  static void fn(void) __attribute__((constructor));                  \
+  static void fn(void)
+#endif
+
 #define NODE_MODULE_ABI_X(modname, regfunc, priv, flags)              \
   extern "C" {                                                        \
     static napi_module_struct _module =                               \
@@ -72,7 +93,7 @@ NODE_EXTERN void napi_module_register(void* mod);
       priv,                                                           \
       NULL                                                            \
     };                                                                \
-    NODE_C_CTOR(_register_ ## modname) {                              \
+    NODE_ABI_CTOR(_register_ ## modname) {                            \
       napi_module_register(&_module);                                 \
     }                                                                 \
   }
