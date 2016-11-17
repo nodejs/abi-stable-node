@@ -26,6 +26,10 @@
 
 #include "src\jsrtutils.h"
 
+#ifndef CALLBACK
+#define CALLBACK  
+#endif
+
 typedef void napi_destruct(void* v);
 
 //Callback Info struct as per JSRT native function.
@@ -272,7 +276,7 @@ _Ret_maybenull_ JsValueRef CALLBACK CallbackWrapper(JsValueRef callee, bool isCo
 napi_value napi_create_function(napi_env e, napi_callback cb) {
   JsErrorCode error;
   JsValueRef function;
-  error = JsCreateFunction(CallbackWrapper, cb, &function);
+  error = JsCreateFunction(CallbackWrapper, (void*)cb, &function);
   return reinterpret_cast<napi_value>(function);
 }
 
@@ -290,7 +294,7 @@ napi_value napi_create_constructor_for_wrap_with_methods(
 
   napi_value namestring = napi_create_string(e, utf8name);
   JsValueRef constructor = nullptr;
-  JsCreateNamedFunction(namestring, CallbackWrapper, cb, &constructor);
+  JsCreateNamedFunction(namestring, CallbackWrapper, (void*)cb, &constructor);
 
   JsPropertyIdRef pid = nullptr;
   JsValueRef prototype = nullptr;
@@ -304,7 +308,7 @@ napi_value napi_create_constructor_for_wrap_with_methods(
   for (int i = 0; i < methodcount; i++) {
     namestring = napi_create_string(e, methods[i].utf8name);
     JsValueRef function = nullptr;
-    JsCreateNamedFunction(namestring, CallbackWrapper, methods[i].callback, &function);
+    JsCreateNamedFunction(namestring, CallbackWrapper, (void*)methods[i].callback, &function);
     //JsCreateFunction(CallbackWrapper, methods[i].callback, &function);
 
     JsCreatePropertyIdUtf8(methods[i].utf8name, strlen(methods[i].utf8name), &pid);
@@ -382,7 +386,6 @@ napi_value napi_get_property(napi_env e, napi_value o, napi_propertyname k) {
 void napi_set_element(napi_env e, napi_value o, uint32_t i, napi_value v) {
   JsErrorCode error = JsNoError;
   JsValueRef index = nullptr;
-  JsValueRef result = nullptr;
   JsValueRef object = reinterpret_cast<JsValueRef>(o);
   JsValueRef value = reinterpret_cast<JsValueRef>(v);
   error = JsIntToNumber(i, &index);
@@ -471,7 +474,7 @@ napi_value napi_create_array_with_length(napi_env e, int length) {
 napi_value napi_create_string(napi_env e, const char* s) {
   JsErrorCode error = JsNoError;
   size_t length = strlen(s);
-  JsValueRef strRef;
+  JsValueRef strRef = nullptr;
   error = JsCreateStringUtf8((uint8_t*)s, length, &strRef);
   return reinterpret_cast<napi_value>(strRef);
 }
@@ -479,9 +482,7 @@ napi_value napi_create_string(napi_env e, const char* s) {
 napi_value napi_create_string_with_length(napi_env e,
   const char* s, size_t length) {
   JsErrorCode error = JsNoError;
-  if(length < 0)
-    length = strlen(s);
-  JsValueRef strRef;
+  JsValueRef strRef = nullptr;
   error = JsCreateStringUtf8((uint8_t*)s, length, &strRef);
   return reinterpret_cast<napi_value>(strRef);
 }
@@ -785,7 +786,7 @@ napi_value napi_coerce_to_string(napi_env e, napi_value v) {
 
 void napi_wrap(napi_env e, napi_value jsObject, void* nativeObj,
   napi_destruct* destructor, napi_weakref* handle) {
-  ObjectWrapWrapper* wrap = new ObjectWrapWrapper(jsObject, nativeObj, destructor);
+  new ObjectWrapWrapper(jsObject, nativeObj, destructor);
 
   if (handle != nullptr)
   {
@@ -936,13 +937,13 @@ bool napi_try_catch(napi_env e, napi_try_callback cbtry,
     }
   }
   if(error != JS_INVALID_REFERENCE) {
-    cbcatch;
+    cbcatch(e, data);
     return true;
   }
   JsErrorCode errorCode = JsHasException(&hasException);
   if (errorCode != JsNoError) {
     if (errorCode == JsErrorInDisabledState) {
-      cbcatch;
+      cbcatch(e, data);
       return true;
     }
     // Should never get errorCode other than JsNoError/JsErrorInDisabledState
@@ -950,7 +951,7 @@ bool napi_try_catch(napi_env e, napi_try_callback cbtry,
     return false;
   }
   if (hasException) {
-    cbcatch;
+    cbcatch(e, data);
     return true;
   }
   return false;
