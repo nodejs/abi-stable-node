@@ -19,9 +19,86 @@
 #ifndef SRC_NODE_JSVMAPI_H_
 #define SRC_NODE_JSVMAPI_H_
 
-#include "node.h"
 #include "node_jsvmapi_types.h"
+#include <stdlib.h>
+#include <stdint.h>
 
+#ifndef NODE_EXTERN
+# ifdef _WIN32
+#   ifndef BUILDING_NODE_EXTENSION
+#     define NODE_EXTERN __declspec(dllexport)
+#   else
+#     define NODE_EXTERN __declspec(dllimport)
+#   endif
+# else
+#   define NODE_EXTERN /* nothing */
+# endif
+#endif
+
+namespace node {
+NODE_EXTERN typedef void (*addon_abi_register_func)(
+  napi_env env,
+  napi_value exports,
+  napi_value module,
+  void* priv);
+}  // namespace node
+
+struct napi_module_struct {
+  int nm_version;
+  unsigned int nm_flags;
+  void* nm_dso_handle;
+  const char* nm_filename;
+  node::addon_abi_register_func nm_register_func;
+  void* nm_context_register_func;
+  const char* nm_modname;
+  void* nm_priv;
+  struct node_module* nm_link;
+};
+
+NODE_EXTERN void napi_module_register(void* mod);
+
+#ifndef NODE_MODULE_EXPORT
+# ifdef _WIN32
+#   define NODE_MODULE_EXPORT __declspec(dllexport)
+# else
+#   define NODE_MODULE_EXPORT __attribute__((visibility("default")))
+# endif
+#endif
+
+#if defined(_MSC_VER)
+#pragma section(".CRT$XCU", read)
+#define NODE_C_CTOR(fn)                                               \
+  static void __cdecl fn(void);                                       \
+  __declspec(dllexport, allocate(".CRT$XCU"))                         \
+      void (__cdecl*fn ## _)(void) = fn;                              \
+  static void __cdecl fn(void)
+#else
+#define NODE_C_CTOR(fn)                                               \
+  static void fn(void) __attribute__((constructor));                  \
+  static void fn(void)
+#endif
+
+#define NODE_MODULE_ABI_X(modname, regfunc, priv, flags)              \
+  extern "C" {                                                        \
+    static napi_module_struct _module =                               \
+    {                                                                 \
+      -1,                                                             \
+      flags,                                                          \
+      NULL,                                                           \
+      __FILE__,                                                       \
+      (node::addon_abi_register_func)regfunc,                         \
+      NULL,                                                           \
+      #modname,                                                       \
+      priv,                                                           \
+      NULL                                                            \
+    };                                                                \
+    NODE_C_CTOR(_register_ ## modname) {                              \
+      napi_module_register(&_module);                                 \
+    }                                                                 \
+  }
+
+#define NODE_MODULE_ABI(modname, regfunc)                             \
+  NODE_MODULE_ABI_X(modname, regfunc, NULL, 0)
 // TODO(ianhall): We're using C linkage for the API but we're also using the
 // bool type in these exports.  Is that safe and stable?
 extern "C" {
@@ -126,6 +203,10 @@ NODE_EXTERN napi_value napi_call_function(napi_env e, napi_value scope,
 NODE_EXTERN napi_value napi_new_instance(napi_env e, napi_value cons,
                                          int argc, napi_value* argv);
 
+// Temporary method needed to support wrapping JavascriptObject in an external 
+// object wrapper capable of storing external data. This workaround is only 
+// required by ChakraCore and should be removed when we have a method of 
+// constructing external objects from the constructor function itself.
 NODE_EXTERN napi_value napi_make_external(napi_env e, napi_value v);
 
 // Napi version of node::MakeCallback(...)

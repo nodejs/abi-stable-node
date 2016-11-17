@@ -2,6 +2,7 @@
 #define SRC_NODE_JSVMAPI_INTERNAL_H_
 
 #include "node_jsvmapi.h"
+#include "node.h"
 
 namespace v8impl {
   napi_env JsEnvFromV8Isolate(v8::Isolate* isolate);

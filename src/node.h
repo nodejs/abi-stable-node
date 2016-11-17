@@ -42,7 +42,7 @@
 #include "v8.h"  // NOLINT(build/include_order)
 #include "node_version.h"  // NODE_MODULE_VERSION
 #include "tracing/trace_event.h"
-#include "node_jsvmapi_types.h"
+#include "node_jsvmapi.h"
 
 #define NODE_MAKE_VERSION(major, minor, patch)                                \
   ((major) * 0x1000 + (minor) * 0x100 + (patch))
@@ -481,6 +481,7 @@ extern "C" NODE_EXTERN void node_module_register(void* mod);
       node_module_register(&_module);                                 \
     }                                                                 \
   }
+<<<<<<< HEAD
 
 #define NODE_MODULE_ABI_X(modname, regfunc, priv, flags)              \
   extern "C" {                                                        \
@@ -500,6 +501,9 @@ extern "C" NODE_EXTERN void node_module_register(void* mod);
       node_module_register(&_module);                                 \
     }                                                                 \
   }
+=======
+  
+>>>>>>> c32dd22... Update chakracore branch to include async api and helpers
 
 
 #define NODE_MODULE(modname, regfunc)                                 \
@@ -509,10 +513,15 @@ extern "C" NODE_EXTERN void node_module_register(void* mod);
   NODE_MODULE_CONTEXT_AWARE_X(modname, regfunc, NULL, 0)
 
 #define NODE_MODULE_CONTEXT_AWARE_BUILTIN(modname, regfunc)           \
+<<<<<<< HEAD
   NODE_MODULE_CONTEXT_AWARE_X(modname, regfunc, NULL, NM_F_BUILTIN)
 
 #define NODE_MODULE_ABI(modname, regfunc)                             \
   NODE_MODULE_ABI_X(modname, regfunc, NULL, 0)                        \
+=======
+  NODE_MODULE_CONTEXT_AWARE_X(modname, regfunc, NULL, NM_F_BUILTIN)   
+  
+>>>>>>> c32dd22... Update chakracore branch to include async api and helpers
 
 /*
  * For backward compatibility in add-on modules.

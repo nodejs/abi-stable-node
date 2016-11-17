@@ -32,6 +32,10 @@
 
 typedef void napi_destruct(void* v);
 
+void napi_module_register(void* mod) {
+    node::node_module_register(mod);
+}
+
 //Callback Info struct as per JSRT native function.
 typedef struct CallbackInfo {
   JsValueRef _callee;
