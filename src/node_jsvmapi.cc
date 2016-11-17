@@ -785,38 +785,6 @@ void napi_release_weakref(napi_env e, napi_weakref w) {
   delete thePersistent;
 }
 
-napi_weakref napi_create_weakref(napi_env e, napi_value v) {
-  v8::Isolate *isolate = v8impl::V8IsolateFromJsEnv(e);
-  v8::Persistent<v8::Value> *thePersistent =
-      new v8::Persistent<v8::Value>(
-          isolate, v8impl::V8LocalValueFromJsValue(v));
-  thePersistent->SetWeak(static_cast<int*>(nullptr), v8impl::WeakRefCallback,
-                         v8::WeakCallbackType::kParameter);
-  // need to mark independent?
-  return v8impl::JsWeakRefFromV8PersistentValue(thePersistent);
-}
-
-bool napi_get_weakref_value(napi_env e, napi_weakref w, napi_value* pv) {
-  v8::Isolate *isolate = v8impl::V8IsolateFromJsEnv(e);
-  v8::Persistent<v8::Value> *thePersistent =
-      v8impl::V8PersistentValueFromJsWeakRefValue(w);
-  v8::Local<v8::Value> v =
-      v8::Local<v8::Value>::New(isolate, *thePersistent);
-  if (v.IsEmpty()) {
-    *pv = nullptr;
-    return false;
-  }
-  *pv = v8impl::JsValueFromV8LocalValue(v);
-  return true;
-}
-
-void napi_release_weakref(napi_env e, napi_weakref w) {
-  v8::Persistent<v8::Value> *thePersistent =
-      v8impl::V8PersistentValueFromJsWeakRefValue(w);
-  thePersistent->Reset();
-  delete thePersistent;
-}
-
 napi_handle_scope napi_open_handle_scope(napi_env e) {
   return v8impl::JsHandleScopeFromV8HandleScope(
       new v8impl::HandleScopeWrapper(v8impl::V8IsolateFromJsEnv(e)));

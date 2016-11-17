@@ -2793,6 +2793,7 @@ static void LinkedBinding(const FunctionCallbackInfo<Value>& args) {
         v8impl::JsValueFromV8LocalValue(module),
         mod->nm_priv);
     }
+  } else {
     return env->ThrowError("Linked module has no declared entry point.");
   }
 

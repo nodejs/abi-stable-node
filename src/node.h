@@ -489,30 +489,6 @@ extern "C" NODE_EXTERN void node_module_register(void* mod);
       node_module_register(&_module);                                 \
     }                                                                 \
   }
-<<<<<<< HEAD
-
-#define NODE_MODULE_ABI_X(modname, regfunc, priv, flags)              \
-  extern "C" {                                                        \
-    static node::node_module _module =                                \
-    {                                                                 \
-      -1,                                                             \
-      flags,                                                          \
-      NULL,                                                           \
-      __FILE__,                                                       \
-      (node::addon_register_func) (regfunc),                          \
-      NULL,                                                           \
-      NODE_STRINGIFY(modname),                                        \
-      priv,                                                           \
-      NULL                                                            \
-    };                                                                \
-    NODE_C_CTOR(_register_ ## modname) {                              \
-      node_module_register(&_module);                                 \
-    }                                                                 \
-  }
-=======
-  
->>>>>>> c32dd22... Update chakracore branch to include async api and helpers
-
 
 #define NODE_MODULE(modname, regfunc)                                 \
   NODE_MODULE_X(modname, regfunc, NULL, 0)
@@ -521,15 +497,7 @@ extern "C" NODE_EXTERN void node_module_register(void* mod);
   NODE_MODULE_CONTEXT_AWARE_X(modname, regfunc, NULL, 0)
 
 #define NODE_MODULE_CONTEXT_AWARE_BUILTIN(modname, regfunc)           \
-<<<<<<< HEAD
-  NODE_MODULE_CONTEXT_AWARE_X(modname, regfunc, NULL, NM_F_BUILTIN)
-
-#define NODE_MODULE_ABI(modname, regfunc)                             \
-  NODE_MODULE_ABI_X(modname, regfunc, NULL, 0)                        \
-=======
-  NODE_MODULE_CONTEXT_AWARE_X(modname, regfunc, NULL, NM_F_BUILTIN)   
-  
->>>>>>> c32dd22... Update chakracore branch to include async api and helpers
+  NODE_MODULE_CONTEXT_AWARE_X(modname, regfunc, NULL, NM_F_BUILTIN)   \
 
 /*
  * For backward compatibility in add-on modules.

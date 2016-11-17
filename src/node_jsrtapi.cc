@@ -27,11 +27,7 @@
 #include "src/jsrtutils.h"
 
 #ifndef CALLBACK
-#define CALLBACK  
-#endif
-
-#ifndef CALLBACK
-#define CALLBACK  
+#define CALLBACK
 #endif
 
 typedef void napi_destruct(void* v);
@@ -829,7 +825,7 @@ napi_value napi_get_persistent_value(napi_env e, napi_persistent p) {
 }
 
 napi_weakref napi_create_weakref(napi_env e, napi_value v)
-{  
+{
   //JsErrorCode error = JsNoError;
   JsValueRef strongRef = reinterpret_cast<JsValueRef>(v);
   JsWeakRef weakRef = nullptr;
