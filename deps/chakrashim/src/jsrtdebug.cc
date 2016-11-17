@@ -62,7 +62,7 @@ namespace jsrt {
     this->waitingForMessage = false;
     this->isProcessingDebuggerMsg = false;
     this->debugEventProcessCount = 0;
-    this->msgQueue = new std::queue<uint16_t*>();
+    this->msgQueue = nullptr;
 
     int err = uv_sem_init(&newMsgSem, 0);
     CHAKRA_VERIFY(err == 0);
@@ -73,11 +73,21 @@ namespace jsrt {
   MessageQueue::~MessageQueue() {
     uv_mutex_destroy(&msgMutex);
     uv_sem_destroy(&newMsgSem);
-    delete this->msgQueue;
-    this->msgQueue = nullptr;
+    if (this->msgQueue != nullptr) {
+      while (!this->msgQueue->empty()) {
+        uint16_t* command = this->msgQueue->front();
+        this->msgQueue->pop();
+        delete[] command;
+      }
+      delete this->msgQueue;
+      this->msgQueue = nullptr;
+    }
   }
 
   void MessageQueue::SaveMessage(const uint16_t* command, int length) {
+    if (this->msgQueue == nullptr) {
+      this->msgQueue = new std::queue<uint16_t*>();
+    }
     uint16_t* commandCopy = new uint16_t[length + 1];
     for (int i = 0; i < length; i++) commandCopy[i] = command[i];
     commandCopy[length] = '\0';
@@ -102,7 +112,7 @@ namespace jsrt {
   }
 
   bool MessageQueue::IsEmpty() {
-    return this->msgQueue->empty();
+    return this->msgQueue == nullptr || this->msgQueue->empty();
   }
 
   void MessageQueue::WaitForMessage() {
@@ -147,7 +157,7 @@ namespace jsrt {
         this->processDebuggerMessageFn, args, _countof(args), &responseRef);
       CHAKRA_VERIFY_NOERROR(errorCode);
 
-      delete command;
+      delete[] command;
 
       JsValueType resultType;
       errorCode = JsGetValueType(responseRef, &resultType);

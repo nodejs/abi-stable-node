@@ -1005,6 +1005,7 @@ JsErrorCode StringUtf8::From(JsValueRef strRef) {
   size_t len = 0;
   IfJsErrorRet(JsCopyStringUtf8(strRef, nullptr, 0, &len));
   uint8_t* buffer = (uint8_t*)malloc(len+1);
+  CHAKRA_VERIFY(buffer != nullptr);
   size_t written = 0;
   JsErrorCode errorCode = JsCopyStringUtf8(strRef, buffer, len, &written);
   if (errorCode == JsNoError) {

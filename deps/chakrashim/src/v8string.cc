@@ -32,6 +32,7 @@ String::Utf8Value::Utf8Value(Handle<v8::Value> obj)
   size_t len = 0;
   CHAKRA_VERIFY(JsCopyStringUtf8(*str, nullptr, 0, &len) == JsNoError);
   uint8_t* buffer = (uint8_t*)malloc(len + 1);
+  CHAKRA_VERIFY(buffer != nullptr);
   size_t written = 0;
   if (JsCopyStringUtf8(*str, buffer, len, &written) == JsNoError) {
     CHAKRA_ASSERT(len == written);
