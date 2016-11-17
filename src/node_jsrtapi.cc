@@ -30,6 +30,10 @@
 #define CALLBACK  
 #endif
 
+#ifndef CALLBACK
+#define CALLBACK  
+#endif
+
 typedef void napi_destruct(void* v);
 
 void napi_module_register(void* mod) {
