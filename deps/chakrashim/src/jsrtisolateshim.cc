@@ -45,9 +45,7 @@ IsolateShim::IsolateShim(JsRuntimeHandle runtime)
       isDisposing(false),
       contextScopeStack(nullptr),
       tryCatchStackTop(nullptr),
-      embeddedData(),
-      chakraShimArrayBuffer(nullptr),
-      chakraDebugShimArrayBuffer(nullptr) {
+      embeddedData() {
   // CHAKRA-TODO: multithread locking for s_isolateList?
   this->prevnext = &s_isolateList;
   this->next = s_isolateList;
@@ -79,10 +77,10 @@ IsolateShim::~IsolateShim() {
     return nullptr;
   }
 
-  if (jsrt::Debugger::IsDebugEnabled()) {
+  if (Debugger::IsDebugEnabled()) {
     // If JavaScript debugging APIs need to be exposed then
     // runtime should be in debugging mode from start
-    jsrt::Debugger::StartDebugging(runtime);
+    Debugger::StartDebugging(runtime);
   }
 
   IsolateShim* newIsolateshim = new IsolateShim(runtime);
@@ -99,7 +97,7 @@ IsolateShim::~IsolateShim() {
 }
 
 /* static */ IsolateShim * IsolateShim::FromIsolate(v8::Isolate * isolate) {
-  return reinterpret_cast<jsrt::IsolateShim *>(isolate);
+  return reinterpret_cast<IsolateShim *>(isolate);
 }
 
 /* static */ v8::Isolate * IsolateShim::ToIsolate(IsolateShim * isolateShim) {
@@ -205,7 +203,7 @@ ContextShim * IsolateShim::GetContextShim(JsContextRef contextRef) {
   if (JsGetContextData(contextRef, &data) != JsNoError) {
     return nullptr;
   }
-  ContextShim* contextShim = static_cast<jsrt::ContextShim *>(data);
+  ContextShim* contextShim = static_cast<ContextShim *>(data);
   return contextShim;
 }
 
@@ -317,8 +315,8 @@ JsPropertyIdRef IsolateShim::GetCachedPropertyIdRef(
     CachedPropertyIdRef cachedPropertyIdRef) {
   return GetCachedPropertyId(cachedPropertyIdRefs, cachedPropertyIdRef,
                     [](CachedPropertyIdRef index, JsPropertyIdRef* propIdRef) {
-    return JsCreatePropertyIdUtf8(s_cachedPropertyIdRefNames[index],
-      strlen(s_cachedPropertyIdRefNames[index]), propIdRef) == JsNoError;
+    return CreatePropertyId(s_cachedPropertyIdRefNames[index],
+      propIdRef) == JsNoError;
   });
 }
 
@@ -381,25 +379,23 @@ void* IsolateShim::GetData(uint32_t slot) {
 }
 
 JsValueRef IsolateShim::GetChakraShimJsArrayBuffer() {
-  if (this->chakraShimArrayBuffer == nullptr) {
-    CHAKRA_VERIFY(JsCreateExternalArrayBuffer(
-                  (void*)jsrt::chakra_shim_native,
-                  sizeof(jsrt::chakra_shim_native),
-                  nullptr, nullptr,
-                  &this->chakraShimArrayBuffer) == JsNoError);
-  }
-  return this->chakraShimArrayBuffer;
+  JsValueRef chakraShimArrayBuffer;
+  CHAKRA_VERIFY(JsCreateExternalArrayBuffer(
+                (void*)chakra_shim_native,
+                sizeof(chakra_shim_native),
+                nullptr, nullptr,
+                &chakraShimArrayBuffer) == JsNoError);
+  return chakraShimArrayBuffer;
 }
 
 JsValueRef IsolateShim::GetChakraDebugShimJsArrayBuffer() {
-  if (this->chakraDebugShimArrayBuffer == nullptr) {
-    CHAKRA_VERIFY(JsCreateExternalArrayBuffer(
-                  (void*)jsrt::chakra_debug_native,
-                  sizeof(jsrt::chakra_debug_native),
-                  nullptr, nullptr,
-                  &this->chakraDebugShimArrayBuffer) == JsNoError);
-  }
-  return this->chakraDebugShimArrayBuffer;
+  JsValueRef chakraDebugShimArrayBuffer;
+  CHAKRA_VERIFY(JsCreateExternalArrayBuffer(
+                (void*)chakra_debug_native,
+                sizeof(chakra_debug_native),
+                nullptr, nullptr,
+                &chakraDebugShimArrayBuffer) == JsNoError);
+  return chakraDebugShimArrayBuffer;
 }
 
 }  // namespace jsrt

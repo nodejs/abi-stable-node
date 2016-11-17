@@ -264,6 +264,12 @@ JsErrorCode CreateFunctionWithExternalData(JsNativeFunction,
 JsErrorCode ToString(JsValueRef ref,
                      JsValueRef* strRef, StringUtf8* stringUtf8);
 
+JsErrorCode CreateString(const char *string,
+                         JsValueRef *ref);
+
+JsErrorCode CreatePropertyId(const char *name,
+                             JsValueRef *propertyIdRef);
+
 #define DEF_IS_TYPE(F) \
 JsErrorCode Call##F(JsValueRef value,  \
 JsValueRef *resultRef); \
@@ -399,7 +405,7 @@ template <class T>
 JsErrorCode CallFunction(const T& api,
                          JsValueRef func,
                          JsValueRef* result) {
-  JsValueRef args[] = { jsrt::GetUndefined() };
+  JsValueRef args[] = { GetUndefined() };
   return api(func, args, _countof(args), result);
 }
 
@@ -407,7 +413,7 @@ template <class T>
 JsErrorCode CallFunction(const T& api,
                          JsValueRef func, JsValueRef arg1,
                          JsValueRef* result) {
-  JsValueRef args[] = { jsrt::GetUndefined(), arg1 };
+  JsValueRef args[] = { GetUndefined(), arg1 };
   return api(func, args, _countof(args), result);
 }
 
@@ -415,7 +421,7 @@ template <class T>
 JsErrorCode CallFunction(const T& api,
                          JsValueRef func, JsValueRef arg1, JsValueRef arg2,
                          JsValueRef* result) {
-  JsValueRef args[] = { jsrt::GetUndefined(), arg1, arg2 };
+  JsValueRef args[] = { GetUndefined(), arg1, arg2 };
   return api(func, args, _countof(args), result);
 }
 

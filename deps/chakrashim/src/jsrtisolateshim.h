@@ -184,8 +184,5 @@ class IsolateShim {
   uv_timer_t idleGc_timer_handle_;
   bool jsScriptExecuted = false;
   bool isIdleGcScheduled = false;
-
-  JsValueRef chakraShimArrayBuffer;
-  JsValueRef chakraDebugShimArrayBuffer;
 };
 }  // namespace jsrt

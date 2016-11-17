@@ -52,9 +52,7 @@ JsErrorCode GetProperty(JsValueRef ref,
                         const char *propertyName,
                         JsValueRef *result) {
   JsPropertyIdRef idRef;
-  JsErrorCode error;
-
-  error = JsCreatePropertyIdUtf8(propertyName, strlen(propertyName), &idRef);
+  JsErrorCode error = CreatePropertyId(propertyName, &idRef);
 
   if (error != JsNoError) {
     return error;
@@ -135,7 +133,7 @@ JsErrorCode CallProperty(JsValueRef ref,
   JsErrorCode error;
 
   error = JsGetProperty(ref,
-    jsrt::IsolateShim::GetCurrent()->GetCachedPropertyIdRef(cachedIdRef),
+    IsolateShim::GetCurrent()->GetCachedPropertyIdRef(cachedIdRef),
     &propertyRef);
   if (error != JsNoError) {
     return error;
@@ -166,12 +164,9 @@ JsErrorCode CallGetter(JsValueRef ref,
 
 JsErrorCode GetPropertyOfGlobal(const char *propertyName,
                                 JsValueRef *ref) {
-  JsErrorCode error;
   JsPropertyIdRef propertyIdRef, globalRef;
 
-  error = JsCreatePropertyIdUtf8(propertyName,
-                                 strlen(propertyName),
-                                 &propertyIdRef);
+  JsErrorCode error = CreatePropertyId(propertyName, &propertyIdRef);
 
   if (error != JsNoError) {
     return error;
@@ -188,12 +183,9 @@ JsErrorCode GetPropertyOfGlobal(const char *propertyName,
 
 JsErrorCode SetPropertyOfGlobal(const char *propertyName,
                                 JsValueRef ref) {
-  JsErrorCode error;
   JsPropertyIdRef propertyIdRef, globalRef;
 
-  error = JsCreatePropertyIdUtf8(propertyName,
-                                 strlen(propertyName),
-                                 &propertyIdRef);
+  JsErrorCode error = CreatePropertyId(propertyName, &propertyIdRef);
 
   if (error != JsNoError) {
     return error;
@@ -446,6 +438,23 @@ JsErrorCode ToString(JsValueRef ref,
   IfJsErrorRet(JsConvertValueToString(ref, strRef));
   return stringUtf8->From(*strRef);
 }
+
+JsErrorCode CreateString(const char *string,
+                         JsValueRef *ref) {
+  JsErrorCode errorCode = JsCreateString(string, strlen(string), ref);
+  CHAKRA_VERIFY_NOERROR(errorCode);
+  return errorCode;
+}
+
+JsErrorCode CreatePropertyId(const char *name,
+                             JsValueRef *propertyIdRef) {
+  JsErrorCode errorCode = JsCreatePropertyIdUtf8(name,
+                                                 strlen(name),
+                                                 propertyIdRef);
+  CHAKRA_VERIFY_NOERROR(errorCode);
+  return errorCode;
+}
+
 
 #define DEF_IS_TYPE(F) \
 JsErrorCode Call##F(JsValueRef value, JsValueRef *resultRef) { \
@@ -778,7 +787,7 @@ bool HasPrivate(JsValueRef object, JsValueRef key) {
   }
 
   JsValueRef hasPropertyRef;
-  errorCode = jsrt::HasOwnProperty(hiddenValuesTable, key, &hasPropertyRef);
+  errorCode = HasOwnProperty(hiddenValuesTable, key, &hasPropertyRef);
   RETURN_IF_JSERROR(errorCode, false);
 
   bool hasKey;
@@ -803,7 +812,7 @@ bool DeletePrivate(JsValueRef object, JsValueRef key) {
   }
 
   JsValueRef deleteResultRef;
-  errorCode = jsrt::DeleteProperty(hiddenValuesTable, key, &deleteResultRef);
+  errorCode = DeleteProperty(hiddenValuesTable, key, &deleteResultRef);
   RETURN_IF_JSERROR(errorCode, false);
 
   bool hasDeleted;
@@ -881,7 +890,7 @@ JsErrorCode SetPrivate(JsValueRef object, JsValueRef key,
     RETURN_IF_JSERROR(errorCode, errorCode);
   }
 
-  errorCode = jsrt::SetProperty(hiddenValuesTable, key, value);
+  errorCode = SetProperty(hiddenValuesTable, key, value);
   RETURN_IF_JSERROR(errorCode, errorCode);
 
   return JsNoError;
@@ -937,7 +946,7 @@ JsValueRef CHAKRA_CALLBACK CollectGarbage(
   unsigned short argumentCount,
   void *callbackState) {
   JsCollectGarbage(IsolateShim::GetCurrent()->GetRuntimeHandle());
-  return jsrt::GetUndefined();
+  return GetUndefined();
 }
 
 void IdleGC(uv_timer_t *timerHandler) {

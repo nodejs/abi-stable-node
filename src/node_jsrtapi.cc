@@ -24,7 +24,7 @@
 #include <vector>
 #include "ChakraCore.h"
 
-#include "src\jsrtutils.h"
+#include "src/jsrtutils.h"
 
 #ifndef CALLBACK
 #define CALLBACK  

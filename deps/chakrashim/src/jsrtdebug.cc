@@ -18,6 +18,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
+#include "v8chakra.h"
 #include "jsrtdebug.h"
 #include "jsrtutils.h"
 
@@ -38,20 +39,11 @@ namespace jsrt {
     return jsrt::IsolateShim::GetCurrentAsIsolate();
   }
 
-  v8::Local<v8::String> MessageImpl::JsValueRefToV8String(JsValueRef result) {
-    JsValueRef scriptRef;
-    jsrt::StringUtf8 script;
-
-    JsErrorCode errorCode = jsrt::ToString(result, &scriptRef, &script);
+  v8::Local<v8::String> MessageImpl::ToLocal(JsValueRef result) {
+    JsValueRef stringRef;
+    JsErrorCode errorCode = JsConvertValueToString(result, &stringRef);
     CHAKRA_VERIFY_NOERROR(errorCode);
-
-    v8::MaybeLocal<v8::String> v8Str = v8::String::NewFromUtf8(
-      jsrt::IsolateShim::GetCurrentAsIsolate(),
-      *script,
-      v8::NewStringType::kNormal,
-      script.length());
-
-    return v8Str.ToLocalChecked();
+    return v8::Utils::ToLocal<v8::String>(static_cast<v8::String*>(stringRef));
   }
 
   v8::Local<v8::String> MessageImpl::GetJSON() const {
@@ -165,7 +157,7 @@ namespace jsrt {
 
       if (resultType == JsString) {
         v8::Local<v8::String> v8Str =
-          MessageImpl::JsValueRefToV8String(responseRef);
+          MessageImpl::ToLocal(responseRef);
         MessageImpl* msgImpl = new MessageImpl(v8Str);
         Debugger::handler(*msgImpl);
       }
@@ -192,7 +184,7 @@ namespace jsrt {
     CHAKRA_VERIFY_NOERROR(errorCode);
 
     if (resultType == JsString) {
-      v8::Local<v8::String> v8Str = MessageImpl::JsValueRefToV8String(result);
+      v8::Local<v8::String> v8Str = MessageImpl::ToLocal(result);
       MessageImpl* msgImpl = new MessageImpl(v8Str);
       Debugger::handler(*msgImpl);
     }
@@ -292,7 +284,7 @@ namespace jsrt {
     CHAKRA_VERIFY_NOERROR(errorCode);
 
     if (resultType == JsString) {
-      v8::Local<v8::String> v8Str = MessageImpl::JsValueRefToV8String(
+      v8::Local<v8::String> v8Str = MessageImpl::ToLocal(
         arguments[1]);
       MessageImpl* msgImpl = new MessageImpl(v8Str);
       Debugger::handler(*msgImpl);
@@ -534,8 +526,7 @@ namespace jsrt {
 
     if (argumentCount > 1) {
       JsValueRef url;
-      CHAKRA_VERIFY(JsCreateString("eval code", strlen("eval code"),
-                                   &url) == JsNoError);
+      jsrt::CreateString("eval code", &url);
       JsErrorCode errorCode = JsRun(arguments[1],
                                     JS_SOURCE_CONTEXT_NONE,
                                     url,
@@ -617,8 +608,7 @@ namespace jsrt {
     CHAKRA_VERIFY_NOERROR(errorCode);
 
     JsPropertyIdRef propertyIdRef;
-    errorCode = JsCreatePropertyIdUtf8(name, strlen(name), &propertyIdRef);
-    CHAKRA_VERIFY_NOERROR(errorCode);
+    jsrt::CreatePropertyId(name, &propertyIdRef);
 
     errorCode = JsSetProperty(chakraDebugObject, propertyIdRef, funcRef, true);
     CHAKRA_VERIFY_NOERROR(errorCode);
@@ -626,32 +616,21 @@ namespace jsrt {
 
   void Debugger::SetChakraDebugObject(JsValueRef chakraDebugObject) {
     JsPropertyIdRef propertyIdRef;
-
-    JsErrorCode errorCode = JsCreatePropertyIdUtf8(
-      "ProcessDebuggerMessage",
-      strlen("ProcessDebuggerMessage"),
-      &propertyIdRef);
-    CHAKRA_VERIFY_NOERROR(errorCode);
+    jsrt::CreatePropertyId("ProcessDebuggerMessage", &propertyIdRef);
 
     JsValueRef processDebuggerMessageFn;
-    errorCode = JsGetProperty(chakraDebugObject,
+    JsErrorCode errorCode = JsGetProperty(chakraDebugObject,
       propertyIdRef, &processDebuggerMessageFn);
     CHAKRA_VERIFY_NOERROR(errorCode);
 
-    errorCode = JsCreatePropertyIdUtf8("ProcessDebugEvent",
-      strlen("ProcessDebugEvent"),
-      &propertyIdRef);
-    CHAKRA_VERIFY_NOERROR(errorCode);
+    jsrt::CreatePropertyId("ProcessDebugEvent", &propertyIdRef);
 
     JsValueRef processDebugEventFn;
     errorCode = JsGetProperty(chakraDebugObject,
       propertyIdRef, &processDebugEventFn);
     CHAKRA_VERIFY_NOERROR(errorCode);
 
-    errorCode = JsCreatePropertyIdUtf8("ProcessShouldContinue",
-      strlen("ProcessShouldContinue"),
-      &propertyIdRef);
-    CHAKRA_VERIFY_NOERROR(errorCode);
+    jsrt::CreatePropertyId("ProcessShouldContinue", &propertyIdRef);
 
     JsValueRef processShouldContinueFn;
     errorCode = JsGetProperty(chakraDebugObject,

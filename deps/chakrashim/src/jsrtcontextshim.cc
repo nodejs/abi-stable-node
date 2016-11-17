@@ -427,8 +427,7 @@ bool ContextShim::ExposeGc() {
 bool ContextShim::ExecuteChakraShimJS() {
   JsValueRef getInitFunction;
   JsValueRef url;
-  CHAKRA_VERIFY(JsCreateString("chakra_shim.js", strlen("chakra_shim.js"),
-                               &url) == JsNoError);
+  jsrt::CreateString("chakra_shim.js", &url);
   if (JsParse(GetIsolateShim()->GetChakraShimJsArrayBuffer(),
                     v8::currentContext++,
                     url,
@@ -449,8 +448,7 @@ bool ContextShim::ExecuteChakraShimJS() {
 bool ContextShim::ExecuteChakraDebugShimJS(JsValueRef * chakraDebugObject) {
   JsValueRef getInitFunction;
   JsValueRef url;
-  CHAKRA_VERIFY(JsCreateString("chakra_debug.js", strlen("chakra_debug.js"),
-                               &url) == JsNoError);
+  jsrt::CreateString("chakra_debug.js", &url);
   if (JsParse(GetIsolateShim()->GetChakraDebugShimJsArrayBuffer(),
     v8::currentContext++,
     url,
