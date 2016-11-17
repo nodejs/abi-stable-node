@@ -301,10 +301,3 @@ NODE_EXTERN size_t napi_buffer_length(napi_env e, napi_value v);
 } // extern "C"
 
 #endif  // SRC_NODE_JSVMAPI_H__
-
-/////////////////////////////////////////////////////////
-// NAN transition helpers, tbd what do with these
-/////////////////////////////////////////////////////////
-#undef NAN_MODULE_INIT
-#define NAN_MODULE_INIT(name)                                                  \
-  void name(napi_env napi_env, napi_value target, napi_value module)
