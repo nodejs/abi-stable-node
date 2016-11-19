@@ -12,6 +12,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 #include "node_jsvmapi.h"
 #include "node_asyncapi.h"
+#include <assert.h>
 #include <limits.h>
 #include <string.h>
 
