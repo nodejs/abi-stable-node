@@ -12,9 +12,9 @@ void napi_delete_async_work(napi_work w) {
   napi_work_impl* worker = reinterpret_cast<napi_work_impl*>(w);
   if (worker != NULL) {
     if (worker->work != NULL) {
-      delete reinterpret_cast<uv_work_t*>(worker->work);
+      free(reinterpret_cast<uv_work_t*>(worker->work));
     }
-    delete worker;
+    free(worker);
     worker = NULL;
   }
 }
