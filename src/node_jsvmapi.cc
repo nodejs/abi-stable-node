@@ -157,7 +157,9 @@ namespace v8impl {
     napi_callback cb = reinterpret_cast<napi_callback>(
                            args.Data().As<v8::External>()->Value());
     v8::Persistent<v8::Value> ret;
-    napi_func_cb_info_impl cbinfo {const_cast<v8::Arguments*>(&args), ret};
+    napi_func_cb_info_impl cbinfo;
+    cbinfo.Arguments = const_cast<v8::Arguments*>(&args);
+    cbinfo.ReturnValue = ret;
     cb(
       JsEnvFromV8Isolate(args.GetIsolate()),
       reinterpret_cast<napi_func_cb_info>(&cbinfo));
