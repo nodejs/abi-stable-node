@@ -482,7 +482,6 @@ extern "C" NODE_EXTERN void node_module_register(void* mod);
       node_module_register(&_module);                                 \
     }                                                                 \
   }
-  
 
 #define NODE_MODULE(modname, regfunc)                                 \
   NODE_MODULE_X(modname, regfunc, NULL, 0)
@@ -491,8 +490,7 @@ extern "C" NODE_EXTERN void node_module_register(void* mod);
   NODE_MODULE_CONTEXT_AWARE_X(modname, regfunc, NULL, 0)
 
 #define NODE_MODULE_CONTEXT_AWARE_BUILTIN(modname, regfunc)           \
-  NODE_MODULE_CONTEXT_AWARE_X(modname, regfunc, NULL, NM_F_BUILTIN)   
-  
+  NODE_MODULE_CONTEXT_AWARE_X(modname, regfunc, NULL, NM_F_BUILTIN)   \
 
 /*
  * For backward compatibility in add-on modules.
