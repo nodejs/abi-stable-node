@@ -1,18 +1,45 @@
-ABI Stable Node.js Proof of Concept
-===================================
+# Node.js API (NAPI)
+This repository is the home for ABI Stable Node API project. The goal of this
+project is to provide stable Node API for native module developers. NAPI aims
+to provide ABI compatibility guarantees across different Node versions and also
+across different Node VMs – allowing NAPI enabled native modules to just work
+across different versions and flavors of Node.js without recompilations.
 
-This repository is the home of the proof of
-concept work being done to develop an
-ABI stable API for use my node modules.
+This project is in an early proof of concept stage. Check out our [roadmap](https://github.com/nodejs/abi-stable-node/issues/18)
 
-For more details please read the node-eps
-covering this effort.  The current PR
-for the eps is:
-https://github.com/nodejs/node-eps/pull/20
+**API Design & Shape**
 
-Google Hangout for Weekly Stand up:
+For more details on design of the API, please check out the 
+[node-eps](https://github.com/nodejs/node-eps/pull/20) covering this effort. 
+
+The current shape of the API can be found in header file 
+[node_jsvmapi.h](https://github.com/nodejs/abi-stable-node/blob/api-prototype-6.2.0/src/node_jsvmapi.h)
+
+**Branches**
+
+This repoistory contains node sources from Node versions 0.10, 0.12, 6.2 and
+Node-ChakraCore version 7.0, whith addition of ABI stable Node APIs. The branches
+are named according to the node versions that have been enabled with NAPI support. 
+
+**NAPI enabled modules**
+* leveldown 
+* nanomsg
+
+**How to get involved**
+* Convert a native module to use ABI stable APIs and report issues on conversion and performance;
+* Port ABI stable APIs to your fork of Node and let us know if there are gaps;
+* Review the [roadmap](https://github.com/nodejs/abi-stable-node/issues/18) and see how can you
+can help accelerate this project.
+
+Hangout link for weekly standup
 https://plus.google.com/u/0/events/c0eevtrlajniu7h8cjrdk0f56c8?authkey=COH04YCalJS8Ug
 
-~
-
-
+# Project Participants
+* [aruneshchandra](https://github.com/aruneshchandra) - Arunesh Chandra
+* [boingoing](https://github.com/boingoing) - Taylor Woll
+* [digitalinfinity](https://github.com/digitalinfinity) - Hitesh Kanwathirtha
+* [gabrielschulhof](https://github.com/gabrielschulhof) - Gabriel Schulhof
+* [mhdawson](https://github.com/mhdawson) - Michael Dawson 
+* [mykmelez](https://github.com/mykmelez) - Myk Melez
+* [ianwjhalliday](https://github.com/ianwjhalliday) - Ian Halliday 
+* [sampsongao](https://github.com/sampsongao) - Sampson Gao
