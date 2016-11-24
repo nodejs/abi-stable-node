@@ -1,11 +1,12 @@
 # Node.js API (NAPI)
-This repository is the home for ABI Stable Node API project. The goal of this
-project is to provide stable Node API for native module developers. NAPI aims
+This repository is the home for ABI Stable Node API project (NAPI). The goal of this
+project is to provide a stable Node API for native module developers. NAPI aims
 to provide ABI compatibility guarantees across different Node versions and also
 across different Node VMs – allowing NAPI enabled native modules to just work
 across different versions and flavors of Node.js without recompilations.
 
 This project is in an early proof of concept stage. Check out our [roadmap](https://github.com/nodejs/abi-stable-node/issues/18)
+for details on the remaining work.
 
 **API Design & Shape**
 
@@ -22,8 +23,19 @@ Node-ChakraCore version 7.0, whith addition of ABI stable Node APIs. The branche
 are named according to the node versions that have been enabled with NAPI support. 
 
 **NAPI enabled modules**
-* leveldown 
-* nanomsg
+* [leveldown](https://github.com/boingoing/leveldown/)
+* [nanomsg](https://github.com/sampsongao/node-nanomsg)
+* [sqllite3](https://github.com/mhdawson/node-sqlite3) - in progress
+
+**Testing**
+
+In addition to running the tests in the converted modules.  We have also 
+
+* Converted version of the NAN examples that we always keep working
+  [abi-stable-node-addon-examples](https://github.com/nodejs/abi-stable-node-addon-examples)
+
+* Converted version of the core addons tests - ex: 
+[https://github.com/nodejs]/abi-stable-node/tree/api-prototype-6.2.0/test/addons-abi(https://github.com/nodejs/abi-stable-node/tree/api-prototype-6.2.0/test/addons-abi) which can be run with ```make test addons-abi```
 
 **How to get involved**
 * Convert a native module to use ABI stable APIs and report issues on conversion and performance;
