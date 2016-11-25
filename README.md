@@ -34,8 +34,7 @@ In addition to running the tests in the converted modules.  We have also
 * Converted version of the NAN examples that we always keep working
   [abi-stable-node-addon-examples](https://github.com/nodejs/abi-stable-node-addon-examples)
 
-* Converted version of the core addons tests - ex: 
-[https://github.com/nodejs]/abi-stable-node/tree/api-prototype-6.2.0/test/addons-abi](https://github.com/nodejs/abi-stable-node/tree/api-prototype-6.2.0/test/addons-abi) which can be run with ```make test addons-abi```
+* Converted version of the [core addons tests](https://github.com/nodejs/abi-stable-node/tree/api-prototype-6.2.0/test/addons-abi) which can be run with ```make test addons-abi```
 
 **How to get involved**
 * Convert a native module to use ABI stable APIs and report issues on conversion and performance;
