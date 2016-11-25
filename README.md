@@ -18,8 +18,8 @@ The current shape of the API can be found in header file
 
 **Branches**
 
-This repoistory contains node sources from Node versions 0.10, 0.12, 6.2 and
-Node-ChakraCore version 7.0, whith addition of ABI stable Node APIs. The branches
+This repository contains node sources from Node versions 0.10, 0.12, 6.2 and
+Node-ChakraCore version 7.0, with addition of ABI stable Node APIs. The branches
 are named according to the node versions that have been enabled with NAPI support. 
 
 **NAPI enabled modules**
