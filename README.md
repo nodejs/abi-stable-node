@@ -37,7 +37,7 @@ In addition to running the tests in the converted modules.  We have also
 * Converted version of the [core addons tests](https://github.com/nodejs/abi-stable-node/tree/api-prototype-6.2.0/test/addons-abi) which can be run with ```make test addons-abi```
 
 **How to get involved**
-* Convert a native module to use ABI stable APIs and report issues on conversion and performance;
+* Convert a native module to use [NAPI](https://github.com/nodejs/abi-stable-node/blob/api-prototype-6.2.0/src/node_jsvmapi.h) and report issues on conversion and performance;
 * Port ABI stable APIs to your fork of Node and let us know if there are gaps;
 * Review the [roadmap](https://github.com/nodejs/abi-stable-node/issues/18) and see how can you
 can help accelerate this project.
