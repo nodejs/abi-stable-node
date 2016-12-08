@@ -584,7 +584,7 @@ void napi_throw(napi_env e, napi_value error) {
   // to the javascript invoker will fail
 }
 
-void napi_throw_error(napi_env e, char* msg) {
+void napi_throw_error(napi_env e, const char* msg) {
   v8::Isolate *isolate = v8impl::V8IsolateFromJsEnv(e);
 
   isolate->ThrowException(
@@ -593,7 +593,7 @@ void napi_throw_error(napi_env e, char* msg) {
   // to the javascript invoker will fail
 }
 
-void napi_throw_type_error(napi_env e, char* msg) {
+void napi_throw_type_error(napi_env e, const char* msg) {
   v8::Isolate *isolate = v8impl::V8IsolateFromJsEnv(e);
 
   isolate->ThrowException(
