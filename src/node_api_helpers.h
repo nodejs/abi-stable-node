@@ -14,6 +14,7 @@
 #include "node_asyncapi.h"
 #include <limits.h>
 #include <string.h>
+#include <assert.h>
 
 #define NAPI_METHOD(name)                                                      \
   void name(napi_env env, napi_func_cb_info info)
