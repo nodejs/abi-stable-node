@@ -247,8 +247,8 @@ NODE_EXTERN napi_value napi_escape_handle(napi_env e,
 
 // Methods to support error handling
 NODE_EXTERN void napi_throw(napi_env e, napi_value error);
-NODE_EXTERN void napi_throw_error(napi_env e, char* msg);
-NODE_EXTERN void napi_throw_type_error(napi_env e, char* msg);
+NODE_EXTERN void napi_throw_error(napi_env e, const char* msg);
+NODE_EXTERN void napi_throw_type_error(napi_env e, const char* msg);
 
 // TODO(ianhall): APIs for handling try catch semantics need serious
 // design analysis, this is just a quick hack

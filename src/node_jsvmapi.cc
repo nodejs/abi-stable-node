@@ -548,14 +548,14 @@ void napi_throw(napi_env e, napi_value error) {
   // to the javascript invoker will fail
 }
 
-void napi_throw_error(napi_env e, char* msg) {
+void napi_throw_error(napi_env e, const char* msg) {
   v8::ThrowException(
       v8::Exception::Error(v8::String::New(msg)));
   // any VM calls after this point and before returning
   // to the javascript invoker will fail
 }
 
-void napi_throw_type_error(napi_env e, char* msg) {
+void napi_throw_type_error(napi_env e, const char* msg) {
   v8::ThrowException(
       v8::Exception::TypeError(v8::String::New(msg)));
   // any VM calls after this point and before returning
