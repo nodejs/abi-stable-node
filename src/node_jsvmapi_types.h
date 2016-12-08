@@ -17,7 +17,7 @@ typedef void napi_destruct(void* v);
 
 struct napi_method_descriptor {
   napi_callback callback;
-  char* utf8name;
+  const char* utf8name;
 };
 
 
