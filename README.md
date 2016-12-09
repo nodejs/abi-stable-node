@@ -26,7 +26,7 @@ are named according to the node versions that have been enabled with NAPI suppor
 * [leveldown](https://github.com/boingoing/leveldown/)
 * [nanomsg](https://github.com/sampsongao/node-nanomsg)
 * [sqllite3](https://github.com/mhdawson/node-sqlite3) - in progress
-* [iotivity](https://github.com/gabrielschulhof/iotivity-node) - in progress
+* [iotivity](https://github.com/gabrielschulhof/iotivity-node/tree/abi-stable) - in progress
 
 **Testing**
 
