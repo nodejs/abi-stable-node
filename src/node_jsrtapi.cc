@@ -501,7 +501,7 @@ napi_value napi_create_number(napi_env e, double v) {
 napi_value napi_create_boolean(napi_env e, bool b) {
   JsErrorCode error = JsNoError;
   JsValueRef booleanValue = nullptr;
-  error = JsDoubleToNumber(b, &booleanValue);
+  error = JsBoolToBoolean(b, &booleanValue);
   return reinterpret_cast<napi_value>(booleanValue);
 }
 
