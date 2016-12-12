@@ -260,7 +260,6 @@ NODE_EXTERN napi_value napi_get_persistent_value(napi_env e, napi_persistent p);
 NODE_EXTERN napi_weakref napi_create_weakref(napi_env e, napi_value v);
 NODE_EXTERN bool napi_get_weakref_value(napi_env e, napi_weakref w,
                                         napi_value *pv);
-// is this actually needed?
 NODE_EXTERN void napi_release_weakref(napi_env e, napi_weakref w);
 NODE_EXTERN napi_handle_scope napi_open_handle_scope(napi_env e);
 NODE_EXTERN void napi_close_handle_scope(napi_env e, napi_handle_scope s);
