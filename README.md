@@ -5,6 +5,9 @@ to provide ABI compatibility guarantees across different Node versions and also
 across different Node VMs – allowing NAPI enabled native modules to just work
 across different versions and flavors of Node.js without recompilations.
 
+It is introduced by this Node enhancemnet proposal:
+[005-ABI-Stable-Module-API.md](https://github.com/nodejs/node-eps/blob/master/005-ABI-Stable-Module-API.md).
+
 This project is in an early proof of concept stage. Check out our [roadmap](https://github.com/nodejs/abi-stable-node/issues/18)
 for details on the remaining work.
 
@@ -17,9 +20,6 @@ in branches in this repo.  Currently we have the following versions:
 * api-prototype-chakracore-7.x
 
 **API Design & Shape**
-
-For more details on design of the API, please check out the 
-[node-eps](https://github.com/nodejs/node-eps/pull/20) covering this effort. 
 
 The current shape of the API can be found in header file 
 [node_jsvmapi.h](https://github.com/nodejs/abi-stable-node/blob/api-prototype-6.2.0/src/node_jsvmapi.h)
