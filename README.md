@@ -9,7 +9,7 @@ This project is in an early proof of concept stage. Check out our [roadmap](http
 for details on the remaining work.
 
 Copies of the Node.js source with the changes for the ABI Stable Node API are
-in branches in this repo.  Currently we have the following version:
+in branches in this repo.  Currently we have the following versions:
 
 * api-prototype-0.10.40
 * api-prototype-0.12.7
