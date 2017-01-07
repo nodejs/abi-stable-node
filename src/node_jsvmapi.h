@@ -55,6 +55,7 @@ struct napi_module_struct {
   struct node_module* nm_link;
 };
 
+#include <node.h>
 
 NODE_EXTERN void napi_module_register(void* mod);
 
