@@ -1463,6 +1463,7 @@ BUILT_IN_TESTS = [
   'message',
   'internet',
   'addons',
+  'addons-abi',
   'gc',
   'debugger',
   'doctool',
