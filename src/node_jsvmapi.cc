@@ -836,15 +836,41 @@ napi_value napi_make_callback(napi_env e, napi_value recv,
   return v8impl::JsValueFromV8LocalValue(result);
 }
 
-bool napi_try_catch(napi_env e, napi_try_callback cbtry,
-                    napi_catch_callback cbcatch, void* data) {
-  v8::TryCatch try_catch;
-  cbtry(e, data);
-  if (try_catch.HasCaught()) {
-    cbcatch;
-    return true;
-  }
-  return false;
+struct napi_trycatch_impl {
+	v8::TryCatch impl;
+	bool exceptionRetrieved;
+};
+
+void napi_trycatch_new(napi_env e, napi_trycatch *trycatch) {
+	struct napi_trycatch_impl *local = new struct napi_trycatch_impl;
+
+	if (!local) {
+		return;
+	}
+
+	local->exceptionRetrieved = false;
+
+	*trycatch = (napi_trycatch)local;
+}
+
+napi_value napi_trycatch_exception(napi_env e, napi_trycatch trycatch) {
+	struct napi_trycatch_impl *local = (struct napi_trycatch_impl *)trycatch;
+
+	if (local->impl.HasCaught()) {
+		local->exceptionRetrieved = true;
+		return v8impl::JsValueFromV8LocalValue(local->impl.Exception());
+	} else {
+		return napi_get_undefined_(e);
+	}
+}
+
+void napi_trycatch_delete(napi_env e, napi_trycatch trycatch) {
+	struct napi_trycatch_impl *local = (struct napi_trycatch_impl *)trycatch;
+
+	if (!(local->exceptionRetrieved)) {
+		local->impl.ReThrow();
+	}
+	delete local;
 }
 
 napi_value napi_buffer_new(napi_env e, char* data, uint32_t size) {

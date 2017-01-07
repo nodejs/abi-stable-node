@@ -10,6 +10,7 @@ typedef struct napi_weakref__ *napi_weakref;
 typedef struct napi_handle_scope__ *napi_handle_scope;
 typedef struct napi_escapable_handle_scope__ *napi_escapable_handle_scope;
 typedef struct napi_propertyname__ *napi_propertyname;
+typedef struct napi_trycatch__ *napi_trycatch;
 typedef struct napi_func_cb_info__ *napi_func_cb_info;
 typedef void (*napi_callback)(napi_env, napi_func_cb_info);
 typedef void napi_destruct(void* v);
