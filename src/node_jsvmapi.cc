@@ -86,6 +86,26 @@ namespace v8impl {
     return reinterpret_cast<EscapableHandleScopeWrapper*>(s);
   }
 
+  napi_trycatch JsTryCatchFromBoolPointer(bool* theBoolean) {
+    union U {
+      napi_trycatch t;
+      bool* b;
+      U(bool* _b) : b(_b) { }
+    } u(theBoolean);
+    assert(sizeof(u.t) == sizeof(u.b));
+    return u.t;
+  }
+
+  bool* BoolPointerFromJsTryCatch(napi_trycatch tryCatch) {
+    union U {
+      napi_trycatch t;
+      bool* b;
+      U(napi_trycatch _t) : t(_t) { }
+    } u(tryCatch);
+    assert(sizeof(u.t) == sizeof(u.b));
+    return u.b;
+  }
+
 //=== Conversion between V8 Handles and napi_value ========================
 
   // This is assuming v8::Local<> will always be implemented with a single
@@ -224,6 +244,8 @@ namespace v8impl {
 
 
 }  // end of namespace v8impl
+
+static v8::Persistent<v8::Value> *lastException = 0;
 
 napi_env napi_get_current_env() {
   return v8impl::JsEnvFromV8Isolate(v8::Isolate::GetCurrent());
@@ -580,10 +602,20 @@ napi_value napi_call_function(napi_env e, napi_value scope,
   v8::Local<v8::Function> v8func = v8impl::V8LocalFunctionFromJsValue(func);
   v8::Handle<v8::Object> v8scope =
       v8impl::V8LocalValueFromJsValue(scope)->ToObject();
+  v8::Isolate *isolate = v8impl::V8IsolateFromJsEnv(e);
   for (int i = 0; i < argc; i++) {
     args[i] = v8impl::V8LocalValueFromJsValue(argv[i]);
   }
+  v8::TryCatch tryCatch(isolate);
   v8::Handle<v8::Value> result = v8func->Call(v8scope, argc, args.data());
+  if (tryCatch.HasCaught()) {
+    if (!lastException) {
+      lastException =
+        new v8::Persistent<v8::Value>(isolate, tryCatch.Exception());
+    } else {
+      lastException->Reset(isolate, tryCatch.Exception());
+    }
+  }
   return v8impl::JsValueFromV8LocalValue(result);
 }
 
@@ -836,15 +868,32 @@ napi_value napi_make_callback(napi_env e, napi_value recv,
   return v8impl::JsValueFromV8LocalValue(result);
 }
 
-bool napi_try_catch(napi_env e, napi_try_callback cbtry,
-                    napi_catch_callback cbcatch, void* data) {
-  v8::TryCatch try_catch;
-  cbtry(e, data);
-  if (try_catch.HasCaught()) {
-    cbcatch;
-    return true;
+// Methods to support catching exceptions
+void napi_trycatch_new(napi_env e, napi_trycatch *trycatch) {
+  *trycatch = v8impl::JsTryCatchFromBoolPointer(new bool(false));
+}
+
+napi_value napi_trycatch_exception(napi_env e, napi_trycatch trycatch) {
+  napi_value returnValue;
+  *(v8impl::BoolPointerFromJsTryCatch(trycatch)) = true;
+  if (!lastException || lastException->IsEmpty()) {
+    returnValue = napi_get_undefined_(e);
+  } else {
+    returnValue = v8impl::JsValueFromV8LocalValue(
+      lastException->Get(v8impl::V8IsolateFromJsEnv(e)));
+    lastException->Reset();
   }
-  return false;
+  return returnValue;
+}
+
+void napi_trycatch_delete(napi_env e, napi_trycatch trycatch) {
+  bool* theBoolean = v8impl::BoolPointerFromJsTryCatch(trycatch);
+  v8::Isolate* isolate;
+  if (!(*theBoolean) && lastException && !lastException->IsEmpty()) {
+    isolate = v8impl::V8IsolateFromJsEnv(e);
+    isolate->ThrowException(lastException->Get(isolate));
+  }
+  delete theBoolean;
 }
 
 napi_value napi_buffer_new(napi_env e, char* data, uint32_t size) {
