@@ -159,6 +159,8 @@ NODE_EXTERN int64_t napi_get_value_int64(napi_env e, napi_value v);
 NODE_EXTERN bool napi_get_value_bool(napi_env e, napi_value v);
 
 NODE_EXTERN int napi_get_string_length(napi_env e, napi_value v);
+
+// Do we need utf16 as well?
 NODE_EXTERN int napi_get_string_utf8_length(napi_env e, napi_value v);
 NODE_EXTERN int napi_get_string_utf8(napi_env e, napi_value v,
                                      char* buf, int bufsize);
