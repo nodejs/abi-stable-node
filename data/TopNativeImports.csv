@@ -1,0 +1,351 @@
+Pkg count,Package names,Imported name,Imported signature
+31,"bcrypt, bignum, bufferutil, canvas, couchbase, deasync, ffi, fibers, hiredis, iconv, images, kerberos, lame, leveldown, libxmljs, lwip, microtime, midi, mmmagic, node-hid, node-sass, nodegit, protagonist, ref, serialport, speaker, sqlite3, usage, utf-8-validate, websocket, zmq",node_module_register,node_module_register
+31,"bcrypt, bignum, bufferutil, canvas, couchbase, deasync, ffi, fibers, hiredis, iconv, images, kerberos, lame, leveldown, libxmljs, lwip, microtime, midi, mmmagic, node-hid, node-sass, nodegit, protagonist, ref, serialport, speaker, sqlite3, usage, utf-8-validate, websocket, zmq",v8::Isolate::GetCurrent,public: static class v8::Isolate * __ptr64 __cdecl v8::Isolate::GetCurrent(void)
+30,"bcrypt, bignum, bufferutil, canvas, couchbase, deasync, ffi, fibers, hiredis, iconv, images, kerberos, lame, leveldown, libxmljs, lwip, microtime, midi, mmmagic, node-hid, node-sass, nodegit, protagonist, ref, serialport, speaker, sqlite3, utf-8-validate, websocket, zmq",v8::HandleScope::~HandleScope,public: __cdecl v8::HandleScope::~HandleScope(void) __ptr64
+30,"bcrypt, bignum, bufferutil, canvas, couchbase, deasync, ffi, fibers, hiredis, iconv, images, kerberos, lame, leveldown, libxmljs, lwip, microtime, midi, mmmagic, node-hid, node-sass, nodegit, protagonist, ref, serialport, speaker, sqlite3, utf-8-validate, websocket, zmq",v8::HandleScope::CreateHandle,"protected: static class v8::internal::Object * __ptr64 * __ptr64 __cdecl v8::HandleScope::CreateHandle(class v8::internal::Isolate * __ptr64,class v8::internal::Object * __ptr64)"
+30,"bcrypt, bignum, bufferutil, canvas, couchbase, deasync, ffi, fibers, hiredis, iconv, images, kerberos, lame, leveldown, libxmljs, lwip, microtime, midi, mmmagic, node-hid, node-sass, nodegit, protagonist, ref, serialport, speaker, sqlite3, utf-8-validate, websocket, zmq",v8::Isolate::GetCurrentContext,public: class v8::Local<class v8::Context> __cdecl v8::Isolate::GetCurrentContext(void) __ptr64
+30,"bcrypt, bignum, bufferutil, canvas, couchbase, deasync, ffi, fibers, hiredis, iconv, images, kerberos, lame, leveldown, libxmljs, lwip, microtime, midi, mmmagic, node-hid, node-sass, nodegit, protagonist, ref, serialport, speaker, sqlite3, utf-8-validate, websocket, zmq",v8::ObjectTemplate::SetInternalFieldCount,public: void __cdecl v8::ObjectTemplate::SetInternalFieldCount(int) __ptr64
+30,"bcrypt, bignum, bufferutil, canvas, couchbase, deasync, ffi, hiredis, iconv, images, kerberos, lame, leveldown, libxmljs, lwip, microtime, midi, mmmagic, node-hid, node-sass, nodegit, protagonist, ref, serialport, speaker, sqlite3, usage, utf-8-validate, websocket, zmq",v8::String::NewFromUtf8,"public: static class v8::MaybeLocal<class v8::String> __cdecl v8::String::NewFromUtf8(class v8::Isolate * __ptr64,char const * __ptr64,enum v8::NewStringType,int)"
+30,"bcrypt, bignum, bufferutil, canvas, couchbase, deasync, ffi, hiredis, iconv, images, kerberos, lame, leveldown, libxmljs, lwip, microtime, midi, mmmagic, node-hid, node-sass, nodegit, protagonist, ref, serialport, speaker, sqlite3, usage, utf-8-validate, websocket, zmq",v8::V8::ToLocalEmpty,private: static void __cdecl v8::V8::ToLocalEmpty(void)
+29,"bcrypt, bignum, bufferutil, canvas, couchbase, deasync, ffi, hiredis, iconv, images, kerberos, lame, leveldown, libxmljs, lwip, microtime, midi, mmmagic, node-hid, node-sass, nodegit, protagonist, ref, serialport, speaker, sqlite3, utf-8-validate, websocket, zmq",v8::EscapableHandleScope::EscapableHandleScope,public: __cdecl v8::EscapableHandleScope::EscapableHandleScope(class v8::Isolate * __ptr64) __ptr64
+29,"bcrypt, bignum, bufferutil, canvas, couchbase, deasync, ffi, hiredis, iconv, images, kerberos, lame, leveldown, libxmljs, lwip, microtime, midi, mmmagic, node-hid, node-sass, nodegit, protagonist, ref, serialport, speaker, sqlite3, utf-8-validate, websocket, zmq",v8::EscapableHandleScope::Escape,private: class v8::internal::Object * __ptr64 * __ptr64 __cdecl v8::EscapableHandleScope::Escape(class v8::internal::Object * __ptr64 * __ptr64) __ptr64
+29,"bcrypt, bignum, bufferutil, canvas, couchbase, deasync, ffi, hiredis, iconv, images, kerberos, lame, leveldown, libxmljs, lwip, microtime, midi, mmmagic, node-hid, node-sass, nodegit, protagonist, ref, serialport, speaker, sqlite3, utf-8-validate, websocket, zmq",v8::External::New,"public: static class v8::Local<class v8::External> __cdecl v8::External::New(class v8::Isolate * __ptr64,void * __ptr64)"
+29,"bcrypt, bignum, bufferutil, canvas, couchbase, deasync, ffi, hiredis, iconv, images, kerberos, lame, leveldown, libxmljs, lwip, microtime, midi, mmmagic, node-hid, node-sass, nodegit, protagonist, ref, serialport, speaker, sqlite3, utf-8-validate, websocket, zmq",v8::External::Value,public: void * __ptr64 __cdecl v8::External::Value(void)const __ptr64
+29,"bcrypt, bignum, bufferutil, canvas, couchbase, deasync, ffi, hiredis, iconv, images, kerberos, lame, leveldown, libxmljs, lwip, microtime, midi, mmmagic, node-hid, node-sass, nodegit, protagonist, ref, serialport, speaker, sqlite3, utf-8-validate, websocket, zmq",v8::HandleScope::CreateHandle,"private: static class v8::internal::Object * __ptr64 * __ptr64 __cdecl v8::HandleScope::CreateHandle(class v8::internal::HeapObject * __ptr64,class v8::internal::Object * __ptr64)"
+29,"bcrypt, bignum, bufferutil, canvas, couchbase, deasync, ffi, hiredis, iconv, images, kerberos, lame, leveldown, libxmljs, lwip, microtime, midi, mmmagic, node-hid, node-sass, nodegit, protagonist, ref, serialport, speaker, sqlite3, utf-8-validate, websocket, zmq",v8::Object::SetInternalField,"public: void __cdecl v8::Object::SetInternalField(int,class v8::Local<class v8::Value>) __ptr64"
+29,"bcrypt, bignum, bufferutil, canvas, couchbase, deasync, ffi, hiredis, iconv, images, kerberos, lame, leveldown, libxmljs, lwip, microtime, midi, mmmagic, node-hid, node-sass, nodegit, protagonist, ref, serialport, speaker, sqlite3, utf-8-validate, websocket, zmq",v8::Object::SlowGetInternalField,private: class v8::Local<class v8::Value> __cdecl v8::Object::SlowGetInternalField(int) __ptr64
+29,"bcrypt, bignum, bufferutil, canvas, couchbase, deasync, ffi, hiredis, iconv, images, kerberos, lame, leveldown, libxmljs, lwip, microtime, midi, mmmagic, node-hid, node-sass, nodegit, protagonist, ref, serialport, speaker, sqlite3, utf-8-validate, websocket, zmq",v8::ObjectTemplate::New,"public: static class v8::Local<class v8::ObjectTemplate> __cdecl v8::ObjectTemplate::New(class v8::Isolate * __ptr64,class v8::Local<class v8::FunctionTemplate>)"
+29,"bcrypt, bignum, bufferutil, canvas, couchbase, deasync, ffi, hiredis, iconv, images, kerberos, lame, leveldown, libxmljs, lwip, microtime, midi, mmmagic, node-hid, node-sass, nodegit, protagonist, ref, serialport, speaker, sqlite3, utf-8-validate, websocket, zmq",v8::ObjectTemplate::NewInstance,public: class v8::MaybeLocal<class v8::Object> __cdecl v8::ObjectTemplate::NewInstance(class v8::Local<class v8::Context>) __ptr64
+28,"bcrypt, bignum, bufferutil, canvas, couchbase, deasync, ffi, fibers, hiredis, images, kerberos, lame, leveldown, libxmljs, lwip, midi, mmmagic, node-hid, node-sass, nodegit, protagonist, ref, serialport, speaker, sqlite3, utf-8-validate, websocket, zmq",v8::HandleScope::HandleScope,public: __cdecl v8::HandleScope::HandleScope(class v8::Isolate * __ptr64) __ptr64
+28,"bcrypt, bignum, bufferutil, canvas, couchbase, ffi, fibers, hiredis, iconv, images, kerberos, lame, leveldown, libxmljs, lwip, midi, mmmagic, node-hid, node-sass, nodegit, protagonist, ref, serialport, speaker, sqlite3, utf-8-validate, websocket, zmq",v8::V8::DisposeGlobal,private: static void __cdecl v8::V8::DisposeGlobal(class v8::internal::Object * __ptr64 * __ptr64)
+28,"bcrypt, bignum, bufferutil, canvas, couchbase, ffi, fibers, hiredis, iconv, images, kerberos, lame, leveldown, libxmljs, lwip, midi, mmmagic, node-hid, node-sass, nodegit, protagonist, ref, serialport, speaker, sqlite3, utf-8-validate, websocket, zmq",v8::V8::GlobalizeReference,"private: static class v8::internal::Object * __ptr64 * __ptr64 __cdecl v8::V8::GlobalizeReference(class v8::internal::Isolate * __ptr64,class v8::internal::Object * __ptr64 * __ptr64)"
+25,"bignum, bufferutil, canvas, couchbase, fibers, hiredis, images, kerberos, lame, leveldown, libxmljs, lwip, midi, mmmagic, node-hid, node-sass, nodegit, protagonist, ref, serialport, speaker, sqlite3, utf-8-validate, websocket, zmq",v8::FunctionTemplate::SetClassName,public: void __cdecl v8::FunctionTemplate::SetClassName(class v8::Local<class v8::String>) __ptr64
+24,"bignum, canvas, couchbase, ffi, fibers, iconv, images, kerberos, lame, leveldown, libxmljs, lwip, microtime, midi, mmmagic, node-hid, node-sass, nodegit, protagonist, ref, serialport, speaker, usage, zmq",v8::Object::Set,"public: bool __cdecl v8::Object::Set(class v8::Local<class v8::Value>,class v8::Local<class v8::Value>) __ptr64"
+23,"bcrypt, bignum, canvas, couchbase, ffi, fibers, hiredis, images, kerberos, leveldown, libxmljs, midi, mmmagic, node-hid, node-sass, nodegit, protagonist, ref, serialport, sqlite3, utf-8-validate, websocket, zmq",v8::Isolate::ThrowException,public: class v8::Local<class v8::Value> __cdecl v8::Isolate::ThrowException(class v8::Local<class v8::Value>) __ptr64
+22,"canvas, couchbase, deasync, ffi, fibers, hiredis, iconv, kerberos, lame, leveldown, libxmljs, lwip, microtime, midi, mmmagic, nodegit, protagonist, serialport, speaker, utf-8-validate, websocket, zmq",v8::FunctionTemplate::New,"public: static class v8::Local<class v8::FunctionTemplate> __cdecl v8::FunctionTemplate::New(class v8::Isolate * __ptr64,void (__cdecl*)(class v8::FunctionCallbackInfo<class v8::Value> const & __ptr64),class v8::Local<class v8::Value>,class v8::Local<class v8::Signature>,int,enum v8::ConstructorBehavior)"
+22,"bignum, bufferutil, canvas, couchbase, fibers, hiredis, iconv, images, kerberos, leveldown, libxmljs, lwip, midi, mmmagic, node-hid, node-sass, nodegit, protagonist, sqlite3, utf-8-validate, websocket, zmq",v8::Object::SetAlignedPointerInInternalField,"public: void __cdecl v8::Object::SetAlignedPointerInInternalField(int,void * __ptr64) __ptr64"
+22,"bignum, bufferutil, canvas, couchbase, fibers, hiredis, iconv, images, kerberos, leveldown, libxmljs, lwip, midi, mmmagic, node-hid, nodegit, protagonist, ref, sqlite3, utf-8-validate, websocket, zmq",v8::V8::MakeWeak,"private: static void __cdecl v8::V8::MakeWeak(class v8::internal::Object * __ptr64 * __ptr64,void * __ptr64,void (__cdecl*)(class v8::WeakCallbackInfo<void> const & __ptr64),enum v8::WeakCallbackType)"
+21,"bcrypt, bufferutil, canvas, ffi, hiredis, iconv, images, kerberos, lame, leveldown, libxmljs, lwip, node-hid, nodegit, ref, serialport, speaker, sqlite3, utf-8-validate, websocket, zmq",node::Buffer::Data,char * __ptr64 __cdecl node::Buffer::Data(class v8::Local<class v8::Object>)
+21,"bignum, bufferutil, canvas, couchbase, fibers, hiredis, images, kerberos, leveldown, libxmljs, lwip, midi, mmmagic, node-hid, node-sass, nodegit, protagonist, sqlite3, utf-8-validate, websocket, zmq",v8::FunctionTemplate::InstanceTemplate,public: class v8::Local<class v8::ObjectTemplate> __cdecl v8::FunctionTemplate::InstanceTemplate(void) __ptr64
+21,"bignum, bufferutil, canvas, couchbase, deasync, fibers, hiredis, images, kerberos, leveldown, libxmljs, lwip, midi, mmmagic, node-hid, node-sass, nodegit, protagonist, utf-8-validate, websocket, zmq",v8::Object::InternalFieldCount,public: int __cdecl v8::Object::InternalFieldCount(void) __ptr64
+21,"bignum, bufferutil, canvas, couchbase, deasync, fibers, hiredis, images, kerberos, leveldown, libxmljs, lwip, midi, mmmagic, node-hid, node-sass, nodegit, sqlite3, utf-8-validate, websocket, zmq",v8::Template::Set,"public: void __cdecl v8::Template::Set(class v8::Local<class v8::Name>,class v8::Local<class v8::Data>,enum v8::PropertyAttribute) __ptr64"
+20,"bignum, bufferutil, canvas, couchbase, fibers, hiredis, images, kerberos, leveldown, libxmljs, lwip, midi, mmmagic, node-hid, nodegit, protagonist, sqlite3, utf-8-validate, websocket, zmq",v8::V8::ClearWeak,private: static void * __ptr64 __cdecl v8::V8::ClearWeak(class v8::internal::Object * __ptr64 * __ptr64)
+19,"bcrypt, canvas, couchbase, deasync, ffi, kerberos, lame, leveldown, lwip, midi, mmmagic, node-hid, node-sass, nodegit, protagonist, serialport, speaker, sqlite3, zmq",uv_default_loop,uv_default_loop
+19,"bcrypt, bignum, canvas, ffi, fibers, hiredis, images, kerberos, leveldown, libxmljs, lwip, mmmagic, node-hid, node-sass, nodegit, ref, serialport, sqlite3, zmq",v8::Exception::Error,public: static class v8::Local<class v8::Value> __cdecl v8::Exception::Error(class v8::Local<class v8::String>)
+19,"bignum, bufferutil, canvas, couchbase, ffi, fibers, iconv, images, kerberos, leveldown, libxmljs, lwip, midi, mmmagic, node-hid, nodegit, protagonist, utf-8-validate, websocket",v8::FunctionTemplate::GetFunction,public: class v8::Local<class v8::Function> __cdecl v8::FunctionTemplate::GetFunction(void) __ptr64
+19,"bignum, canvas, couchbase, deasync, fibers, hiredis, iconv, images, kerberos, leveldown, libxmljs, lwip, midi, mmmagic, node-hid, node-sass, nodegit, sqlite3, zmq",v8::Object::SlowGetAlignedPointerFromInternalField,private: void * __ptr64 __cdecl v8::Object::SlowGetAlignedPointerFromInternalField(int) __ptr64
+18,"bcrypt, canvas, couchbase, ffi, hiredis, images, kerberos, lame, leveldown, libxmljs, mmmagic, ref, serialport, speaker, sqlite3, utf-8-validate, websocket, zmq",node::Buffer::HasInstance,bool __cdecl node::Buffer::HasInstance(class v8::Local<class v8::Value>)
+18,"canvas, couchbase, hiredis, kerberos, lame, leveldown, libxmljs, lwip, microtime, midi, mmmagic, node-hid, node-sass, nodegit, protagonist, serialport, sqlite3, zmq",v8::Array::New,"public: static class v8::Local<class v8::Array> __cdecl v8::Array::New(class v8::Isolate * __ptr64,int)"
+18,"bcrypt, bignum, canvas, couchbase, deasync, hiredis, images, lame, libxmljs, lwip, microtime, node-sass, nodegit, ref, serialport, speaker, sqlite3, zmq",v8::FunctionTemplate::GetFunction,public: class v8::MaybeLocal<class v8::Function> __cdecl v8::FunctionTemplate::GetFunction(class v8::Local<class v8::Context>) __ptr64
+18,"bignum, canvas, couchbase, ffi, iconv, kerberos, lame, leveldown, libxmljs, lwip, microtime, midi, node-hid, nodegit, serialport, speaker, sqlite3, zmq",v8::Integer::New,"public: static class v8::Local<class v8::Integer> __cdecl v8::Integer::New(class v8::Isolate * __ptr64,int)"
+18,"bignum, canvas, couchbase, fibers, hiredis, images, lame, leveldown, libxmljs, lwip, microtime, midi, node-sass, nodegit, protagonist, ref, sqlite3, zmq",v8::Number::New,"public: static class v8::Local<class v8::Number> __cdecl v8::Number::New(class v8::Isolate * __ptr64,double)"
+18,"bcrypt, bignum, canvas, couchbase, ffi, kerberos, lame, leveldown, libxmljs, lwip, node-hid, node-sass, nodegit, protagonist, ref, serialport, sqlite3, zmq",v8::Object::New,public: static class v8::Local<class v8::Object> __cdecl v8::Object::New(class v8::Isolate * __ptr64)
+18,"bcrypt, bufferutil, canvas, deasync, ffi, hiredis, kerberos, lame, libxmljs, lwip, microtime, node-sass, nodegit, serialport, sqlite3, utf-8-validate, websocket, zmq",v8::Object::Set,"public: class v8::Maybe<bool> __cdecl v8::Object::Set(class v8::Local<class v8::Context>,class v8::Local<class v8::Value>,class v8::Local<class v8::Value>) __ptr64"
+17,"bcrypt, canvas, couchbase, ffi, kerberos, leveldown, libxmljs, lwip, midi, mmmagic, node-hid, node-sass, nodegit, serialport, speaker, sqlite3, zmq",node::MakeCallback,"class v8::Local<class v8::Value> __cdecl node::MakeCallback(class v8::Isolate * __ptr64,class v8::Local<class v8::Object>,class v8::Local<class v8::Function>,int,class v8::Local<class v8::Value> * __ptr64)"
+17,"bcrypt, canvas, couchbase, ffi, fibers, kerberos, lame, leveldown, lwip, mmmagic, node-hid, node-sass, nodegit, protagonist, serialport, speaker, zmq",v8::Context::Global,public: class v8::Local<class v8::Object> __cdecl v8::Context::Global(void) __ptr64
+17,"bcrypt, bignum, canvas, fibers, hiredis, images, libxmljs, midi, mmmagic, node-sass, protagonist, ref, serialport, sqlite3, utf-8-validate, websocket, zmq",v8::Exception::TypeError,public: static class v8::Local<class v8::Value> __cdecl v8::Exception::TypeError(class v8::Local<class v8::String>)
+17,"bignum, canvas, couchbase, fibers, hiredis, images, kerberos, leveldown, libxmljs, lwip, midi, mmmagic, node-hid, node-sass, nodegit, sqlite3, zmq",v8::FunctionTemplate::PrototypeTemplate,public: class v8::Local<class v8::ObjectTemplate> __cdecl v8::FunctionTemplate::PrototypeTemplate(void) __ptr64
+17,"bignum, canvas, couchbase, fibers, hiredis, images, kerberos, leveldown, libxmljs, lwip, midi, mmmagic, node-hid, node-sass, nodegit, sqlite3, zmq",v8::Signature::New,"public: static class v8::Local<class v8::Signature> __cdecl v8::Signature::New(class v8::Isolate * __ptr64,class v8::Local<class v8::FunctionTemplate>)"
+16,"bcrypt, canvas, ffi, kerberos, lame, leveldown, lwip, mmmagic, node-hid, node-sass, nodegit, protagonist, serialport, speaker, sqlite3, zmq",uv_queue_work,uv_queue_work
+16,"bignum, bufferutil, canvas, couchbase, ffi, images, kerberos, lame, leveldown, libxmljs, midi, nodegit, protagonist, serialport, utf-8-validate, websocket",v8::Value::ToObject,public: class v8::Local<class v8::Object> __cdecl v8::Value::ToObject(void)const __ptr64
+15,"bcrypt, bufferutil, canvas, hiredis, images, kerberos, lame, leveldown, libxmljs, lwip, serialport, sqlite3, utf-8-validate, websocket, zmq",node::Buffer::Length,unsigned __int64 __cdecl node::Buffer::Length(class v8::Local<class v8::Object>)
+15,"bignum, couchbase, deasync, ffi, iconv, kerberos, lame, leveldown, libxmljs, microtime, midi, node-hid, speaker, sqlite3, zmq",v8::Value::ToInteger,public: class v8::MaybeLocal<class v8::Integer> __cdecl v8::Value::ToInteger(class v8::Local<class v8::Context>)const __ptr64
+15,"bcrypt, bignum, canvas, couchbase, hiredis, kerberos, leveldown, libxmljs, mmmagic, node-hid, nodegit, protagonist, serialport, sqlite3, zmq",v8::Value::ToString,public: class v8::Local<class v8::String> __cdecl v8::Value::ToString(void)const __ptr64
+14,"bcrypt, canvas, couchbase, ffi, iconv, kerberos, lame, libxmljs, midi, node-hid, node-sass, nodegit, ref, speaker",v8::Integer::NewFromUnsigned,"public: static class v8::Local<class v8::Integer> __cdecl v8::Integer::NewFromUnsigned(class v8::Isolate * __ptr64,unsigned int)"
+14,"bignum, canvas, couchbase, fibers, iconv, images, libxmljs, midi, mmmagic, node-sass, nodegit, protagonist, ref, serialport",v8::String::Utf8Value::Utf8Value,public: __cdecl v8::String::Utf8Value::Utf8Value(class v8::Local<class v8::Value>) __ptr64
+14,"canvas, couchbase, fibers, kerberos, leveldown, libxmljs, mmmagic, node-hid, node-sass, nodegit, protagonist, serialport, sqlite3, zmq",v8::Value::IsFunction,public: bool __cdecl v8::Value::IsFunction(void)const __ptr64
+13,"bignum, canvas, couchbase, iconv, images, libxmljs, midi, mmmagic, node-sass, nodegit, protagonist, ref, serialport",v8::String::Utf8Value::~Utf8Value,public: __cdecl v8::String::Utf8Value::~Utf8Value(void) __ptr64
+12,"bufferutil, canvas, kerberos, leveldown, libxmljs, node-hid, node-sass, nodegit, protagonist, sqlite3, websocket, zmq",v8::Array::Length,public: unsigned int __cdecl v8::Array::Length(void)const __ptr64
+12,"bufferutil, canvas, ffi, lame, leveldown, libxmljs, midi, mmmagic, node-hid, serialport, speaker, websocket",v8::Value::Int32Value,public: int __cdecl v8::Value::Int32Value(void)const __ptr64
+11,"bcrypt, bufferutil, canvas, couchbase, kerberos, leveldown, node-hid, nodegit, protagonist, websocket, zmq",v8::Object::Get,public: class v8::Local<class v8::Value> __cdecl v8::Object::Get(unsigned int) __ptr64
+11,"bcrypt, couchbase, hiredis, kerberos, leveldown, lwip, node-hid, nodegit, serialport, sqlite3, zmq",v8::String::WriteUtf8,"public: int __cdecl v8::String::WriteUtf8(char * __ptr64,int,int * __ptr64,int)const __ptr64"
+11,"canvas, couchbase, ffi, fibers, kerberos, lame, leveldown, node-hid, node-sass, nodegit, protagonist",v8::TryCatch::~TryCatch,public: __cdecl v8::TryCatch::~TryCatch(void) __ptr64
+11,"canvas, couchbase, ffi, fibers, kerberos, lame, leveldown, node-hid, node-sass, nodegit, protagonist",v8::TryCatch::HasCaught,public: bool __cdecl v8::TryCatch::HasCaught(void)const __ptr64
+11,"canvas, couchbase, iconv, leveldown, libxmljs, lwip, midi, mmmagic, nodegit, ref, serialport",v8::Value::BooleanValue,public: bool __cdecl v8::Value::BooleanValue(void)const __ptr64
+11,"canvas, couchbase, hiredis, kerberos, leveldown, libxmljs, node-sass, nodegit, protagonist, serialport, sqlite3",v8::Value::IsObject,public: bool __cdecl v8::Value::IsObject(void)const __ptr64
+10,"bcrypt, bignum, bufferutil, deasync, fibers, images, node-hid, node-sass, ref, sqlite3",v8::FunctionTemplate::New,"public: static class v8::Local<class v8::FunctionTemplate> __cdecl v8::FunctionTemplate::New(class v8::Isolate * __ptr64,void (__cdecl*)(class v8::FunctionCallbackInfo<class v8::Value> const & __ptr64),class v8::Local<class v8::Value>,class v8::Local<class v8::Signature>,int)"
+10,"bignum, canvas, couchbase, fibers, leveldown, libxmljs, midi, node-hid, nodegit, protagonist",v8::Object::Get,public: class v8::Local<class v8::Value> __cdecl v8::Object::Get(class v8::Local<class v8::Value>) __ptr64
+10,"bcrypt, couchbase, lame, leveldown, libxmljs, mmmagic, node-sass, serialport, sqlite3, zmq",v8::Object::Set,"public: class v8::Maybe<bool> __cdecl v8::Object::Set(class v8::Local<class v8::Context>,unsigned int,class v8::Local<class v8::Value>) __ptr64"
+10,"bcrypt, couchbase, hiredis, leveldown, mmmagic, node-hid, nodegit, serialport, sqlite3, zmq",v8::String::Length,public: int __cdecl v8::String::Length(void)const __ptr64
+10,"bignum, canvas, images, leveldown, node-hid, node-sass, nodegit, ref, sqlite3, zmq",v8::Value::IsNumber,public: bool __cdecl v8::Value::IsNumber(void)const __ptr64
+10,"canvas, couchbase, deasync, kerberos, libxmljs, lwip, nodegit, serialport, speaker, sqlite3",v8::Value::ToInt32,public: class v8::MaybeLocal<class v8::Int32> __cdecl v8::Value::ToInt32(class v8::Local<class v8::Context>)const __ptr64
+9,"canvas, couchbase, ffi, kerberos, lame, leveldown, node-hid, node-sass, nodegit",v8::TryCatch::TryCatch,public: __cdecl v8::TryCatch::TryCatch(class v8::Isolate * __ptr64) __ptr64
+9,"bcrypt, canvas, deasync, ffi, midi, node-sass, nodegit, ref, speaker",v8::Value::ToUint32,public: class v8::MaybeLocal<class v8::Uint32> __cdecl v8::Value::ToUint32(class v8::Local<class v8::Context>)const __ptr64
+8,"canvas, couchbase, hiredis, kerberos, leveldown, lwip, node-sass, sqlite3",node::Buffer::Copy,"class v8::MaybeLocal<class v8::Object> __cdecl node::Buffer::Copy(class v8::Isolate * __ptr64,char const * __ptr64,unsigned __int64)"
+8,"canvas, couchbase, leveldown, lwip, midi, protagonist, serialport, sqlite3",v8::EscapableHandleScope::~EscapableHandleScope,public: __cdecl v8::EscapableHandleScope::~EscapableHandleScope(void) __ptr64
+8,"hiredis, images, kerberos, node-sass, nodegit, ref, sqlite3, zmq",v8::V8::FromJustIsNothing,private: static void __cdecl v8::V8::FromJustIsNothing(void)
+8,"canvas, hiredis, kerberos, leveldown, midi, node-sass, nodegit, sqlite3",v8::Value::IsArray,public: bool __cdecl v8::Value::IsArray(void)const __ptr64
+8,"bignum, hiredis, libxmljs, midi, mmmagic, node-sass, sqlite3, zmq",v8::Value::IsBoolean,public: bool __cdecl v8::Value::IsBoolean(void)const __ptr64
+8,"canvas, couchbase, ffi, iconv, images, leveldown, midi, ref",v8::Value::Uint32Value,public: unsigned int __cdecl v8::Value::Uint32Value(void)const __ptr64
+7,"bignum, couchbase, fibers, lame, libxmljs, nodegit, protagonist",v8::Function::Call,"public: class v8::Local<class v8::Value> __cdecl v8::Function::Call(class v8::Local<class v8::Value>,int,class v8::Local<class v8::Value> * __ptr64 const) __ptr64"
+7,"couchbase, hiredis, iconv, kerberos, lwip, node-hid, protagonist",v8::Object::Set,"public: bool __cdecl v8::Object::Set(unsigned int,class v8::Local<class v8::Value>) __ptr64"
+6,"canvas, ffi, lame, ref, serialport, zmq",node::Buffer::New,"class v8::MaybeLocal<class v8::Object> __cdecl node::Buffer::New(class v8::Isolate * __ptr64,char * __ptr64,unsigned __int64,void (__cdecl*)(char * __ptr64,void * __ptr64),void * __ptr64)"
+6,"ffi, kerberos, lame, node-hid, node-sass, protagonist",node::FatalException,"void __cdecl node::FatalException(class v8::Isolate * __ptr64,class v8::TryCatch const & __ptr64)"
+6,"couchbase, midi, node-sass, nodegit, sqlite3, zmq",uv_close,uv_close
+6,"ffi, leveldown, midi, node-sass, nodegit, serialport",uv_mutex_init,uv_mutex_init
+6,"ffi, leveldown, midi, node-sass, nodegit, serialport",uv_mutex_lock,uv_mutex_lock
+6,"ffi, leveldown, midi, node-sass, nodegit, serialport",uv_mutex_unlock,uv_mutex_unlock
+6,"canvas, deasync, kerberos, leveldown, node-sass, nodegit",v8::Function::NewInstance,"public: class v8::MaybeLocal<class v8::Object> __cdecl v8::Function::NewInstance(class v8::Local<class v8::Context>,int,class v8::Local<class v8::Value> * __ptr64 const)const __ptr64"
+6,"hiredis, node-sass, nodegit, serialport, sqlite3, zmq",v8::Object::Get,"public: class v8::MaybeLocal<class v8::Value> __cdecl v8::Object::Get(class v8::Local<class v8::Context>,class v8::Local<class v8::Value>) __ptr64"
+6,"canvas, images, kerberos, nodegit, sqlite3, zmq",v8::ObjectTemplate::SetAccessor,"public: void __cdecl v8::ObjectTemplate::SetAccessor(class v8::Local<class v8::Name>,void (__cdecl*)(class v8::Local<class v8::Name>,class v8::PropertyCallbackInfo<class v8::Value> const & __ptr64),void (__cdecl*)(class v8::Local<class v8::Name>,class v8::Local<class v8::Value>,class v8::PropertyCallbackInfo<void> const & __ptr64),class v8::Local<class v8::Value>,enum v8::AccessControl,enum v8::PropertyAttribute,class v8::Local<class v8::AccessorSignature>) __ptr64"
+6,"bcrypt, lame, node-sass, nodegit, sqlite3, zmq",v8::Value::Int32Value,public: class v8::Maybe<int> __cdecl v8::Value::Int32Value(class v8::Local<class v8::Context>)const __ptr64
+6,"canvas, kerberos, libxmljs, mmmagic, serialport, sqlite3",v8::Value::IsInt32,public: bool __cdecl v8::Value::IsInt32(void)const __ptr64
+6,"canvas, couchbase, images, lame, lwip, serialport",v8::Value::NumberValue,public: double __cdecl v8::Value::NumberValue(void)const __ptr64
+5,"ffi, midi, node-sass, nodegit, sqlite3",uv_async_init,uv_async_init
+5,"ffi, midi, node-sass, nodegit, sqlite3",uv_async_send,uv_async_send
+5,"ffi, leveldown, midi, node-sass, nodegit",uv_mutex_destroy,uv_mutex_destroy
+5,"canvas, fibers, midi, node-sass, zmq",v8::Exception::RangeError,public: static class v8::Local<class v8::Value> __cdecl v8::Exception::RangeError(class v8::Local<class v8::String>)
+5,"bignum, couchbase, fibers, libxmljs, node-hid",v8::Function::NewInstance,"public: class v8::Local<class v8::Object> __cdecl v8::Function::NewInstance(int,class v8::Local<class v8::Value> * __ptr64 const)const __ptr64"
+5,"bignum, couchbase, kerberos, leveldown, lwip",v8::Integer::Value,public: __int64 __cdecl v8::Integer::Value(void)const __ptr64
+5,"canvas, deasync, fibers, images, libxmljs",v8::Isolate::ReportExternalAllocationLimitReached,private: void __cdecl v8::Isolate::ReportExternalAllocationLimitReached(void) __ptr64
+5,"bignum, fibers, images, lwip, nodegit",v8::Number::Value,public: double __cdecl v8::Number::Value(void)const __ptr64
+5,"ffi, lame, ref, speaker, sqlite3",v8::Object::ForceSet,"public: class v8::Maybe<bool> __cdecl v8::Object::ForceSet(class v8::Local<class v8::Context>,class v8::Local<class v8::Value>,class v8::Local<class v8::Value>,enum v8::PropertyAttribute) __ptr64"
+5,"hiredis, node-sass, nodegit, sqlite3, zmq",v8::Value::BooleanValue,public: class v8::Maybe<bool> __cdecl v8::Value::BooleanValue(class v8::Local<class v8::Context>)const __ptr64
+5,"bignum, canvas, kerberos, midi, node-hid",v8::Value::IsUint32,public: bool __cdecl v8::Value::IsUint32(void)const __ptr64
+5,"bignum, fibers, images, nodegit, serialport",v8::Value::ToNumber,public: class v8::Local<class v8::Number> __cdecl v8::Value::ToNumber(void)const __ptr64
+4,"couchbase, ffi, images, sqlite3",v8::Object::ForceSet,"public: bool __cdecl v8::Object::ForceSet(class v8::Local<class v8::Value>,class v8::Local<class v8::Value>,enum v8::PropertyAttribute) __ptr64"
+3,"couchbase, images, mmmagic",node::Buffer::Data,char * __ptr64 __cdecl node::Buffer::Data(class v8::Local<class v8::Value>)
+3,"couchbase, images, mmmagic",node::Buffer::Length,unsigned __int64 __cdecl node::Buffer::Length(class v8::Local<class v8::Value>)
+3,"ffi, leveldown, node-sass",uv_cond_destroy,uv_cond_destroy
+3,"ffi, leveldown, node-sass",uv_cond_init,uv_cond_init
+3,"ffi, leveldown, node-sass",uv_cond_wait,uv_cond_wait
+3,"ffi, nodegit, zmq",uv_ref,uv_ref
+3,"ffi, nodegit, zmq",uv_unref,uv_unref
+3,"images, libxmljs, nodegit",v8::Function::SetName,public: void __cdecl v8::Function::SetName(class v8::Local<class v8::String>) __ptr64
+3,"canvas, kerberos, sqlite3",v8::FunctionTemplate::HasInstance,public: bool __cdecl v8::FunctionTemplate::HasInstance(class v8::Local<class v8::Value>) __ptr64
+3,"deasync, fibers, images",v8::Isolate::CollectAllGarbage,private: void __cdecl v8::Isolate::CollectAllGarbage(char const * __ptr64) __ptr64
+3,"libxmljs, nodegit, protagonist",v8::Object::GetPropertyNames,public: class v8::Local<class v8::Array> __cdecl v8::Object::GetPropertyNames(void) __ptr64
+3,"images, nodegit, zmq",v8::String::NewFromUtf8,"public: static class v8::Local<class v8::String> __cdecl v8::String::NewFromUtf8(class v8::Isolate * __ptr64,char const * __ptr64,enum v8::String::NewStringType,int)"
+3,"kerberos, leveldown, lwip",v8::String::Utf8Length,public: int __cdecl v8::String::Utf8Length(void)const __ptr64
+3,"canvas, couchbase, nodegit",v8::TryCatch::ReThrow,public: class v8::Local<class v8::Value> __cdecl v8::TryCatch::ReThrow(void) __ptr64
+3,"couchbase, fibers, protagonist",v8::TryCatch::TryCatch,public: __cdecl v8::TryCatch::TryCatch(void) __ptr64
+3,"bignum, couchbase, node-hid",v8::Uint32::Value,public: unsigned int __cdecl v8::Uint32::Value(void)const __ptr64
+3,"canvas, fibers, leveldown",v8::Value::StrictEquals,public: bool __cdecl v8::Value::StrictEquals(class v8::Local<class v8::Value>)const __ptr64
+3,"bignum, libxmljs, serialport",v8::Value::ToBoolean,public: class v8::Local<class v8::Boolean> __cdecl v8::Value::ToBoolean(void)const __ptr64
+3,"bignum, couchbase, kerberos",v8::Value::ToInteger,public: class v8::Local<class v8::Integer> __cdecl v8::Value::ToInteger(void)const __ptr64
+3,"deasync, node-sass, sqlite3",v8::Value::ToObject,public: class v8::MaybeLocal<class v8::Object> __cdecl v8::Value::ToObject(class v8::Local<class v8::Context>)const __ptr64
+3,"bignum, couchbase, node-hid",v8::Value::ToUint32,public: class v8::Local<class v8::Uint32> __cdecl v8::Value::ToUint32(void)const __ptr64
+3,"kerberos, node-sass, zmq",v8::Value::Uint32Value,public: class v8::Maybe<unsigned int> __cdecl v8::Value::Uint32Value(class v8::Local<class v8::Context>)const __ptr64
+2,"bignum, nodegit",BN_CTX_free,BN_CTX_free
+2,"bignum, nodegit",BN_CTX_new,BN_CTX_new
+2,"bignum, nodegit",BN_mod_exp,BN_mod_exp
+2,"leveldown, node-sass",uv_cond_broadcast,uv_cond_broadcast
+2,"ffi, leveldown",uv_cond_signal,uv_cond_signal
+2,"couchbase, deasync",uv_run,uv_run
+2,"couchbase, zmq",uv_timer_init,uv_timer_init
+2,"couchbase, zmq",uv_timer_start,uv_timer_start
+2,"couchbase, zmq",uv_timer_stop,uv_timer_stop
+2,"bignum, libxmljs",v8::Boolean::Value,public: bool __cdecl v8::Boolean::Value(void)const __ptr64
+2,"node-sass, nodegit",v8::Function::NewInstance,public: class v8::MaybeLocal<class v8::Object> __cdecl v8::Function::NewInstance(class v8::Local<class v8::Context>)const __ptr64
+2,"couchbase, libxmljs",v8::Function::NewInstance,public: class v8::Local<class v8::Object> __cdecl v8::Function::NewInstance(void)const __ptr64
+2,"deasync, fibers",v8::Isolate::Enter,public: void __cdecl v8::Isolate::Enter(void) __ptr64
+2,"deasync, fibers",v8::Isolate::Exit,public: void __cdecl v8::Isolate::Exit(void) __ptr64
+2,"deasync, libxmljs",v8::Isolate::IsDead,public: bool __cdecl v8::Isolate::IsDead(void) __ptr64
+2,"deasync, fibers",v8::Locker::Initialize,private: void __cdecl v8::Locker::Initialize(class v8::Isolate * __ptr64) __ptr64
+2,"images, zmq",v8::Object::DefineOwnProperty,"public: class v8::Maybe<bool> __cdecl v8::Object::DefineOwnProperty(class v8::Local<class v8::Context>,class v8::Local<class v8::Name>,class v8::Local<class v8::Value>,enum v8::PropertyAttribute) __ptr64"
+2,"node-sass, sqlite3",v8::Object::Get,"public: class v8::MaybeLocal<class v8::Value> __cdecl v8::Object::Get(class v8::Local<class v8::Context>,unsigned int) __ptr64"
+2,"images, zmq",v8::Object::GetIsolate,public: class v8::Isolate * __ptr64 __cdecl v8::Object::GetIsolate(void) __ptr64
+2,"fibers, images",v8::Object::SetAccessor,"public: bool __cdecl v8::Object::SetAccessor(class v8::Local<class v8::String>,void (__cdecl*)(class v8::Local<class v8::String>,class v8::PropertyCallbackInfo<class v8::Value> const & __ptr64),void (__cdecl*)(class v8::Local<class v8::String>,class v8::Local<class v8::Value>,class v8::PropertyCallbackInfo<void> const & __ptr64),class v8::Local<class v8::Value>,enum v8::AccessControl,enum v8::PropertyAttribute) __ptr64"
+2,"fibers, images",v8::ObjectTemplate::SetAccessor,"public: void __cdecl v8::ObjectTemplate::SetAccessor(class v8::Local<class v8::String>,void (__cdecl*)(class v8::Local<class v8::String>,class v8::PropertyCallbackInfo<class v8::Value> const & __ptr64),void (__cdecl*)(class v8::Local<class v8::String>,class v8::Local<class v8::Value>,class v8::PropertyCallbackInfo<void> const & __ptr64),class v8::Local<class v8::Value>,enum v8::AccessControl,enum v8::PropertyAttribute,class v8::Local<class v8::AccessorSignature>) __ptr64"
+2,"deasync, fibers",v8::Unlocker::Initialize,private: void __cdecl v8::Unlocker::Initialize(class v8::Isolate * __ptr64) __ptr64
+2,"fibers, images",v8::V8::MakeWeak,"private: static void __cdecl v8::V8::MakeWeak(class v8::internal::Object * __ptr64 * __ptr64,void * __ptr64,void (__cdecl*)(class v8::WeakCallbackData<class v8::Value,void> const & __ptr64))"
+2,"ref, zmq",v8::Value::IntegerValue,public: class v8::Maybe<__int64> __cdecl v8::Value::IntegerValue(class v8::Local<class v8::Context>)const __ptr64
+2,"nodegit, sqlite3",v8::Value::IsDate,public: bool __cdecl v8::Value::IsDate(void)const __ptr64
+2,"bignum, nodegit",v8::Value::IsExternal,public: bool __cdecl v8::Value::IsExternal(void)const __ptr64
+2,"node-sass, nodegit",v8::Value::IsNativeError,public: bool __cdecl v8::Value::IsNativeError(void)const __ptr64
+2,"nodegit, sqlite3",v8::Value::IsRegExp,public: bool __cdecl v8::Value::IsRegExp(void)const __ptr64
+2,"libxmljs, protagonist",v8::Value::IsTrue,public: bool __cdecl v8::Value::IsTrue(void)const __ptr64
+2,"node-sass, sqlite3",v8::Value::NumberValue,public: class v8::Maybe<double> __cdecl v8::Value::NumberValue(class v8::Local<class v8::Context>)const __ptr64
+2,"nodegit, serialport",v8::Value::ToInt32,public: class v8::Local<class v8::Int32> __cdecl v8::Value::ToInt32(void)const __ptr64
+2,"deasync, sqlite3",v8::Value::ToString,public: class v8::MaybeLocal<class v8::String> __cdecl v8::Value::ToString(class v8::Local<class v8::Context>)const __ptr64
+1,nodegit,BIO_new_mem_buf,BIO_new_mem_buf
+1,bignum,BN_add,BN_add
+1,bignum,BN_add_word,BN_add_word
+1,bignum,BN_bn2dec,BN_bn2dec
+1,bignum,BN_bn2hex,BN_bn2hex
+1,bignum,BN_bn2mpi,BN_bn2mpi
+1,bignum,BN_clear_free,BN_clear_free
+1,bignum,BN_cmp,BN_cmp
+1,bignum,BN_copy,BN_copy
+1,bignum,BN_dec2bn,BN_dec2bn
+1,bignum,BN_div,BN_div
+1,bignum,BN_div_word,BN_div_word
+1,bignum,BN_exp,BN_exp
+1,bignum,BN_gcd,BN_gcd
+1,bignum,BN_generate_prime_ex,BN_generate_prime_ex
+1,bignum,BN_hex2bn,BN_hex2bn
+1,bignum,BN_init,BN_init
+1,bignum,BN_is_bit_set,BN_is_bit_set
+1,bignum,BN_is_prime_ex,BN_is_prime_ex
+1,bignum,BN_lshift,BN_lshift
+1,bignum,BN_mod_inverse,BN_mod_inverse
+1,bignum,BN_mod_word,BN_mod_word
+1,bignum,BN_mpi2bn,BN_mpi2bn
+1,bignum,BN_mul,BN_mul
+1,bignum,BN_mul_word,BN_mul_word
+1,bignum,BN_new,BN_new
+1,bignum,BN_num_bits,BN_num_bits
+1,nodegit,BN_rand,BN_rand
+1,bignum,BN_rand_range,BN_rand_range
+1,bignum,BN_rshift,BN_rshift
+1,bignum,BN_rshift1,BN_rshift1
+1,bignum,BN_set_bit,BN_set_bit
+1,bignum,BN_set_negative,BN_set_negative
+1,bignum,BN_set_word,BN_set_word
+1,bignum,BN_sub,BN_sub
+1,bignum,BN_sub_word,BN_sub_word
+1,bignum,CRYPTO_free,CRYPTO_free
+1,nodegit,DSA_do_sign,DSA_do_sign
+1,nodegit,DSA_do_verify,DSA_do_verify
+1,nodegit,DSA_free,DSA_free
+1,nodegit,DSA_new,DSA_new
+1,nodegit,DSA_SIG_free,DSA_SIG_free
+1,nodegit,ENGINE_load_builtin_engines,ENGINE_load_builtin_engines
+1,nodegit,ENGINE_register_all_complete,ENGINE_register_all_complete
+1,nodegit,EVP_aes_128_cbc,EVP_aes_128_cbc
+1,nodegit,EVP_aes_128_ecb,EVP_aes_128_ecb
+1,nodegit,EVP_aes_192_cbc,EVP_aes_192_cbc
+1,nodegit,EVP_aes_192_ecb,EVP_aes_192_ecb
+1,nodegit,EVP_aes_256_cbc,EVP_aes_256_cbc
+1,nodegit,EVP_aes_256_ecb,EVP_aes_256_ecb
+1,nodegit,EVP_bf_cbc,EVP_bf_cbc
+1,nodegit,EVP_CIPHER_CTX_cleanup,EVP_CIPHER_CTX_cleanup
+1,nodegit,EVP_CIPHER_CTX_init,EVP_CIPHER_CTX_init
+1,nodegit,EVP_CIPHER_CTX_set_padding,EVP_CIPHER_CTX_set_padding
+1,nodegit,EVP_CipherInit,EVP_CipherInit
+1,nodegit,EVP_des_ede3_cbc,EVP_des_ede3_cbc
+1,nodegit,EVP_DigestFinal,EVP_DigestFinal
+1,nodegit,EVP_DigestInit,EVP_DigestInit
+1,nodegit,EVP_DigestUpdate,EVP_DigestUpdate
+1,nodegit,EVP_EncryptInit,EVP_EncryptInit
+1,nodegit,EVP_EncryptUpdate,EVP_EncryptUpdate
+1,nodegit,EVP_get_cipherbyname,EVP_get_cipherbyname
+1,nodegit,EVP_get_digestbyname,EVP_get_digestbyname
+1,nodegit,EVP_MD_CTX_init,EVP_MD_CTX_init
+1,nodegit,EVP_md5,EVP_md5
+1,nodegit,EVP_PKEY_free,EVP_PKEY_free
+1,nodegit,EVP_PKEY_get1_DSA,EVP_PKEY_get1_DSA
+1,nodegit,EVP_PKEY_get1_RSA,EVP_PKEY_get1_RSA
+1,nodegit,EVP_rc4,EVP_rc4
+1,nodegit,EVP_sha1,EVP_sha1
+1,nodegit,EVP_sha256,EVP_sha256
+1,nodegit,EVP_sha512,EVP_sha512
+1,nodegit,HMAC_CTX_cleanup,HMAC_CTX_cleanup
+1,nodegit,HMAC_CTX_init,HMAC_CTX_init
+1,nodegit,HMAC_Final,HMAC_Final
+1,nodegit,HMAC_Init_ex,HMAC_Init_ex
+1,nodegit,HMAC_Update,HMAC_Update
+1,node-hid,node::AtExit,"void __cdecl node::AtExit(void (__cdecl*)(void * __ptr64),void * __ptr64)"
+1,leveldown,node::Buffer::HasInstance,bool __cdecl node::Buffer::HasInstance(class v8::Local<class v8::Object>)
+1,lwip,node::Buffer::New,"class v8::MaybeLocal<class v8::Object> __cdecl node::Buffer::New(class v8::Isolate * __ptr64,char * __ptr64,unsigned __int64)"
+1,images,node::Buffer::New,"class v8::MaybeLocal<class v8::Object> __cdecl node::Buffer::New(class v8::Isolate * __ptr64,unsigned __int64)"
+1,bcrypt,node::Encode,"class v8::Local<class v8::Value> __cdecl node::Encode(class v8::Isolate * __ptr64,char const * __ptr64,unsigned __int64,enum node::encoding)"
+1,nodegit,OPENSSL_add_all_algorithms_noconf,OPENSSL_add_all_algorithms_noconf
+1,nodegit,OpenSSL_add_all_ciphers,OpenSSL_add_all_ciphers
+1,nodegit,PEM_read_bio_DSAPrivateKey,PEM_read_bio_DSAPrivateKey
+1,nodegit,PEM_read_bio_PrivateKey,PEM_read_bio_PrivateKey
+1,nodegit,PEM_read_bio_RSAPrivateKey,PEM_read_bio_RSAPrivateKey
+1,nodegit,RAND_bytes,RAND_bytes
+1,nodegit,RSA_free,RSA_free
+1,nodegit,RSA_new,RSA_new
+1,nodegit,RSA_sign,RSA_sign
+1,nodegit,RSA_size,RSA_size
+1,nodegit,RSA_verify,RSA_verify
+1,nodegit,uv_hrtime,uv_hrtime
+1,nodegit,uv_key_create,uv_key_create
+1,nodegit,uv_key_get,uv_key_get
+1,nodegit,uv_key_set,uv_key_set
+1,couchbase,uv_loop_delete,uv_loop_delete
+1,couchbase,uv_loop_new,uv_loop_new
+1,nodegit,uv_mutex_trylock,uv_mutex_trylock
+1,leveldown,uv_once,uv_once
+1,zmq,uv_poll_init_socket,uv_poll_init_socket
+1,zmq,uv_poll_start,uv_poll_start
+1,zmq,uv_poll_stop,uv_poll_stop
+1,couchbase,uv_prepare_init,uv_prepare_init
+1,couchbase,uv_prepare_start,uv_prepare_start
+1,couchbase,uv_prepare_stop,uv_prepare_stop
+1,couchbase,uv_read_start,uv_read_start
+1,couchbase,uv_read_stop,uv_read_stop
+1,nodegit,uv_sem_init,uv_sem_init
+1,nodegit,uv_sem_post,uv_sem_post
+1,nodegit,uv_sem_wait,uv_sem_wait
+1,couchbase,uv_stop,uv_stop
+1,mmmagic,uv_strerror,uv_strerror
+1,couchbase,uv_tcp_connect,uv_tcp_connect
+1,couchbase,uv_tcp_getpeername,uv_tcp_getpeername
+1,couchbase,uv_tcp_getsockname,uv_tcp_getsockname
+1,couchbase,uv_tcp_init,uv_tcp_init
+1,couchbase,uv_tcp_nodelay,uv_tcp_nodelay
+1,nodegit,uv_thread_create,uv_thread_create
+1,nodegit,uv_thread_self,uv_thread_self
+1,couchbase,uv_write,uv_write
+1,canvas,v8::ArrayBuffer::GetContents,public: class v8::ArrayBuffer::Contents __cdecl v8::ArrayBuffer::GetContents(void) __ptr64
+1,canvas,v8::ArrayBuffer::New,"public: static class v8::Local<class v8::ArrayBuffer> __cdecl v8::ArrayBuffer::New(class v8::Isolate * __ptr64,unsigned __int64)"
+1,canvas,v8::ArrayBufferView::Buffer,public: class v8::Local<class v8::ArrayBuffer> __cdecl v8::ArrayBufferView::Buffer(void) __ptr64
+1,canvas,v8::ArrayBufferView::ByteLength,public: unsigned __int64 __cdecl v8::ArrayBufferView::ByteLength(void) __ptr64
+1,canvas,v8::ArrayBufferView::ByteOffset,public: unsigned __int64 __cdecl v8::ArrayBufferView::ByteOffset(void) __ptr64
+1,fibers,v8::Context::Enter,public: void __cdecl v8::Context::Enter(void) __ptr64
+1,fibers,v8::Context::Exit,public: void __cdecl v8::Context::Exit(void) __ptr64
+1,canvas,v8::Function::Call,"public: class v8::MaybeLocal<class v8::Value> __cdecl v8::Function::Call(class v8::Local<class v8::Context>,class v8::Local<class v8::Value>,int,class v8::Local<class v8::Value> * __ptr64 const) __ptr64"
+1,libxmljs,v8::FunctionTemplate::Inherit,public: void __cdecl v8::FunctionTemplate::Inherit(class v8::Local<class v8::FunctionTemplate>) __ptr64
+1,nodegit,v8::Int32::Value,public: int __cdecl v8::Int32::Value(void)const __ptr64
+1,nodegit,v8::Isolate::AddGCEpilogueCallback,"public: void __cdecl v8::Isolate::AddGCEpilogueCallback(void (__cdecl*)(class v8::Isolate * __ptr64,enum v8::GCType,enum v8::GCCallbackFlags),enum v8::GCType) __ptr64"
+1,deasync,v8::Isolate::AddMemoryAllocationCallback,"public: void __cdecl v8::Isolate::AddMemoryAllocationCallback(void (__cdecl*)(enum v8::ObjectSpace,enum v8::AllocationAction,int),enum v8::ObjectSpace,enum v8::AllocationAction) __ptr64"
+1,deasync,v8::Isolate::AddMessageListener,"public: bool __cdecl v8::Isolate::AddMessageListener(void (__cdecl*)(class v8::Local<class v8::Message>,class v8::Local<class v8::Value>),class v8::Local<class v8::Value>) __ptr64"
+1,deasync,v8::Isolate::CancelTerminateExecution,public: void __cdecl v8::Isolate::CancelTerminateExecution(void) __ptr64
+1,fibers,v8::Isolate::DiscardThreadSpecificMetadata,public: void __cdecl v8::Isolate::DiscardThreadSpecificMetadata(void) __ptr64
+1,deasync,v8::Isolate::IsExecutionTerminating,public: bool __cdecl v8::Isolate::IsExecutionTerminating(void) __ptr64
+1,deasync,v8::Isolate::RemoveGCEpilogueCallback,"public: void __cdecl v8::Isolate::RemoveGCEpilogueCallback(void (__cdecl*)(class v8::Isolate * __ptr64,enum v8::GCType,enum v8::GCCallbackFlags)) __ptr64"
+1,deasync,v8::Isolate::RemoveGCPrologueCallback,"public: void __cdecl v8::Isolate::RemoveGCPrologueCallback(void (__cdecl*)(class v8::Isolate * __ptr64,enum v8::GCType,enum v8::GCCallbackFlags)) __ptr64"
+1,deasync,v8::Isolate::RemoveMemoryAllocationCallback,"public: void __cdecl v8::Isolate::RemoveMemoryAllocationCallback(void (__cdecl*)(enum v8::ObjectSpace,enum v8::AllocationAction,int)) __ptr64"
+1,deasync,v8::Isolate::RemoveMessageListeners,"public: void __cdecl v8::Isolate::RemoveMessageListeners(void (__cdecl*)(class v8::Local<class v8::Message>,class v8::Local<class v8::Value>)) __ptr64"
+1,deasync,v8::Isolate::SetAllowCodeGenerationFromStringsCallback,public: void __cdecl v8::Isolate::SetAllowCodeGenerationFromStringsCallback(bool (__cdecl*)(class v8::Local<class v8::Context>)) __ptr64
+1,deasync,v8::Isolate::SetCaptureStackTraceForUncaughtExceptions,"public: void __cdecl v8::Isolate::SetCaptureStackTraceForUncaughtExceptions(bool,int,enum v8::StackTrace::StackTraceOptions) __ptr64"
+1,deasync,v8::Isolate::SetFailedAccessCheckCallbackFunction,"public: void __cdecl v8::Isolate::SetFailedAccessCheckCallbackFunction(void (__cdecl*)(class v8::Local<class v8::Object>,enum v8::AccessType,class v8::Local<class v8::Value>)) __ptr64"
+1,deasync,v8::Isolate::SetFatalErrorHandler,"public: void __cdecl v8::Isolate::SetFatalErrorHandler(void (__cdecl*)(char const * __ptr64,char const * __ptr64)) __ptr64"
+1,fibers,v8::Isolate::SetStackLimit,public: void __cdecl v8::Isolate::SetStackLimit(unsigned __int64) __ptr64
+1,deasync,v8::Isolate::TerminateExecution,public: void __cdecl v8::Isolate::TerminateExecution(void) __ptr64
+1,deasync,v8::Isolate::VisitExternalResources,public: void __cdecl v8::Isolate::VisitExternalResources(class v8::ExternalResourceVisitor * __ptr64) __ptr64
+1,deasync,v8::Isolate::VisitHandlesForPartialDependence,public: void __cdecl v8::Isolate::VisitHandlesForPartialDependence(class v8::PersistentHandleVisitor * __ptr64) __ptr64
+1,deasync,v8::Isolate::VisitHandlesWithClassIds,public: void __cdecl v8::Isolate::VisitHandlesWithClassIds(class v8::PersistentHandleVisitor * __ptr64) __ptr64
+1,fibers,v8::Locker::~Locker,public: __cdecl v8::Locker::~Locker(void) __ptr64
+1,couchbase,v8::Object::CallAsFunction,"public: class v8::Local<class v8::Value> __cdecl v8::Object::CallAsFunction(class v8::Local<class v8::Value>,int,class v8::Local<class v8::Value> * __ptr64 const) __ptr64"
+1,couchbase,v8::Object::Delete,public: bool __cdecl v8::Object::Delete(class v8::Local<class v8::Value>) __ptr64
+1,node-sass,v8::Object::GetOwnPropertyNames,public: class v8::MaybeLocal<class v8::Array> __cdecl v8::Object::GetOwnPropertyNames(class v8::Local<class v8::Context>) __ptr64
+1,nodegit,v8::Object::GetPrivate,"public: class v8::MaybeLocal<class v8::Value> __cdecl v8::Object::GetPrivate(class v8::Local<class v8::Context>,class v8::Local<class v8::Private>) __ptr64"
+1,sqlite3,v8::Object::GetPropertyNames,public: class v8::MaybeLocal<class v8::Array> __cdecl v8::Object::GetPropertyNames(class v8::Local<class v8::Context>) __ptr64
+1,leveldown,v8::Object::Has,public: bool __cdecl v8::Object::Has(class v8::Local<class v8::Value>) __ptr64
+1,serialport,v8::Object::Has,"public: class v8::Maybe<bool> __cdecl v8::Object::Has(class v8::Local<class v8::Context>,class v8::Local<class v8::Value>) __ptr64"
+1,nodegit,v8::Object::HasPrivate,"public: class v8::Maybe<bool> __cdecl v8::Object::HasPrivate(class v8::Local<class v8::Context>,class v8::Local<class v8::Private>) __ptr64"
+1,images,v8::Object::SetAccessor,"public: bool __cdecl v8::Object::SetAccessor(class v8::Local<class v8::Name>,void (__cdecl*)(class v8::Local<class v8::Name>,class v8::PropertyCallbackInfo<class v8::Value> const & __ptr64),void (__cdecl*)(class v8::Local<class v8::Name>,class v8::Local<class v8::Value>,class v8::PropertyCallbackInfo<void> const & __ptr64),class v8::Local<class v8::Value>,enum v8::AccessControl,enum v8::PropertyAttribute) __ptr64"
+1,nodegit,v8::Object::SetPrivate,"public: class v8::Maybe<bool> __cdecl v8::Object::SetPrivate(class v8::Local<class v8::Context>,class v8::Local<class v8::Private>,class v8::Local<class v8::Value>) __ptr64"
+1,iconv,v8::ObjectTemplate::NewInstance,public: class v8::Local<class v8::Object> __cdecl v8::ObjectTemplate::NewInstance(void) __ptr64
+1,deasync,v8::ObjectTemplate::SetHandler,public: void __cdecl v8::ObjectTemplate::SetHandler(struct v8::IndexedPropertyHandlerConfiguration const & __ptr64) __ptr64
+1,nodegit,v8::Private::ForApi,"public: static class v8::Local<class v8::Private> __cdecl v8::Private::ForApi(class v8::Isolate * __ptr64,class v8::Local<class v8::String>)"
+1,fibers,v8::Script::Compile,"public: static class v8::Local<class v8::Script> __cdecl v8::Script::Compile(class v8::Local<class v8::String>,class v8::ScriptOrigin * __ptr64)"
+1,deasync,v8::Script::GetUnboundScript,public: class v8::Local<class v8::UnboundScript> __cdecl v8::Script::GetUnboundScript(void) __ptr64
+1,deasync,v8::ScriptCompiler::ExternalSourceStream::ResetToBookmark,public: virtual void __cdecl v8::ScriptCompiler::ExternalSourceStream::ResetToBookmark(void) __ptr64
+1,deasync,v8::ScriptCompiler::ExternalSourceStream::SetBookmark,public: virtual bool __cdecl v8::ScriptCompiler::ExternalSourceStream::SetBookmark(void) __ptr64
+1,sqlite3,v8::String::Concat,"public: static class v8::Local<class v8::String> __cdecl v8::String::Concat(class v8::Local<class v8::String>,class v8::Local<class v8::String>)"
+1,fibers,v8::String::NewFromOneByte,"public: static class v8::Local<class v8::String> __cdecl v8::String::NewFromOneByte(class v8::Isolate * __ptr64,unsigned char const * __ptr64,enum v8::String::NewStringType,int)"
+1,node-hid,v8::String::Value::~Value,public: __cdecl v8::String::Value::~Value(void) __ptr64
+1,node-hid,v8::String::Value::Value,public: __cdecl v8::String::Value::Value(class v8::Local<class v8::Value>) __ptr64
+1,fibers,v8::TryCatch::Exception,public: class v8::Local<class v8::Value> __cdecl v8::TryCatch::Exception(void)const __ptr64
+1,fibers,v8::TryCatch::StackTrace,public: class v8::Local<class v8::Value> __cdecl v8::TryCatch::StackTrace(void)const __ptr64
+1,canvas,v8::TypedArray::Length,public: unsigned __int64 __cdecl v8::TypedArray::Length(void) __ptr64
+1,canvas,v8::Uint8ClampedArray::New,"public: static class v8::Local<class v8::Uint8ClampedArray> __cdecl v8::Uint8ClampedArray::New(class v8::Local<class v8::ArrayBuffer>,unsigned __int64,unsigned __int64)"
+1,deasync,v8::UnboundScript::GetId,public: int __cdecl v8::UnboundScript::GetId(void) __ptr64
+1,fibers,v8::Unlocker::~Unlocker,public: __cdecl v8::Unlocker::~Unlocker(void) __ptr64
+1,sqlite3,v8::Value::Equals,"public: class v8::Maybe<bool> __cdecl v8::Value::Equals(class v8::Local<class v8::Context>,class v8::Local<class v8::Value>)const __ptr64"
+1,libxmljs,v8::Value::Equals,public: bool __cdecl v8::Value::Equals(class v8::Local<class v8::Value>)const __ptr64
+1,couchbase,v8::Value::IntegerValue,public: __int64 __cdecl v8::Value::IntegerValue(void)const __ptr64
+1,canvas,v8::Value::IsArrayBufferView,public: bool __cdecl v8::Value::IsArrayBufferView(void)const __ptr64
+1,nodegit,v8::Value::IsBooleanObject,public: bool __cdecl v8::Value::IsBooleanObject(void)const __ptr64
+1,libxmljs,v8::Value::IsFalse,public: bool __cdecl v8::Value::IsFalse(void)const __ptr64
+1,nodegit,v8::Value::IsNumberObject,public: bool __cdecl v8::Value::IsNumberObject(void)const __ptr64
+1,nodegit,v8::Value::IsStringObject,public: bool __cdecl v8::Value::IsStringObject(void)const __ptr64
+1,canvas,v8::Value::IsUint8ClampedArray,public: bool __cdecl v8::Value::IsUint8ClampedArray(void)const __ptr64
+1,deasync,v8::Value::ToBoolean,public: class v8::MaybeLocal<class v8::Boolean> __cdecl v8::Value::ToBoolean(class v8::Local<class v8::Context>)const __ptr64
+1,deasync,v8::Value::ToDetailString,public: class v8::MaybeLocal<class v8::String> __cdecl v8::Value::ToDetailString(class v8::Local<class v8::Context>)const __ptr64
+1,deasync,v8::Value::ToNumber,public: class v8::MaybeLocal<class v8::Number> __cdecl v8::Value::ToNumber(class v8::Local<class v8::Context>)const __ptr64
