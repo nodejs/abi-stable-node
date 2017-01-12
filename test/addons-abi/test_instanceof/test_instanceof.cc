@@ -1,7 +1,7 @@
 #include <node_jsvmapi.h>
 #include <stdio.h>
 
-void doInstanceOf(napi_env env, napi_func_cb_info info) {
+void doInstanceOf(napi_env env, napi_callback_info info) {
   napi_value arguments[2];
 
   napi_get_cb_args(env, info, arguments, 2);
@@ -13,7 +13,7 @@ void doInstanceOf(napi_env env, napi_func_cb_info info) {
 void Init(napi_env env, napi_value exports, napi_value module) {
   napi_set_property(env, exports,
                     napi_property_name(env, "doInstanceOf"),
-                    napi_create_function(env, doInstanceOf));
+                    napi_create_function(env, doInstanceOf, nullptr));
 }
 
 NODE_MODULE_ABI(addon, Init)

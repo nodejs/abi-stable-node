@@ -1,6 +1,6 @@
 #include <node_jsvmapi.h>
 
-void Get(napi_env env, napi_func_cb_info info) {
+void Get(napi_env env, napi_callback_info info) {
   if (napi_get_cb_args_length(env, info) < 2) {
     napi_throw_type_error(env, "Wrong number of arguments");
     return;
@@ -32,7 +32,7 @@ void Get(napi_env env, napi_func_cb_info info) {
   }
 }
 
-void Has(napi_env env, napi_func_cb_info info) {
+void Has(napi_env env, napi_callback_info info) {
   if (napi_get_cb_args_length(env, info) < 2) {
     napi_throw_type_error(env, "Wrong number of arguments");
     return;
@@ -65,7 +65,7 @@ void Has(napi_env env, napi_func_cb_info info) {
   }
 }
 
-void New(napi_env env, napi_func_cb_info info) {
+void New(napi_env env, napi_callback_info info) {
   napi_value ret = napi_create_object(env);
 
   napi_propertyname test_number = napi_property_name(env, "test_number");
@@ -77,7 +77,7 @@ void New(napi_env env, napi_func_cb_info info) {
   napi_set_return_value(env, info, ret);
 }
 
-void Inflate(napi_env env, napi_func_cb_info info) {
+void Inflate(napi_env env, napi_callback_info info) {
   if (napi_get_cb_args_length(env, info) < 1) {
     napi_throw_type_error(env, "Wrong number of arguments");
     return;
@@ -111,16 +111,16 @@ void Inflate(napi_env env, napi_func_cb_info info) {
 void Init(napi_env env, napi_value exports, napi_value module) {
   napi_set_property(env, exports,
                     napi_property_name(env, "Get"),
-                    napi_create_function(env, Get));
+                    napi_create_function(env, Get, nullptr));
   napi_set_property(env, exports,
                     napi_property_name(env, "Has"),
-                    napi_create_function(env, Has));
+                    napi_create_function(env, Has, nullptr));
   napi_set_property(env, exports,
                     napi_property_name(env, "New"),
-                    napi_create_function(env, New));
+                    napi_create_function(env, New, nullptr));
   napi_set_property(env, exports,
                     napi_property_name(env, "Inflate"),
-                    napi_create_function(env, Inflate));
+                    napi_create_function(env, Inflate, nullptr));
 }
 
 NODE_MODULE_ABI(addon, Init)

@@ -1,4 +1,4 @@
-#ifndef SRC_NODE_JSVMAPI_TYPES_H_
+﻿#ifndef SRC_NODE_JSVMAPI_TYPES_H_
 #define SRC_NODE_JSVMAPI_TYPES_H_
 
 // JSVM API types are all opaque pointers for ABI stability
@@ -10,15 +10,28 @@ typedef struct napi_weakref__ *napi_weakref;
 typedef struct napi_handle_scope__ *napi_handle_scope;
 typedef struct napi_escapable_handle_scope__ *napi_escapable_handle_scope;
 typedef struct napi_propertyname__ *napi_propertyname;
-typedef struct napi_func_cb_info__ *napi_func_cb_info;
-typedef void (*napi_callback)(napi_env, napi_func_cb_info);
-typedef void napi_destruct(void* v);
+typedef struct napi_callback_info__ *napi_callback_info;
 
+typedef void (*napi_callback)(napi_env, napi_callback_info);
+typedef void (*napi_destruct)(void* v);
 
-struct napi_method_descriptor {
-  napi_callback callback;
-  const char* utf8name;
+enum napi_property_attributes {
+  napi_default = 0,
+  napi_read_only = 1 << 0,
+  napi_dont_enum = 1 << 1,
+  napi_dont_delete = 1 << 2
 };
 
+struct napi_property_descriptor {
+  const char* utf8name;
+
+  napi_callback method;
+  napi_callback getter;
+  napi_callback setter;
+  napi_value value;
+
+  napi_property_attributes attributes;
+  void* data;
+};
 
 #endif  // SRC_NODE_JSVMAPI_TYPES_H_
