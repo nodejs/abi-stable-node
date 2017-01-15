@@ -815,6 +815,36 @@ napi_value napi_new_instance(napi_env e, napi_value cons,
   return v8impl::JsValueFromV8LocalValue(result);
 }
 
+NODE_EXTERN bool napi_instanceof(napi_env e, napi_value obj, napi_value cons) {
+  v8::Isolate *isolate = v8impl::V8IsolateFromJsEnv(e);
+  v8::HandleScope scope(isolate);
+
+  v8::Local<v8::Context> context = isolate->GetCurrentContext();
+  v8::Local<v8::Object> v8obj =
+    v8impl::V8LocalValueFromJsValue(obj).As<v8::Object>();
+  v8::Local<v8::Function> v8cons = v8impl::V8LocalFunctionFromJsValue(cons);
+
+  // Can't use v8::FunctionTemplate::HasInstance() because the FunctionTemplate
+  // cannot be obtained from a Function. Instead, recurse up the prototype
+  // chain and check if any prototype's constructor is the specified function.
+
+  v8::Local<v8::String> conskey =
+    v8::String::NewFromUtf8(isolate, "constructor",
+      v8::NewStringType::kInternalized).ToLocalChecked();
+
+  v8::Local<v8::Object> proto = v8obj->GetPrototype().As<v8::Object>();
+  while (!proto->IsNull()) {
+    v8::Local<v8::Function> protocons =
+      proto->Get(context, conskey).ToLocalChecked().As<v8::Function>();
+    if (protocons->StrictEquals(v8cons)) {
+      return true;
+    }
+    proto = proto->GetPrototype().As<v8::Object>();
+  }
+
+  return false;
+}
+
 napi_value napi_make_external(napi_env e, napi_value v) {
     return v;
 }
