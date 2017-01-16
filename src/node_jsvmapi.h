@@ -204,6 +204,7 @@ NODE_EXTERN napi_value napi_call_function(napi_env e, napi_value scope,
                                           int argc, napi_value* argv);
 NODE_EXTERN napi_value napi_new_instance(napi_env e, napi_value cons,
                                          int argc, napi_value* argv);
+NODE_EXTERN bool napi_instanceof(napi_env e, napi_value obj, napi_value cons);
 
 // Temporary method needed to support wrapping JavascriptObject in an external 
 // object wrapper capable of storing external data. This workaround is only 

@@ -815,6 +815,54 @@ napi_value napi_new_instance(napi_env e, napi_value cons,
   return v8impl::JsValueFromV8LocalValue(result);
 }
 
+bool napi_instanceof(napi_env e, napi_value obj, napi_value cons) {
+  bool returnValue = false;
+
+  v8::Local<v8::Value> v8Obj = v8impl::V8LocalValueFromJsValue(obj);
+  v8::Local<v8::Value> v8Cons = v8impl::V8LocalValueFromJsValue(cons);
+  v8::Isolate *isolate = v8impl::V8IsolateFromJsEnv(e);
+
+  if (!v8Cons->IsFunction()) {
+	  isolate->ThrowException(
+        v8::Exception::TypeError(
+          v8::String::NewFromUtf8(isolate, "constructor must be a function")));
+
+    // Error handling needs to be done here
+    return false;
+  }
+
+  v8Cons =
+  	v8Cons->ToObject()->Get(v8::String::NewFromUtf8(isolate, "prototype"));
+
+  if (!v8Cons->IsObject()) {
+    isolate->ThrowException(v8::Exception::TypeError(
+      v8::String::NewFromUtf8(isolate,
+        "constructor prototype must be an object")));
+
+    // Error handling needs to be done here
+    return false;
+  }
+
+  if (!v8Obj->StrictEquals(v8Cons)) {
+    v8::Local<v8::Value> underunderProto =
+      v8::String::NewFromUtf8(v8impl::V8IsolateFromJsEnv(e), "__proto__");
+
+    for (v8::Local<v8::Value> originalObj = v8Obj;
+        !(v8Obj->IsNull() || v8Obj->IsUndefined());
+		v8Obj = v8Obj->ToObject()->Get(underunderProto)) {
+      if (v8Obj->StrictEquals(v8Cons)) {
+        returnValue =
+          !(originalObj->IsNumber() ||
+            originalObj->IsBoolean() ||
+            originalObj->IsString());
+        break;
+      }
+    }
+  }
+
+  return returnValue;
+}
+
 napi_value napi_make_external(napi_env e, napi_value v) {
     return v;
 }
