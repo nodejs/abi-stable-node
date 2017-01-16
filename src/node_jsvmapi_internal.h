@@ -10,9 +10,6 @@ namespace v8impl {
 
   napi_value JsValueFromV8LocalValue(v8::Local<v8::Value> local);
   v8::Local<v8::Value> V8LocalValueFromJsValue(napi_value v);
-
-  napi_trycatch JsTryCatchFromBoolPointer(bool* theBoolean);
-  bool* BoolPointerFromJsTryCatch(napi_trycatch tryCatch);
 }
 
 
