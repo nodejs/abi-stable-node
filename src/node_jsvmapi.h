@@ -280,6 +280,7 @@ NODE_EXTERN void napi_throw_error(napi_env e, const char* msg);
 NODE_EXTERN void napi_throw_type_error(napi_env e, const char* msg);
 
 // Methods to support catching exceptions
+NODE_EXTERN bool napi_is_exception_pending(napi_env e);
 NODE_EXTERN napi_value napi_get_and_clear_last_exception(napi_env e);
 
 // Methods to provide node::Buffer functionality with napi types

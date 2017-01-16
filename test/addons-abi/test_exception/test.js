@@ -19,3 +19,7 @@ try {
 	assert.strictEqual( anError, theError,
 		"Thrown error was allowed to pass through unhindered" );
 }
+
+// Test that the exception thrown above was marked as pending before it was handled on the JS side
+assert.strictEqual( test_exception.wasPending(), true,
+	"VM was marked as having an exception pending when it was allowed through" );

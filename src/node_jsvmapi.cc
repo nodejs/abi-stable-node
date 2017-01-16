@@ -953,6 +953,11 @@ napi_value napi_make_callback(napi_env e, napi_value recv,
 }
 
 // Methods to support catching exceptions
+bool napi_is_exception_pending(napi_env e) {
+  (void)e;
+  return (lastException && !lastException->IsEmpty());
+}
+
 napi_value napi_get_and_clear_last_exception(napi_env e) {
 
   // TODO: Is there a chance that an exception will be thrown in the process of
