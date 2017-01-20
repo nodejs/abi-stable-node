@@ -918,49 +918,6 @@ napi_value napi_make_callback(napi_env e, napi_value recv,
 	return reinterpret_cast<napi_value>(result);
 }
 
-bool napi_try_catch(napi_env e, napi_try_callback cbtry,
-  napi_catch_callback cbcatch, void* data) {
-  JsValueRef error = JS_INVALID_REFERENCE;
-  bool hasException;
-  cbtry(e, data);
-  if (error = JS_INVALID_REFERENCE) {
-    JsErrorCode errorCode = JsHasException(&hasException);
-    if (errorCode != JsNoError) {
-      // If script is in disabled state, no need to fail here.
-      // We will fail subsequent calls to Jsrt anyway.
-      assert(errorCode == JsErrorInDisabledState);
-    } else if (hasException) {
-      JsValueRef exceptionRef;
-      errorCode = JsGetAndClearException(&exceptionRef);
-      // We came here through JsHasException, so script shouldn't be in disabled
-      // state.
-      assert(errorCode != JsErrorInDisabledState);
-      if (errorCode == JsNoError) {
-        error = exceptionRef;
-      }
-    }
-  }
-  if(error != JS_INVALID_REFERENCE) {
-    cbcatch(e, data);
-    return true;
-  }
-  JsErrorCode errorCode = JsHasException(&hasException);
-  if (errorCode != JsNoError) {
-    if (errorCode == JsErrorInDisabledState) {
-      cbcatch(e, data);
-      return true;
-    }
-    // Should never get errorCode other than JsNoError/JsErrorInDisabledState
-    assert(false);
-    return false;
-  }
-  if (hasException) {
-    cbcatch(e, data);
-    return true;
-  }
-  return false;
-}
-
 struct ArrayBufferFinalizeInfo {
   void *data;
 
@@ -1019,4 +976,16 @@ size_t napi_buffer_length(napi_env e, napi_value v) {
   if (error != JsNoError)
     return 0;
   return len;
+}
+
+bool napi_is_exception_pending(napi_env) {
+  bool returnValue = false;
+  JsErrorCode error = JsHasException(&returnValue);
+  return returnValue;
+}
+
+napi_value napi_get_and_clear_last_exception(napi_env e) {
+  JsValueRef lastException = napi_get_undefined_(e);
+  JsErrorCode error = JsGetAndClearException(&lastException);
+  return reinterpret_cast<napi_value>(lastException);
 }
