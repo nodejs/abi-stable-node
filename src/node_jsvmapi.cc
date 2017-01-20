@@ -840,12 +840,9 @@ bool napi_instanceof(napi_env e, napi_value obj, napi_value cons) {
   }
 
   if (!v8Obj->StrictEquals(v8Cons)) {
-    v8::Local<v8::Value> underunderProto =
-      v8::String::NewFromUtf8(v8impl::V8IsolateFromJsEnv(e), "__proto__");
-
     for (v8::Local<v8::Value> originalObj = v8Obj;
         !(v8Obj->IsNull() || v8Obj->IsUndefined());
-		v8Obj = v8Obj->ToObject()->Get(underunderProto)) {
+		v8Obj = v8Obj->ToObject()->GetPrototype()) {
       if (v8Obj->StrictEquals(v8Cons)) {
         returnValue =
           !(originalObj->IsNumber() ||
