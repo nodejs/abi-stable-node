@@ -823,9 +823,7 @@ bool napi_instanceof(napi_env e, napi_value obj, napi_value cons) {
   v8::Isolate *isolate = v8impl::V8IsolateFromJsEnv(e);
 
   if (!v8Cons->IsFunction()) {
-	  isolate->ThrowException(
-        v8::Exception::TypeError(
-          v8::String::NewFromUtf8(isolate, "constructor must be a function")));
+    napi_throw_type_error(e, "constructor must be a function");
 
     // Error handling needs to be done here
     return false;
@@ -835,9 +833,7 @@ bool napi_instanceof(napi_env e, napi_value obj, napi_value cons) {
   	v8Cons->ToObject()->Get(v8::String::NewFromUtf8(isolate, "prototype"));
 
   if (!v8Cons->IsObject()) {
-    isolate->ThrowException(v8::Exception::TypeError(
-      v8::String::NewFromUtf8(isolate,
-        "constructor prototype must be an object")));
+    napi_throw_type_error(e, "constructor prototype must be an object");
 
     // Error handling needs to be done here
     return false;
