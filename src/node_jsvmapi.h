@@ -1,4 +1,4 @@
-/*******************************************************************************
+﻿/*******************************************************************************
  * Experimental prototype for demonstrating VM agnostic and ABI stable API
  * for native modules to use instead of using Nan and V8 APIs directly.
  *
@@ -143,7 +143,8 @@ NODE_EXTERN napi_value napi_create_symbol(napi_env e, const char* s = NULL);
 // to be included.  Same for napi_create_object, and perhaps add a
 // napi_set_external_data() and get api?  Consider JsCreateExternalObject and
 // v8::ObjectTemplate::SetInternalFieldCount()
-NODE_EXTERN napi_value napi_create_function(napi_env e, napi_callback cbinfo);
+NODE_EXTERN napi_value napi_create_function(napi_env e, napi_callback cb,
+                                            void* data);
 NODE_EXTERN napi_value napi_create_error(napi_env e, napi_value msg);
 NODE_EXTERN napi_value napi_create_type_error(napi_env e, napi_value msg);
 
@@ -188,6 +189,8 @@ NODE_EXTERN void napi_set_element(napi_env e, napi_value object,
 NODE_EXTERN bool napi_has_element(napi_env e, napi_value object, uint32_t i);
 NODE_EXTERN napi_value napi_get_element(napi_env e,
                                         napi_value object, uint32_t i);
+NODE_EXTERN void napi_define_property(napi_env e, napi_value object,
+                                      napi_property_descriptor* property);
 
 
 // Methods to work with Arrays
@@ -221,14 +224,15 @@ NODE_EXTERN napi_value napi_make_callback(napi_env e, napi_value recv,
 
 
 // Methods to work with napi_callbacks
-NODE_EXTERN int napi_get_cb_args_length(napi_env e, napi_func_cb_info cbinfo);
-NODE_EXTERN void napi_get_cb_args(napi_env e, napi_func_cb_info cbinfo,
+NODE_EXTERN int napi_get_cb_args_length(napi_env e, napi_callback_info cbinfo);
+NODE_EXTERN void napi_get_cb_args(napi_env e, napi_callback_info cbinfo,
                                   napi_value* buffer, size_t bufferlength);
-NODE_EXTERN napi_value napi_get_cb_this(napi_env e, napi_func_cb_info cbinfo);
+NODE_EXTERN napi_value napi_get_cb_this(napi_env e, napi_callback_info cbinfo);
 // V8 concept; see note in .cc file
-NODE_EXTERN napi_value napi_get_cb_holder(napi_env e, napi_func_cb_info cbinfo);
-NODE_EXTERN bool napi_is_construct_call(napi_env e, napi_func_cb_info cbinfo);
-NODE_EXTERN void napi_set_return_value(napi_env e, napi_func_cb_info cbinfo,
+NODE_EXTERN napi_value napi_get_cb_holder(napi_env e, napi_callback_info cbinfo);
+NODE_EXTERN void* napi_get_cb_data(napi_env e, napi_callback_info cbinfo);
+NODE_EXTERN bool napi_is_construct_call(napi_env e, napi_callback_info cbinfo);
+NODE_EXTERN void napi_set_return_value(napi_env e, napi_callback_info cbinfo,
                                        napi_value v);
 
 
@@ -242,19 +246,17 @@ NODE_EXTERN void napi_set_return_value(napi_env e, napi_func_cb_info cbinfo,
 // best way to attach external data to a javascript object.  Perhaps
 // instead NAPI should do an external data concept like JsSetExternalData
 // and use that for "wrapping a native object".
-NODE_EXTERN napi_value napi_create_constructor_for_wrap(napi_env e,
-                                                        napi_callback cb);
 NODE_EXTERN void napi_wrap(napi_env e, napi_value jsObject, void* nativeObj,
-                           napi_destruct* napi_destructor,
+                           napi_destruct napi_destructor,
                            napi_weakref* handle);
 NODE_EXTERN void* napi_unwrap(napi_env e, napi_value jsObject);
-
-NODE_EXTERN napi_value napi_create_constructor_for_wrap_with_methods(
+NODE_EXTERN napi_value napi_create_constructor(
   napi_env e,
-  napi_callback cb,
   char* utf8name,
-  int methodcount,
-  napi_method_descriptor* methods);
+  napi_callback cb,
+  void* data,
+  int property_count,
+  napi_property_descriptor* properties);
 
 // Methods to control object lifespan
 NODE_EXTERN napi_persistent napi_create_persistent(napi_env e, napi_value v);

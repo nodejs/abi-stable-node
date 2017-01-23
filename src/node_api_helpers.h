@@ -1,4 +1,4 @@
-#ifndef SRC_NODE_API_HELPERS_H_
+﻿#ifndef SRC_NODE_API_HELPERS_H_
 #define SRC_NODE_API_HELPERS_H_
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -17,7 +17,9 @@
 #include <assert.h>
 
 #define NAPI_METHOD(name)                                                      \
-  void name(napi_env env, napi_func_cb_info info)
+  void name(napi_env env, napi_callback_info info)
+#define NAPI_GETTER(name) NAPI_METHOD(name)
+#define NAPI_SETTER(name) NAPI_METHOD(name)
 
 #define NAPI_MODULE_INIT(name)                                                 \
   void name(napi_env env, napi_value exports, napi_value module)
