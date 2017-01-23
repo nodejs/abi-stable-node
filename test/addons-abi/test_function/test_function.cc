@@ -1,6 +1,6 @@
 #include <node_jsvmapi.h>
 
-void Test(napi_env env, napi_func_cb_info info) {
+void Test(napi_env env, napi_callback_info info) {
   if (napi_get_cb_args_length(env, info) < 1) {
     napi_throw_type_error(env, "Wrong number of arguments");
     return;
@@ -28,7 +28,7 @@ void Test(napi_env env, napi_func_cb_info info) {
 void Init(napi_env env, napi_value exports, napi_value module) {
   napi_set_property(env, exports,
                     napi_property_name(env, "Test"),
-                    napi_create_function(env, Test));
+                    napi_create_function(env, Test, nullptr));
 }
 
 NODE_MODULE_ABI(addon, Init)

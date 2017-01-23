@@ -1,7 +1,7 @@
 #include <node_jsvmapi.h>
 #include <string.h>
 
-void Test(napi_env env, napi_func_cb_info info) {
+void Test(napi_env env, napi_callback_info info) {
   if (napi_get_cb_args_length(env, info) < 2) {
     napi_throw_type_error(env, "Wrong number of arguments");
     return;
@@ -22,7 +22,7 @@ void Test(napi_env env, napi_func_cb_info info) {
   }
 
   napi_value array = args[0];
-  int index = napi_get_number_from_value(env, args[1]);
+  int index = napi_get_value_int32(env, args[1]);
   if (napi_is_array(env, array)) {
     int size = napi_get_array_length(env, array);
     if (index >= size) {
@@ -37,7 +37,7 @@ void Test(napi_env env, napi_func_cb_info info) {
   }
 }
 
-void New(napi_env env, napi_func_cb_info info) {
+void New(napi_env env, napi_callback_info info) {
   if (napi_get_cb_args_length(env, info) < 1) {
     napi_throw_type_error(env, "Wrong number of arguments");
     return;
@@ -64,11 +64,11 @@ void New(napi_env env, napi_func_cb_info info) {
 void Init(napi_env env, napi_value exports, napi_value module) {
   napi_set_property(env, exports,
                     napi_property_name(env, "Test"),
-                    napi_create_function(env, Test));
+                    napi_create_function(env, Test, nullptr));
 
   napi_set_property(env, exports,
                     napi_property_name(env, "New"),
-                    napi_create_function(env, New));
+                    napi_create_function(env, New, nullptr));
 }
 
 NODE_MODULE_ABI(addon, Init)
