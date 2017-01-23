@@ -10,7 +10,7 @@ void Test(napi_env env, napi_callback_info info) {
   napi_value args[2];
   napi_get_cb_args(env, info, args, 2);
 
-  if (napi_get_type_of_value(env, args[0]) != napi_object) {
+  if (napi_get_type_of_value(env, args[0]) != napi_array) {
     napi_throw_type_error(env,
         "Wrong type of argments. Expects an array as first argument.");
     return;
@@ -46,7 +46,7 @@ void New(napi_env env, napi_callback_info info) {
   napi_value args[1];
   napi_get_cb_args(env, info, args, 1);
 
-  if (napi_get_type_of_value(env, args[0]) != napi_object) {
+  if (napi_get_type_of_value(env, args[0]) != napi_array) {
     napi_throw_type_error(env,
         "Wrong type of argments. Expects an array as first argument.");
     return;
