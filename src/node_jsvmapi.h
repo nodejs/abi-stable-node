@@ -112,6 +112,9 @@ enum napi_valuetype {
   napi_number,
   napi_string,
   napi_symbol,
+  napi_regexp,
+  napi_date,
+  napi_array,
   napi_object,
   napi_function,
 };
@@ -119,6 +122,8 @@ enum napi_valuetype {
 // Environment
 NODE_EXTERN napi_env napi_get_current_env();
 
+bool napi_is_empty(napi_env env, napi_value v);
+bool napi_is_persistent_empty(napi_env env, napi_persistent p);
 
 // Getters for defined singletons
 NODE_EXTERN napi_value napi_get_undefined_(napi_env e);
@@ -127,6 +132,7 @@ NODE_EXTERN napi_value napi_get_false(napi_env e);
 NODE_EXTERN napi_value napi_get_true(napi_env e);
 NODE_EXTERN napi_value napi_get_global_scope(napi_env e);
 
+NODE_EXTERN napi_value napi_new_value(napi_env env);
 
 // Methods to create Primitive types/Objects
 NODE_EXTERN napi_value napi_create_object(napi_env e);
@@ -151,6 +157,8 @@ NODE_EXTERN napi_value napi_create_type_error(napi_env e, napi_value msg);
 
 // Methods to get the the native napi_value from Primitive type
 NODE_EXTERN napi_valuetype napi_get_type_of_value(napi_env e, napi_value v);
+NODE_EXTERN bool napi_is_int32(napi_env e, napi_value v);
+NODE_EXTERN bool napi_is_uint32(napi_env e, napi_value v);
 NODE_EXTERN double napi_get_number_from_value(napi_env e, napi_value v);
 NODE_EXTERN int napi_get_string_from_value(napi_env e, napi_value v,
                                            char* buf, const int buf_size);
@@ -165,6 +173,8 @@ NODE_EXTERN int napi_get_string_length(napi_env e, napi_value v);
 NODE_EXTERN int napi_get_string_utf8_length(napi_env e, napi_value v);
 NODE_EXTERN int napi_get_string_utf8(napi_env e, napi_value v,
                                      char* buf, int bufsize);
+NODE_EXTERN napi_value napi_string_concat(napi_env e,
+                                          napi_value s1, napi_value s2);
 
 
 // Methods to coerce values
@@ -250,6 +260,11 @@ NODE_EXTERN void napi_wrap(napi_env e, napi_value jsObject, void* nativeObj,
                            napi_destruct napi_destructor,
                            napi_weakref* handle);
 NODE_EXTERN void* napi_unwrap(napi_env e, napi_value jsObject);
+
+NODE_EXTERN int napi_get_internal_field_count(napi_env env, napi_value jsObject);
+NODE_EXTERN void* napi_get_internal_field_pointer(napi_env env, napi_value jsObject, int index);
+NODE_EXTERN void napi_set_internal_field_pointer(napi_env env, napi_value jsObject,  int index, void* nativeObj);
+
 NODE_EXTERN napi_value napi_create_constructor(
   napi_env e,
   char* utf8name,
@@ -262,6 +277,8 @@ NODE_EXTERN napi_value napi_create_constructor(
 NODE_EXTERN napi_persistent napi_create_persistent(napi_env e, napi_value v);
 NODE_EXTERN void napi_release_persistent(napi_env e, napi_persistent p);
 NODE_EXTERN napi_value napi_get_persistent_value(napi_env e, napi_persistent p);
+NODE_EXTERN void napi_persistent_make_weak(napi_env env, napi_persistent p, void* v);
+NODE_EXTERN void napi_persistent_clear_weak(napi_env env, napi_persistent p);
 NODE_EXTERN napi_weakref napi_create_weakref(napi_env e, napi_value v);
 NODE_EXTERN bool napi_get_weakref_value(napi_env e, napi_weakref w,
                                         napi_value *pv);
