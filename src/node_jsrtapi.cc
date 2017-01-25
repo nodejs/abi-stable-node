@@ -369,6 +369,18 @@ void napi_set_property(napi_env e, napi_value o,
   // value of Set)
 }
 
+bool napi_instanceof(napi_env e, napi_value o, napi_value c) {
+	JsErrorCode error = JsNoError;
+	JsValueRef object = reinterpret_cast<JsValueRef>(o);
+	JsValueRef constructor = reinterpret_cast<JsValueRef>(c);
+	bool result = false;
+	if (napi_get_type_of_value(e, c) != napi_function) {
+		napi_throw_type_error(e, "constructor must be a function");
+	}
+	error = JsInstanceOf(object, constructor, &result);
+	return result;
+}
+
 bool napi_has_property(napi_env e, napi_value o, napi_propertyname k) {
   JsErrorCode error = JsNoError;
   JsPropertyIdRef propertyId = reinterpret_cast<JsPropertyIdRef>(k);

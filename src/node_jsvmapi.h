@@ -55,6 +55,7 @@ struct napi_module_struct {
   struct node_module* nm_link;
 };
 
+#include <node.h>
 
 NODE_EXTERN void napi_module_register(void* mod);
 
@@ -159,6 +160,8 @@ NODE_EXTERN void napi_set_element(napi_env e, napi_value object,
 NODE_EXTERN bool napi_has_element(napi_env e, napi_value object, uint32_t i);
 NODE_EXTERN napi_value napi_get_element(napi_env e,
                                         napi_value object, uint32_t i);
+NODE_EXTERN bool napi_instanceof(napi_env e, napi_value object,
+                                 napi_value constructor);
 
 
 // Methods to work with Arrays
