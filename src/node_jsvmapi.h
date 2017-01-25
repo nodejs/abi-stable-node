@@ -120,6 +120,7 @@ enum napi_errorvalue {
   napi_ok,
   napi_invalid_arg,
   napi_object_expected,
+  napi_string_expected,
   napi_generic_failure
 };
 
@@ -143,14 +144,12 @@ NODE_EXTERN const napi_extended_error_info* napi_get_last_error_info();
 // Environment
 NODE_EXTERN napi_errorvalue napi_get_current_env(napi_env* e);
 
-
 // Getters for defined singletons
 NODE_EXTERN napi_errorvalue napi_get_undefined(napi_env e, napi_value* result);
 NODE_EXTERN napi_errorvalue napi_get_null(napi_env e, napi_value* result);
 NODE_EXTERN napi_errorvalue napi_get_false(napi_env e, napi_value* result);
 NODE_EXTERN napi_errorvalue napi_get_true(napi_env e, napi_value* result);
 NODE_EXTERN napi_errorvalue napi_get_global_scope(napi_env e, napi_value* result);
-
 
 // Methods to create Primitive types/Objects
 NODE_EXTERN napi_errorvalue napi_create_object(napi_env e, napi_value* result);
@@ -187,15 +186,16 @@ NODE_EXTERN napi_errorvalue napi_get_string_utf8(napi_env e, napi_value v,
 
 // Methods to coerce values
 // These APIs may execute user script
-NODE_EXTERN napi_value napi_coerce_to_object(napi_env e, napi_value v);
-NODE_EXTERN napi_value napi_coerce_to_string(napi_env e, napi_value v);
+NODE_EXTERN napi_errorvalue napi_coerce_to_object(napi_env e, napi_value v, napi_value* result);
+NODE_EXTERN napi_errorvalue napi_coerce_to_string(napi_env e, napi_value v, napi_value* result);
 
 
 // Methods to work with Objects
-NODE_EXTERN napi_value napi_get_prototype(napi_env e, napi_value object);
-NODE_EXTERN napi_propertyname napi_property_name(napi_env e,
-                                                 const char* utf8name);
-NODE_EXTERN napi_value napi_get_propertynames(napi_env e, napi_value object);
+NODE_EXTERN napi_errorvalue napi_get_prototype(napi_env e, napi_value object, napi_value* result);
+NODE_EXTERN napi_errorvalue napi_property_name(napi_env e, const char* utf8name,
+                                               napi_propertyname* result);
+NODE_EXTERN napi_errorvalue napi_get_propertynames(napi_env e, napi_value object, 
+                                                   napi_value* result);
 NODE_EXTERN napi_errorvalue napi_set_property(napi_env e, napi_value object,
                                    napi_propertyname name, napi_value v);
 NODE_EXTERN napi_errorvalue napi_has_property(napi_env e, napi_value object,
@@ -206,9 +206,9 @@ NODE_EXTERN napi_errorvalue napi_set_element(napi_env e, napi_value object,
                                   uint32_t i, napi_value v);
 NODE_EXTERN napi_errorvalue napi_has_element(napi_env e, napi_value object, 
                                   uint32_t i, bool* has);
-NODE_EXTERN napi_value napi_get_element(napi_env e,
-                                        napi_value object, uint32_t i);
-NODE_EXTERN void napi_define_property(napi_env e, napi_value object,
+NODE_EXTERN napi_errorvalue napi_get_element(napi_env e, napi_value object, 
+                                  uint32_t i, napi_value* result);
+NODE_EXTERN napi_errorvalue napi_define_property(napi_env e, napi_value object,
                                       napi_property_descriptor* property);
 
 
