@@ -18,10 +18,7 @@ void Test(napi_env env, napi_func_cb_info info) {
   int argc = napi_get_cb_args_length(env, info) - 1;
   napi_value* argv = args + 1;
 
-  napi_escapable_handle_scope scope = napi_open_escapable_handle_scope(env);
-  napi_value scope_val = reinterpret_cast<napi_value> (scope);
-  napi_value output = napi_call_function(env, scope_val, function, argc, argv);
-  napi_close_escapable_handle_scope(env, scope);
+  napi_value output = napi_call_function(env, napi_get_global(env), function, argc, argv);
   napi_set_return_value(env, info, output);
 }
 

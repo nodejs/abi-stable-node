@@ -124,7 +124,7 @@ NODE_EXTERN napi_value napi_get_undefined_(napi_env e);
 NODE_EXTERN napi_value napi_get_null(napi_env e);
 NODE_EXTERN napi_value napi_get_false(napi_env e);
 NODE_EXTERN napi_value napi_get_true(napi_env e);
-NODE_EXTERN napi_value napi_get_global_scope(napi_env e);
+NODE_EXTERN napi_value napi_get_global(napi_env e);
 
 
 // Methods to create Primitive types/Objects
@@ -200,7 +200,7 @@ NODE_EXTERN bool napi_strict_equals(napi_env e, napi_value lhs, napi_value rhs);
 // Methods to work with Functions
 NODE_EXTERN void napi_set_function_name(napi_env e, napi_value func,
                                         napi_propertyname napi_value);
-NODE_EXTERN napi_value napi_call_function(napi_env e, napi_value scope,
+NODE_EXTERN napi_value napi_call_function(napi_env e, napi_value recv,
                                           napi_value func,
                                           int argc, napi_value* argv);
 NODE_EXTERN napi_value napi_new_instance(napi_env e, napi_value cons,
