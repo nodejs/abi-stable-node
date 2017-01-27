@@ -547,8 +547,8 @@ const napi_extended_error_info* napi_get_last_error_info() {
   return &static_last_error;
 }
 
-napi_status napi_set_last_error(napi_status error_code, 
-                                uint32_t engine_error_code = 0, 
+napi_status napi_set_last_error(napi_status error_code,
+                                uint32_t engine_error_code = 0,
                                 void* engine_reserved = nullptr) {
   static_last_error.error_code = error_code;
   static_last_error.engine_error_code = engine_error_code;
@@ -695,8 +695,8 @@ napi_status napi_set_return_value(napi_env e,
   return napi_ok;
 }
 
-napi_status napi_property_name(napi_env e, 
-                               const char* utf8name, 
+napi_status napi_property_name(napi_env e,
+                               const char* utf8name,
                                napi_propertyname* result) {
   NAPI_PREAMBLE(e);
   CHECK_ARG(result);
@@ -728,9 +728,9 @@ napi_status napi_get_propertynames(napi_env e, napi_value o, napi_value* result)
   return napi_ok;
 }
 
-napi_status napi_set_property(napi_env e, 
-                                  napi_value o, 
-                                  napi_propertyname k, 
+napi_status napi_set_property(napi_env e,
+                                  napi_value o,
+                                  napi_propertyname k,
                                   napi_value v) {
   NAPI_PREAMBLE(e);
 
@@ -756,9 +756,9 @@ napi_status napi_has_property(napi_env e, napi_value o, napi_propertyname k, boo
   v8::Isolate *isolate = v8impl::V8IsolateFromJsEnv(e);
   v8::Local<v8::Context> context = isolate->GetCurrentContext();
   v8::Local<v8::Object> obj;
-  
+
   CHECK_TO_OBJECT(context, obj, o);
-  
+
   v8::Local<v8::Value> key = v8impl::V8LocalValueFromJsPropertyName(k);
   v8::Maybe<bool> has_maybe = obj->Has(context, key);
 
@@ -768,9 +768,9 @@ napi_status napi_has_property(napi_env e, napi_value o, napi_propertyname k, boo
   return napi_ok;
 }
 
-napi_status napi_get_property(napi_env e, 
-                                  napi_value o, 
-                                  napi_propertyname k, 
+napi_status napi_get_property(napi_env e,
+                                  napi_value o,
+                                  napi_propertyname k,
                                   napi_value* result) {
   NAPI_PREAMBLE(e);
   CHECK_ARG(result);
@@ -781,7 +781,7 @@ napi_status napi_get_property(napi_env e,
   v8::Local<v8::Object> obj;
 
   CHECK_TO_OBJECT(context, obj, o);
-  
+
   auto get_maybe = obj->Get(context, key);
 
   CHECK_MAYBE_EMPTY(get_maybe, napi_generic_failure);
@@ -826,9 +826,9 @@ napi_status napi_has_element(napi_env e, napi_value o, uint32_t i, bool* result)
   return napi_ok;
 }
 
-napi_status napi_get_element(napi_env e, 
-                             napi_value o, 
-                             uint32_t i, 
+napi_status napi_get_element(napi_env e,
+                             napi_value o,
+                             uint32_t i,
                              napi_value* result) {
   NAPI_PREAMBLE(e);
   CHECK_ARG(result);
@@ -877,7 +877,7 @@ napi_status napi_define_property(napi_env e, napi_value o,
       t->GetFunction(),
       attributes);
 
-    // IsNothing seems like a serious failure, 
+    // IsNothing seems like a serious failure,
     // should we return a different error code if the define failed?
     if (define_maybe.IsNothing() || !define_maybe.FromMaybe(false))
     {
@@ -897,7 +897,7 @@ napi_status napi_define_property(napi_env e, napi_value o,
       v8::AccessControl::DEFAULT,
       attributes);
 
-    // IsNothing seems like a serious failure, 
+    // IsNothing seems like a serious failure,
     // should we return a different error code if the set failed?
     if (set_maybe.IsNothing() || !set_maybe.FromMaybe(false))
     {
@@ -913,7 +913,7 @@ napi_status napi_define_property(napi_env e, napi_value o,
       value,
       attributes);
 
-    // IsNothing seems like a serious failure, 
+    // IsNothing seems like a serious failure,
     // should we return a different error code if the define failed?
     if (define_maybe.IsNothing() || !define_maybe.FromMaybe(false))
     {
@@ -1014,9 +1014,9 @@ napi_status napi_create_string(napi_env e, const char* s, napi_value* result) {
   return napi_ok;
 }
 
-napi_status napi_create_string_with_length(napi_env e, 
-                                           const char* s, 
-                                           size_t length, 
+napi_status napi_create_string_with_length(napi_env e,
+                                           const char* s,
+                                           size_t length,
                                            napi_value* result) {
   NAPI_PREAMBLE(e);
   CHECK_ARG(result);
@@ -1210,8 +1210,8 @@ napi_status napi_get_cb_this(napi_env e, napi_callback_info cbinfo, napi_value* 
 // AFAIK Holder should be the owner of the JS function, which should be in the
 // prototype chain of This, so maybe it is possible to emulate.
 napi_status napi_get_cb_holder(
-  napi_env e, 
-  napi_callback_info cbinfo, 
+  napi_env e,
+  napi_callback_info cbinfo,
   napi_value* result) {
   NAPI_PREAMBLE(e);
   CHECK_ARG(result);
@@ -1234,11 +1234,11 @@ napi_status napi_get_cb_data(napi_env e, napi_callback_info cbinfo, void** resul
   return napi_ok;
 }
 
-napi_status napi_call_function(napi_env e, 
-                               napi_value scope,
-                               napi_value func, 
-                               int argc, 
-                               napi_value* argv, 
+napi_status napi_call_function(napi_env e,
+                               napi_value recv,
+                               napi_value func,
+                               int argc,
+                               napi_value* argv,
                                napi_value* result) {
   NAPI_PREAMBLE(e);
   CHECK_ARG(result);
@@ -1246,16 +1246,16 @@ napi_status napi_call_function(napi_env e,
   std::vector<v8::Handle<v8::Value>> args(argc);
   v8::Isolate *isolate = v8impl::V8IsolateFromJsEnv(e);
   v8::Local<v8::Context> context = isolate->GetCurrentContext();
-  v8::Handle<v8::Object> v8scope;
 
-  CHECK_TO_OBJECT(context, v8scope, scope);
+  v8::Handle<v8::Object> v8recv;
+  CHECK_TO_OBJECT(context, v8recv, recv);
 
   for (int i = 0; i < argc; i++) {
     args[i] = v8impl::V8LocalValueFromJsValue(argv[i]);
   }
-  
+
   v8::Local<v8::Function> v8func = v8impl::V8LocalFunctionFromJsValue(func);
-  auto maybe = v8func->Call(context, v8scope, argc, args.data());
+  auto maybe = v8func->Call(context, v8recv, argc, args.data());
 
   CHECK_MAYBE_EMPTY(maybe, napi_generic_failure);
 
@@ -1263,7 +1263,7 @@ napi_status napi_call_function(napi_env e,
   return napi_ok;
 }
 
-napi_status napi_get_global_scope(napi_env e, napi_value* result) {
+napi_status napi_get_global(napi_env e, napi_value* result) {
   NAPI_PREAMBLE(e);
   CHECK_ARG(result);
 
@@ -1324,10 +1324,10 @@ napi_status napi_get_number_from_value(napi_env e, napi_value v, double* result)
   return napi_ok;
 }
 
-napi_status napi_get_string_from_value(napi_env e, 
+napi_status napi_get_string_from_value(napi_env e,
                                        napi_value v,
-                                       char* buf, 
-                                       const int buf_size, 
+                                       char* buf,
+                                       const int buf_size,
                                        int* result) {
   NAPI_PREAMBLE(e);
   CHECK_ARG(result);
@@ -1438,7 +1438,7 @@ napi_status napi_get_string_utf8(napi_env e, napi_value v, char* buf, int bufsiz
 napi_status napi_coerce_to_object(napi_env e, napi_value v, napi_value* result) {
   NAPI_PREAMBLE(e);
   CHECK_ARG(result);
-  
+
   v8::Isolate *isolate = v8impl::V8IsolateFromJsEnv(e);
   v8::Local<v8::Context> context = isolate->GetCurrentContext();
   v8::Local<v8::Object> obj;
@@ -1483,7 +1483,7 @@ napi_status napi_wrap(napi_env e, napi_value jsObject, void* nativeObj,
   }
   else
   {
-    // TODO: Is the handle parameter really optional? 
+    // TODO: Is the handle parameter really optional?
     //       Why would anyone want to construct an object wrap and immediately lose it?
     return napi_ok;
   }
@@ -1601,7 +1601,7 @@ napi_status napi_close_handle_scope(napi_env e, napi_handle_scope scope) {
   return napi_ok;
 }
 
- napi_status napi_open_escapable_handle_scope(napi_env e, 
+ napi_status napi_open_escapable_handle_scope(napi_env e,
                                               napi_escapable_handle_scope* result) {
   NAPI_PREAMBLE(e);
   CHECK_ARG(result);
@@ -1633,9 +1633,9 @@ napi_status napi_close_handle_scope(napi_env e, napi_handle_scope scope) {
   return napi_ok;
 }
 
-napi_status napi_new_instance(napi_env e, 
+napi_status napi_new_instance(napi_env e,
                               napi_value cons,
-                              int argc, 
+                              int argc,
                               napi_value* argv,
                               napi_value* result) {
   NAPI_PREAMBLE(e);
@@ -1720,11 +1720,11 @@ napi_status napi_make_external(napi_env e, napi_value v, napi_value* result) {
   return napi_ok;
 }
 
-napi_status napi_make_callback(napi_env e, 
+napi_status napi_make_callback(napi_env e,
                                napi_value recv,
-                               napi_value func, 
-                               int argc, 
-                               napi_value* argv, 
+                               napi_value func,
+                               int argc,
+                               napi_value* argv,
                                napi_value* result) {
   NAPI_PREAMBLE(e);
   CHECK_ARG(result);
@@ -1768,7 +1768,7 @@ napi_status napi_get_and_clear_last_exception(napi_env e, napi_value* result) {
       v8impl::TryCatch::lastException().Get(v8impl::V8IsolateFromJsEnv(e)));
     v8impl::TryCatch::lastException().Reset();
   }
-  
+
   return napi_ok;
 }
 
@@ -1784,7 +1784,7 @@ napi_status napi_buffer_new(napi_env e, char* data, uint32_t size, napi_value* r
   return napi_ok;
 }
 
-napi_status napi_buffer_copy(napi_env e, const char* data, 
+napi_status napi_buffer_copy(napi_env e, const char* data,
                              uint32_t size, napi_value* result) {
   NAPI_PREAMBLE(e);
   CHECK_ARG(result);
