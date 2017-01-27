@@ -911,22 +911,22 @@ void* napi_get_cb_data(napi_env e, napi_callback_info cbinfo) {
   return info->Data();
 }
 
-napi_value napi_call_function(napi_env e, napi_value scope,
+napi_value napi_call_function(napi_env e, napi_value recv,
                               napi_value func, int argc, napi_value* argv) {
   NAPI_PREAMBLE(e);
   std::vector<v8::Handle<v8::Value>> args(argc);
 
   v8::Local<v8::Function> v8func = v8impl::V8LocalFunctionFromJsValue(func);
-  v8::Handle<v8::Object> v8scope =
-      v8impl::V8LocalValueFromJsValue(scope)->ToObject();
+  v8::Handle<v8::Object> v8recv =
+      v8impl::V8LocalValueFromJsValue(recv)->ToObject();
   for (int i = 0; i < argc; i++) {
     args[i] = v8impl::V8LocalValueFromJsValue(argv[i]);
   }
-  v8::Handle<v8::Value> result = v8func->Call(v8scope, argc, args.data());
+  v8::Handle<v8::Value> result = v8func->Call(v8recv, argc, args.data());
   return v8impl::JsValueFromV8LocalValue(result);
 }
 
-napi_value napi_get_global_scope(napi_env e) {
+napi_value napi_get_global(napi_env e) {
   NAPI_PREAMBLE(e);
   v8::Isolate *isolate = v8impl::V8IsolateFromJsEnv(e);
   // TODO(ianhall): what if we need the global object from a different
