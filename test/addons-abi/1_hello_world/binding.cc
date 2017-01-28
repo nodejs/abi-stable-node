@@ -1,6 +1,6 @@
 #include <node_jsvmapi.h>
 
-void Method(napi_env env, napi_func_cb_info info) {
+void Method(napi_env env, napi_callback_info info) {
   napi_set_return_value(
         env,
         info,
@@ -8,9 +8,8 @@ void Method(napi_env env, napi_func_cb_info info) {
 }
 
 void Init(napi_env env, napi_value exports, napi_value module) {
-  napi_set_property(env, exports,
-                    napi_property_name(env, "hello"),
-                    napi_create_function(env, Method));
+  napi_property_descriptor desc = { "hello", Method };
+  napi_define_property(env, exports, &desc);
 }
 
 NODE_MODULE_ABI(addon, Init)

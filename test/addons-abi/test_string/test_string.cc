@@ -1,6 +1,6 @@
 #include <node_jsvmapi.h>
 
-void Copy(napi_env env, napi_func_cb_info info) {
+void Copy(napi_env env, napi_callback_info info) {
   if (napi_get_cb_args_length(env, info) < 1) {
     napi_throw_type_error(env, "Wrong number of arguments");
     return;
@@ -25,7 +25,7 @@ void Copy(napi_env env, napi_func_cb_info info) {
   }
 }
 
-void Length(napi_env env, napi_func_cb_info info) {
+void Length(napi_env env, napi_callback_info info) {
   if (napi_get_cb_args_length(env, info) < 1) {
     napi_throw_type_error(env, "Wrong number of arguments");
     return;
@@ -44,7 +44,7 @@ void Length(napi_env env, napi_func_cb_info info) {
   napi_set_return_value(env, info, output);
 }
 
-void Utf8Length(napi_env env, napi_func_cb_info info) {
+void Utf8Length(napi_env env, napi_callback_info info) {
   if (napi_get_cb_args_length(env, info) < 1) {
     napi_throw_type_error(env, "Wrong number of arguments");
     return;
@@ -66,13 +66,13 @@ void Utf8Length(napi_env env, napi_func_cb_info info) {
 void Init(napi_env env, napi_value exports, napi_value module) {
   napi_set_property(env, exports,
                     napi_property_name(env, "Copy"),
-                    napi_create_function(env, Copy));
+                    napi_create_function(env, Copy, nullptr));
   napi_set_property(env, exports,
                     napi_property_name(env, "Length"),
-                    napi_create_function(env, Length));
+                    napi_create_function(env, Length, nullptr));
   napi_set_property(env, exports,
                     napi_property_name(env, "Utf8Length"),
-                    napi_create_function(env, Utf8Length));
+                    napi_create_function(env, Utf8Length, nullptr));
 }
 
 NODE_MODULE_ABI(addon, Init)

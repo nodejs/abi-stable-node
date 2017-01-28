@@ -30,20 +30,18 @@
 #define CALLBACK
 #endif
 
-typedef void napi_destruct(void* v);
-
 void napi_module_register(void* mod) {
     node::node_module_register(mod);
 }
 
 //Callback Info struct as per JSRT native function.
-typedef struct CallbackInfo {
-  JsValueRef _callee;
-  bool _isConstructCall;
-  JsValueRef *_arguments;
-  unsigned short _argumentCount;
+struct CallbackInfo {
+  bool isConstructCall;
+  unsigned short argc;
+  napi_value* argv;
+  void* data;
   napi_value returnValue;
-}CbInfo;
+};
 
 namespace v8impl {
 
@@ -124,97 +122,13 @@ namespace v8impl {
     assert(sizeof(u.v) == sizeof(u.l));
     return u.l;
   }
-
-  v8::Local<v8::Value> V8LocalValueFromJsPropertyName(napi_propertyname pn) {
-    // Likewise awkward
-    union U {
-      napi_propertyname pn;
-      v8::Local<v8::Value> l;
-      U(napi_propertyname _pn) : pn(_pn) { }
-    } u(pn);
-    assert(sizeof(u.pn) == sizeof(u.l));
-    return u.l;
-  }
-
-  static v8::Local<v8::Function> V8LocalFunctionFromJsValue(napi_value v) {
-    // Likewise awkward
-    union U {
-      napi_value v;
-      v8::Local<v8::Function> f;
-      U(napi_value _v) : v(_v) { }
-    } u(v);
-    assert(sizeof(u.v) == sizeof(u.f));
-    return u.f;
-  }
-
-  static napi_persistent JsPersistentFromV8PersistentValue(
-    v8::Persistent<v8::Value> *per) {
-    return (napi_persistent)per;
-  };
-
-  static v8::Persistent<v8::Value>* V8PersistentValueFromJsPersistentValue(
-    napi_persistent per) {
-    return (v8::Persistent<v8::Value>*) per;
-  }
-
-	static napi_weakref JsWeakRefFromV8PersistentValue(v8::Persistent<v8::Value> *per) {
-		return (napi_weakref) per;
-	}
-
-	static v8::Persistent<v8::Value>* V8PersistentValueFromJsWeakRefValue(napi_weakref per) {
-		return (v8::Persistent<v8::Value>*) per;
-	}
-
-	static void WeakRefCallback(const v8::WeakCallbackInfo<int>& data) {
-	}
-
-  //=== Conversion between V8 FunctionCallbackInfo and ===========================
-  //=== napi_func_cb_info ===========================================
-
-  static napi_func_cb_info JsFunctionCallbackInfoFromV8FunctionCallbackInfo(
-    const v8::FunctionCallbackInfo<v8::Value>* cbinfo) {
-    return reinterpret_cast<napi_func_cb_info>(cbinfo);
-  };
-
-  static const v8::FunctionCallbackInfo<v8::Value>*
-    V8FunctionCallbackInfoFromJsFunctionCallbackInfo(napi_func_cb_info info) {
-    return
-      reinterpret_cast<const v8::FunctionCallbackInfo<v8::Value>*>(info);
-  };
-
-  //=== Function napi_callback wrapper ==========================================
-
-  // This function callback wrapper implementation is taken from nan
-
-  static void FunctionCallbackWrapper(
-    const v8::FunctionCallbackInfo<v8::Value> &info) {
-    napi_callback cb = reinterpret_cast<napi_callback>(
-      info.Data().As<v8::External>()->Value());
-    JsErrorCode error = JsNoError;
-    JsValueRef undefinedValue;
-    error = JsGetUndefinedValue(&undefinedValue);
-    CallbackInfo cbInfo;
-    cbInfo._callee = reinterpret_cast<JsValueRef>(JsValueFromV8LocalValue(info.Callee()));
-    cbInfo._argumentCount = info.Length() + 1;
-    cbInfo._isConstructCall = info.IsConstructCall();
-    cbInfo.returnValue = reinterpret_cast<napi_value>(undefinedValue);
-    std::vector<JsValueRef> buffer(cbInfo._argumentCount);
-    buffer[0] = reinterpret_cast<JsValueRef>(JsValueFromV8LocalValue(info.This()));
-    for (int i = 0; i < cbInfo._argumentCount - 1; i++) {
-      buffer[i + 1] = reinterpret_cast<JsValueRef>(JsValueFromV8LocalValue(info[i]));
-    }
-    cbInfo._arguments = buffer.data();
-    cb(nullptr, reinterpret_cast<napi_func_cb_info>(&cbInfo));
-    info.GetReturnValue().Set(V8LocalValueFromJsValue(cbInfo.returnValue));
-  }
-
 }  // end of namespace v8impl
 
 void CHAKRA_CALLBACK JsObjectWrapWrapperBeforeCollectCallback(JsRef ref, void* callbackState);
 
 class ObjectWrapWrapper : public node::ObjectWrap {
 public:
-  ObjectWrapWrapper(napi_value jsObject, void* nativeObj, napi_destruct* destructor) {
+  ObjectWrapWrapper(napi_value jsObject, void* nativeObj, napi_destruct destructor) {
     _destructor = destructor;
     _nativeObj = nativeObj;
 
@@ -246,7 +160,7 @@ public:
   }
 
 private:
-  napi_destruct* _destructor;
+  napi_destruct _destructor;
   void* _nativeObj;
 };
 
@@ -265,60 +179,51 @@ _Ret_maybenull_ JsValueRef CALLBACK CallbackWrapper(JsValueRef callee, bool isCo
   JsErrorCode error = JsNoError;
   JsValueRef undefinedValue;
   error = JsGetUndefinedValue(&undefinedValue);
-  CbInfo cbInfo;
-  cbInfo._callee = callee;
-  cbInfo._isConstructCall = isConstructCall;
-  cbInfo._argumentCount = argumentCount;
-  cbInfo._arguments = arguments;
+  CallbackInfo cbInfo;
+  cbInfo.isConstructCall = isConstructCall;
+  cbInfo.argc = argumentCount;
+  cbInfo.argv = reinterpret_cast<napi_value*>(arguments);
+  error = JsGetExternalData(callee, &cbInfo.data);
   cbInfo.returnValue = reinterpret_cast<napi_value>(undefinedValue);
   napi_callback cb = reinterpret_cast<napi_callback>(callbackState);
   // TODO(tawoll): get environment pointer instead of nullptr?
-  cb(nullptr, reinterpret_cast<napi_func_cb_info>(&cbInfo));
+  cb(nullptr, reinterpret_cast<napi_callback_info>(&cbInfo));
   return reinterpret_cast<JsValueRef>(cbInfo.returnValue);
 }
 
-napi_value napi_create_function(napi_env e, napi_callback cb) {
-  JsErrorCode error;
+napi_value napi_create_function(napi_env e, napi_callback cb, void* data) {
   JsValueRef function;
-  error = JsCreateFunction(CallbackWrapper, (void*)cb, &function);
+  JsCreateFunction(CallbackWrapper, (void*)cb, &function);
+
+  if (data) {
+    JsSetExternalData(function, data);
+  }
+
   return reinterpret_cast<napi_value>(function);
 }
 
-napi_value napi_create_constructor_for_wrap(napi_env e, napi_callback cb) {
-  // TODO(tawoll): evaluate if we need to do something special here (I don't think so)
-  return napi_create_function(e, cb);
-}
-
-napi_value napi_create_constructor_for_wrap_with_methods(
-  napi_env e,
-  napi_callback cb,
-  char* utf8name,
-  int methodcount,
-  napi_method_descriptor* methods) {
+napi_value napi_create_constructor(napi_env e, const char* utf8name, napi_callback cb,
+  void* data, int property_count, napi_property_descriptor* properties) {
+  // TODO: set properties
 
   napi_value namestring = napi_create_string(e, utf8name);
-  JsValueRef constructor = nullptr;
+  JsValueRef constructor;
   JsCreateNamedFunction(namestring, CallbackWrapper, (void*)cb, &constructor);
+
+  if (data) {
+    JsSetExternalData(constructor, data);
+  }
 
   JsPropertyIdRef pid = nullptr;
   JsValueRef prototype = nullptr;
   JsCreatePropertyIdUtf8("prototype", 10, &pid);
-  //JsGetPrototype(constructor, &prototype);
   JsGetProperty(constructor, pid, &prototype);
 
   JsCreatePropertyIdUtf8("constructor", 12, &pid);
   JsSetProperty(prototype, pid, constructor, false);
 
-  for (int i = 0; i < methodcount; i++) {
-    namestring = napi_create_string(e, methods[i].utf8name);
-    JsValueRef function = nullptr;
-    JsCreateNamedFunction(namestring, CallbackWrapper, (void*)methods[i].callback, &function);
-    //JsCreateFunction(CallbackWrapper, methods[i].callback, &function);
-
-    JsCreatePropertyIdUtf8(methods[i].utf8name, strlen(methods[i].utf8name), &pid);
-    // TODO(tawoll): always use strict rules?
-    JsSetProperty(prototype, pid, function, false);
-    //JsSetProperty(constructor, pid, function, true);
+  for (int i = 0; i < property_count; i++) {
+    napi_define_property(e, reinterpret_cast<napi_value>(prototype), &properties[i]);
   }
 
   return reinterpret_cast<napi_value>(constructor);
@@ -335,7 +240,7 @@ void napi_set_function_name(napi_env e, napi_value func,
 }
 
 void napi_set_return_value(napi_env e,
-  napi_func_cb_info cbinfo, napi_value v) {
+  napi_callback_info cbinfo, napi_value v) {
   CallbackInfo *info = (CallbackInfo*)cbinfo;
   info->returnValue = v;
 }
@@ -367,6 +272,50 @@ void napi_set_property(napi_env e, napi_value o,
   // handling on invalid inputs and regarding what happens in the
   // Set operation (error thrown, key is invalid, the bool return
   // value of Set)
+}
+
+void napi_define_property(napi_env e, napi_value o,
+    napi_property_descriptor* p) {
+  napi_value descriptor = napi_create_object(e);
+
+  napi_value configurable = napi_create_boolean(e, !(p->attributes & napi_dont_delete));
+  napi_set_property(e, descriptor, napi_property_name(e, "configurable"), configurable);
+
+  napi_value enumerable = napi_create_boolean(e, !(p->attributes & napi_dont_enum));
+  napi_set_property(e, descriptor, napi_property_name(e, "enumerable"), enumerable);
+
+  if (p->method) {
+    napi_value method = napi_create_function(e, p->method, p->data);
+    napi_set_property(e, descriptor, napi_property_name(e, "value"), method);
+  }
+  else if (p->getter || p->setter) {
+    if (p->getter) {
+      napi_value getter = napi_create_function(e, p->getter, p->data);
+      napi_set_property(e, descriptor, napi_property_name(e, "get"), getter);
+    }
+
+    if (p->setter) {
+      napi_value setter = napi_create_function(e, p->setter, p->data);
+      napi_set_property(e, descriptor, napi_property_name(e, "set"), setter);
+    }
+  }
+  else {
+    // TODO: Return error if p->value is null
+
+    napi_value writable = napi_create_boolean(e, !(p->attributes & napi_read_only));
+    napi_set_property(e, descriptor, napi_property_name(e, "writable"), writable);
+
+    napi_set_property(e, descriptor, napi_property_name(e, "value"), p->value);
+  }
+
+  JsPropertyIdRef propertyId =
+    reinterpret_cast<JsPropertyIdRef>(napi_property_name(e, p->utf8name));
+  bool result;
+  JsDefineProperty(
+    reinterpret_cast<JsValueRef>(o),
+    propertyId,
+    reinterpret_cast<JsValueRef>(descriptor),
+    &result);
 }
 
 bool napi_instanceof(napi_env e, napi_value o, napi_value c) {
@@ -602,31 +551,31 @@ napi_value napi_get_true(napi_env e) {
   return reinterpret_cast<napi_value>(trueValue);
 }
 
-int napi_get_cb_args_length(napi_env e, napi_func_cb_info cbinfo) {
-  const CallbackInfo *info = (CallbackInfo*)cbinfo;
-  return (info->_argumentCount) - 1;
+int napi_get_cb_args_length(napi_env e, napi_callback_info cbinfo) {
+  const CallbackInfo *info = reinterpret_cast<CallbackInfo*>(cbinfo);
+  return (info->argc) - 1;
 }
 
-bool napi_is_construct_call(napi_env e, napi_func_cb_info cbinfo) {
-  const CallbackInfo *info = (CallbackInfo*)cbinfo;
-  return info->_isConstructCall;
+bool napi_is_construct_call(napi_env e, napi_callback_info cbinfo) {
+  const CallbackInfo *info = reinterpret_cast<CallbackInfo*>(cbinfo);
+  return info->isConstructCall;
 }
 
 // copy encoded arguments into provided buffer or return direct pointer to
 // encoded arguments array?
-void napi_get_cb_args(napi_env e, napi_func_cb_info cbinfo,
+void napi_get_cb_args(napi_env e, napi_callback_info cbinfo,
   napi_value* buffer, size_t bufferlength) {
-  const CallbackInfo *info = (CallbackInfo*)cbinfo;
+  const CallbackInfo *info = reinterpret_cast<CallbackInfo*>(cbinfo);
 
   int i = 0;
   // size_t appropriate for the buffer length parameter?
   // Probably this API is not the way to go.
   int min =
-    static_cast<int>(bufferlength) < (info->_argumentCount) - 1 ?
-    static_cast<int>(bufferlength) : (info->_argumentCount) - 1;
+    static_cast<int>(bufferlength) < (info->argc) - 1 ?
+    static_cast<int>(bufferlength) : (info->argc) - 1;
 
   for (; i < min; i++) {
-    buffer[i] = reinterpret_cast<napi_value>(info->_arguments[i + 1]);
+    buffer[i] = info->argv[i + 1];
   }
 
   if (i < static_cast<int>(bufferlength)) {
@@ -640,17 +589,22 @@ void napi_get_cb_args(napi_env e, napi_func_cb_info cbinfo,
   }
 }
 
-napi_value napi_get_cb_this(napi_env e, napi_func_cb_info cbinfo) {
-  const CallbackInfo *info = (CallbackInfo*)(cbinfo);
-  return reinterpret_cast<napi_value>(info->_arguments[0]);
+napi_value napi_get_cb_this(napi_env e, napi_callback_info cbinfo) {
+  const CallbackInfo *info = reinterpret_cast<CallbackInfo*>(cbinfo);
+  return info->argv[0];
 }
 
 // Holder is a V8 concept.  Is not clear if this can be emulated with other VMs
 // AFAIK Holder should be the owner of the JS function, which should be in the
 // prototype chain of This, so maybe it is possible to emulate.
-napi_value napi_get_cb_holder(napi_env e, napi_func_cb_info cbinfo) {
-	const CallbackInfo *info = (CallbackInfo*)(cbinfo);
-	return reinterpret_cast<napi_value>(info->_arguments[0]);
+napi_value napi_get_cb_holder(napi_env e, napi_callback_info cbinfo) {
+  const CallbackInfo *info = reinterpret_cast<CallbackInfo*>(cbinfo);
+  return info->argv[0];
+}
+
+void* napi_get_cb_data(napi_env e, napi_callback_info cbinfo) {
+  const CallbackInfo *info = reinterpret_cast<CallbackInfo*>(cbinfo);
+  return info->data;
 }
 
 napi_value napi_call_function(napi_env e, napi_value recv,
@@ -681,7 +635,7 @@ void napi_throw(napi_env e, napi_value error) {
   errorCode = JsSetException(exception);
 }
 
-void napi_throw_error(napi_env e, char* msg) {
+void napi_throw_error(napi_env e, const char* msg) {
   JsErrorCode error = JsNoError;
   JsValueRef strRef;
   JsValueRef exception;
@@ -691,7 +645,7 @@ void napi_throw_error(napi_env e, char* msg) {
   error = JsSetException(exception);
 }
 
-void napi_throw_type_error(napi_env e, char* msg) {
+void napi_throw_type_error(napi_env e, const char* msg) {
   JsErrorCode error = JsNoError;
   JsValueRef strRef;
   JsValueRef exception;
@@ -807,7 +761,7 @@ napi_value napi_coerce_to_string(napi_env e, napi_value v) {
 }
 
 void napi_wrap(napi_env e, napi_value jsObject, void* nativeObj,
-  napi_destruct* destructor, napi_weakref* handle) {
+  napi_destruct destructor, napi_weakref* handle) {
   new ObjectWrapWrapper(jsObject, nativeObj, destructor);
 
   if (handle != nullptr)
