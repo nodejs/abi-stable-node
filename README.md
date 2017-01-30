@@ -18,6 +18,8 @@ in branches in this repo.  Currently we have the following versions:
 * api-prototype-0.12.7
 * api-prototype-6.2.0
 * api-prototype-chakracore-7.x
+* api-prototype-8.x
+* api-prototype-chakracore-8.x
 
 **API Design & Shape**
 
@@ -59,7 +61,8 @@ https://plus.google.com/u/0/events/c0eevtrlajniu7h8cjrdk0f56c8?authkey=COH04YCal
 * [boingoing](https://github.com/boingoing) - Taylor Woll
 * [digitalinfinity](https://github.com/digitalinfinity) - Hitesh Kanwathirtha
 * [gabrielschulhof](https://github.com/gabrielschulhof) - Gabriel Schulhof
-* [ianwjhalliday](https://github.com/ianwjhalliday) - Ian Halliday 
+* [ianwjhalliday](https://github.com/ianwjhalliday) - Ian Halliday
+* [jasongin](https://github.com/jasongin) - Jason Ginchereau 
 * [mhdawson](https://github.com/mhdawson) - Michael Dawson 
 * [mykmelez](https://github.com/mykmelez) - Myk Melez
 * [sampsongao](https://github.com/sampsongao) - Sampson Gao
