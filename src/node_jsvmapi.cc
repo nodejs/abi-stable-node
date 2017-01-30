@@ -715,6 +715,18 @@ void napi_define_property(napi_env e, napi_value o,
   }
 }
 
+bool napi_is_date(napi_env e, napi_value v) {
+  NAPI_PREAMBLE(e);
+  v8::Local<v8::Value> val = v8impl::V8LocalValueFromJsValue(v);
+  return val->IsDate();
+}
+
+bool napi_is_regexp(napi_env e, napi_value v) {
+  NAPI_PREAMBLE(e);
+  v8::Local<v8::Value> val = v8impl::V8LocalValueFromJsValue(v);
+  return val->IsRegExp();
+}
+
 bool napi_is_array(napi_env e, napi_value v) {
   NAPI_PREAMBLE(e);
   v8::Local<v8::Value> val = v8impl::V8LocalValueFromJsValue(v);
@@ -823,16 +835,10 @@ napi_valuetype napi_get_type_of_value(napi_env e, napi_value vv) {
     return napi_string;
   } else if (v->IsSymbol()) {
     return napi_symbol;
-  } else if (v->IsRegExp()) {
-    return napi_regexp;
-  } else if (v->IsDate()) {
-    return napi_date;
   } else if (v->IsFunction()) {
     // This test has to come before IsObject because IsFunction
     // implies IsObject
     return napi_function;
-  } else if (v->IsArray()) {
-    return napi_array;
   } else if (v->IsObject()) {
     return napi_object;
   } else if (v->IsBoolean()) {
@@ -844,16 +850,6 @@ napi_valuetype napi_get_type_of_value(napi_env e, napi_value vv) {
   } else {
     return napi_object;   // Is this correct?
   }
-}
-
-bool napi_is_int32(napi_env e, napi_value v) {
-  v8::Local<v8::Value> value = v8impl::V8LocalValueFromJsValue(v);
-  return value->IsInt32();
-}
-
-bool napi_is_uint32(napi_env e, napi_value v) {
-  v8::Local<v8::Value> value = v8impl::V8LocalValueFromJsValue(v);
-  return value->IsUint32();
 }
 
 bool napi_is_empty(napi_env env, napi_value v) {
@@ -888,7 +884,7 @@ napi_value napi_get_true(napi_env e) {
              v8::True(v8impl::V8IsolateFromJsEnv(e)));
 }
 
-napi_value napi_new_value(napi_env env) {
+napi_value napi_new_empty_value(napi_env env) {
   return v8impl::JsValueFromV8LocalValue(v8::Local<v8::Value>());
 }
 
@@ -1106,21 +1102,6 @@ void napi_wrap(napi_env e, napi_value jsObject, void* nativeObj,
 void* napi_unwrap(napi_env e, napi_value jsObject) {
   NAPI_PREAMBLE(e);
   return v8impl::ObjectWrapWrapper::Unwrap(jsObject);
-}
-
-int napi_get_internal_field_count(napi_env env, napi_value jsObject) {
-  v8::Local<v8::Object> obj = v8impl::V8LocalValueFromJsValue(jsObject).As<v8::Object>();
-  return obj->InternalFieldCount();
-}
-
-void* napi_get_internal_field_pointer(napi_env env, napi_value jsObject, int index) {
-  v8::Local<v8::Object> obj = v8impl::V8LocalValueFromJsValue(jsObject).As<v8::Object>();
-  return obj->GetAlignedPointerFromInternalField(index);
-}
-
-void napi_set_internal_field_pointer(napi_env env, napi_value jsObject, int index, void* nativeObj) {
-  v8::Local<v8::Object> obj = v8impl::V8LocalValueFromJsValue(jsObject).As<v8::Object>();
-  obj->SetAlignedPointerInInternalField(index, nativeObj);
 }
 
 napi_persistent napi_create_persistent(napi_env e, napi_value v) {

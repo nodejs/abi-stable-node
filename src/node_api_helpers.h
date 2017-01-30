@@ -15,6 +15,7 @@
 #include <limits.h>
 #include <string.h>
 #include <assert.h>
+#include <vector>
 
 #define NAPI_METHOD(name)                                                      \
   void name(napi_env env, napi_callback_info info)
@@ -23,13 +24,6 @@
 
 #define NAPI_MODULE_INIT(name)                                                 \
   void name(napi_env env, napi_value exports, napi_value module)
-
-#define NAPI_GETTER(name)                                                      \
-  void name(napi_env e, napi_propertyname property, napi_callback_info info)
-
-#define NAPI_SETTER(name)                                                      \
-  void name(napi_env e, napi_propertyname property, napi_value value,          \
-            napi_callback_info info)
 
 // This is taken from NAN and is the C++11 version.
 // TODO(ianhall): Support pre-C++11 compilation?
@@ -45,286 +39,237 @@
   NAPI_DISALLOW_MOVE(CLASS)
 
 namespace Napi {
-  inline napi_value Value() {
-    napi_env env = napi_get_current_env();
-    return napi_new_value(env);
-  }
-
-
   // Napi::New helpers
-  inline napi_value New() {
-    return napi_get_null(napi_get_current_env());
+  inline napi_value New(napi_env env) {
+    return napi_new_empty_value(env);
   }
-  inline napi_value New(bool val) {
-    return napi_create_boolean(napi_get_current_env(), val);
+  inline napi_value New(napi_env env, bool val) {
+    return napi_create_boolean(env, val);
   }
-  inline napi_value New(int val) {
-    return napi_create_number(napi_get_current_env(), val);
+  inline napi_value New(napi_env env, int val) {
+    return napi_create_number(env, val);
   }
-  inline napi_value New(double val) {
-    return napi_create_number(napi_get_current_env(), val);
+  inline napi_value New(napi_env env, double val) {
+    return napi_create_number(env, val);
   }
-  inline napi_value New(const char* val) {
-    return napi_create_string(napi_get_current_env(), val);
+  inline napi_value New(napi_env env, const char* val) {
+    return napi_create_string(env, val);
   }
-  inline napi_value New(const char* val, size_t len) {
-    return napi_create_string_with_length(napi_get_current_env(), val, len);
+  inline napi_value New(napi_env env, const char* val, size_t len) {
+    return napi_create_string_with_length(env, val, len);
   }
-  inline napi_value New(napi_persistent p) {
-    napi_env env = napi_get_current_env();
+  inline napi_value New(napi_env env, napi_persistent p) {
     return napi_get_persistent_value(env, p);
   }
-  inline napi_value NewSymbol(const char* val) {
-    return napi_create_symbol(napi_get_current_env(), val);
+  inline napi_value NewSymbol(napi_env env, const char* val) {
+    return napi_create_symbol(env, val);
   }
-  inline napi_value NewObject() {
-    return napi_create_object(napi_get_current_env());
+  inline napi_value NewObject(napi_env env) {
+    return napi_create_object(env);
   }
-  inline napi_value NewArray() {
-    return napi_create_array(napi_get_current_env());
+  inline napi_value NewArray(napi_env env) {
+    return napi_create_array(env);
   }
-  inline napi_value NewArray(int len) {
-    return napi_create_array_with_length(napi_get_current_env(), len);
+  inline napi_value NewArray(napi_env env, int len) {
+    return napi_create_array_with_length(env, len);
   }
-  inline napi_value NewFunction(napi_callback cb) {
-    napi_env env = napi_get_current_env();
+  inline napi_value NewFunction(napi_env env, napi_callback cb) {
     return napi_create_function(env, cb, NULL);
   }
 
 
-  inline napi_value Undefined() {
-    return napi_get_undefined_(napi_get_current_env());
+  inline napi_value Undefined(napi_env env) {
+    return napi_get_undefined_(env);
   }
 
-  inline napi_value Null() {
-    return napi_get_null(napi_get_current_env());
+  inline napi_value Null(napi_env env) {
+    return napi_get_null(env);
   }
 
   // Error Helpers
-  inline napi_value Error(const char* errmsg) {
-    napi_env env = napi_get_current_env();
+  inline napi_value Error(napi_env env, const char* errmsg) {
     return napi_create_error(env, napi_create_string(env, errmsg));
   }
-  inline napi_value Error(napi_value errmsg) {
-    napi_env env = napi_get_current_env();
+  inline napi_value Error(napi_env env, napi_value errmsg) {
     return napi_create_error(env, errmsg);
   }
 
-  inline napi_value TypeError(const char* errmsg) {
-    napi_env env = napi_get_current_env();
+  inline napi_value TypeError(napi_env env, const char* errmsg) {
     return napi_create_type_error(env, napi_create_string(env, errmsg));
   }
-  inline napi_value TypeError(napi_value errmsg) {
-    napi_env env = napi_get_current_env();
+  inline napi_value TypeError(napi_env env, napi_value errmsg) {
     return napi_create_type_error(env, errmsg);
   }
 
   // Error Helpers
-  inline void ThrowError(char* errmsg) {
-    napi_env env = napi_get_current_env();
+  inline void ThrowError(napi_env env, char* errmsg) {
     napi_throw_error(env, errmsg);
   }
-  inline void ThrowError(napi_value errmsg) {
-    napi_env env = napi_get_current_env();
+  inline void ThrowError(napi_env env, napi_value errmsg) {
     napi_throw(env, napi_create_error(env, errmsg));
   }
-  inline void ThrowTypeError(char* errmsg) {
-    napi_env env = napi_get_current_env();
+  inline void ThrowTypeError(napi_env env, char* errmsg) {
     napi_throw_type_error(env, errmsg);
   }
-  inline void ThrowTypeError(napi_value errmsg) {
-    napi_env env = napi_get_current_env();
+  inline void ThrowTypeError(napi_env env, napi_value errmsg) {
     napi_throw(env, napi_create_type_error(env, errmsg));
   }
 
   // Get helpers
-  inline napi_value GetPropertyNames(napi_value obj) {
-    napi_env env = napi_get_current_env();
+  inline napi_value GetPropertyNames(napi_env env, napi_value obj) {
     return napi_get_propertynames(env, obj);
   }
 
-  inline napi_value Get(napi_value obj, napi_propertyname key ) {
-    napi_env env = napi_get_current_env();
+  inline napi_value Get(napi_env env, napi_value obj, napi_propertyname key ) {
     return napi_get_property(env, obj, key);
   }
-  inline napi_value Get(napi_value obj, const char* name) {
-    napi_env env = napi_get_current_env();
+  inline napi_value Get(napi_env env, napi_value obj, const char* name) {
     napi_propertyname key = napi_property_name(env, name);
     return napi_get_property(env, obj, key);
   }
-  inline napi_value Get(napi_value obj, napi_value name) {
-    napi_env env = napi_get_current_env();
+  inline napi_value Get(napi_env env, napi_value obj, napi_value name) {
     napi_propertyname key = reinterpret_cast<napi_propertyname>(name);
     return napi_get_property(env, obj, key);
   }
-  inline napi_value Get(napi_value arr, uint32_t i ) {
-    napi_env env = napi_get_current_env();
+  inline napi_value Get(napi_env env, napi_value arr, uint32_t i ) {
     return napi_get_element(env, arr, i);
   }
 
   // Set  helpers
-  inline void Set(napi_value obj, napi_propertyname key, napi_value val) {
-    napi_env env = napi_get_current_env();
+  inline void Set(napi_env env, napi_value obj,
+                  napi_propertyname key, napi_value val) {
     napi_set_property(env, obj, key, val);
   }
-  inline void Set(napi_value obj, const char* name, napi_value val) {
-    napi_env env = napi_get_current_env();
+  inline void Set(napi_env env, napi_value obj,
+                  const char* name, napi_value val) {
     napi_propertyname key = napi_property_name(env, name);
     napi_set_property(env, obj, key, val);
   }
-  inline void Set(napi_value obj, napi_value name, napi_value val) {
-    napi_env env = napi_get_current_env();
+  inline void Set(napi_env env, napi_value obj,
+                  napi_value name, napi_value val) {
     napi_propertyname key = reinterpret_cast<napi_propertyname>(name);
     napi_set_property(env, obj, key, val);
   }
-  inline void Set(napi_value arr, uint32_t i, napi_value val) {
-    napi_env env = napi_get_current_env();
+  inline void Set(napi_env env, napi_value arr, uint32_t i, napi_value val) {
     napi_set_element(env, arr, i, val);
   }
 
   // Type check helpers
-  inline bool IsEmpty(napi_value v) {
-    napi_env env = napi_get_current_env();
+  inline bool IsEmpty(napi_env env, napi_value v) {
     return napi_is_empty(env, v);
   }
-  inline bool IsNumber(napi_value val) {
-    napi_env env = napi_get_current_env();
+  inline bool IsNumber(napi_env env, napi_value val) {
     return napi_get_type_of_value(env, val) == napi_number;
   }
-  inline bool IsInt32(napi_value val) {
-    napi_env env = napi_get_current_env();
-    return napi_is_int32(env, val);
-  }
-  inline bool IsString(napi_value val) {
-    napi_env env = napi_get_current_env();
+  inline bool IsString(napi_env env, napi_value val) {
     return napi_get_type_of_value(env, val) == napi_string;
   }
-  inline bool IsFunction(napi_value val) {
-    napi_env env = napi_get_current_env();
+  inline bool IsFunction(napi_env env, napi_value val) {
     return napi_get_type_of_value(env, val) == napi_function;
   }
-  inline bool IsObject(napi_value val) {
-    napi_env env = napi_get_current_env();
+  inline bool IsObject(napi_env env, napi_value val) {
     return napi_get_type_of_value(env, val) == napi_object;
   }
-  inline bool IsArray(napi_value val) {
-    napi_env env = napi_get_current_env();
-    return napi_get_type_of_value(env, val) == napi_array;
-  }
-  inline bool IsBoolean(napi_value val) {
-    napi_env env = napi_get_current_env();
+  inline bool IsBoolean(napi_env env, napi_value val) {
     return napi_get_type_of_value(env, val) == napi_boolean;
   }
-  inline bool IsUndefined(napi_value val) {
-    napi_env env = napi_get_current_env();
+  inline bool IsUndefined(napi_env env, napi_value val) {
     return napi_get_type_of_value(env, val) == napi_undefined;
   }
-  inline bool IsSymbol(napi_value val) {
-    napi_env env = napi_get_current_env();
+  inline bool IsSymbol(napi_env env, napi_value val) {
     return napi_get_type_of_value(env, val) == napi_symbol;
   }
-  inline bool IsRegExp(napi_value val) {
-    napi_env env = napi_get_current_env();
-    return napi_get_type_of_value(env, val) == napi_regexp;
+  inline bool IsArray(napi_env env, napi_value val) {
+    return napi_is_array(env, val);
   }
-  inline bool IsDate(napi_value val) {
-    napi_env env = napi_get_current_env();
-    return napi_get_type_of_value(env, val) == napi_date;
+  inline bool IsRegExp(napi_env env, napi_value val) {
+    return napi_is_regexp(env, val);
   }
-  inline bool IsNull(napi_value val) {
-    napi_env env = napi_get_current_env();
+  inline bool IsDate(napi_env env, napi_value val) {
+    return napi_is_date(env, val);
+  }
+  inline bool IsNull(napi_env env, napi_value val) {
     return napi_get_type_of_value(env, val) == napi_null;
   }
 
-  inline bool HasInstance(napi_value tpl, napi_value obj) {
-    napi_env env = napi_get_current_env();
+  inline bool HasInstance(napi_env env, napi_value tpl, napi_value obj) {
     return napi_instanceof(env, obj, tpl);
   }
 
-  inline napi_value CopyBuffer(const char* buf, uint32_t size) {
-    napi_env env = napi_get_current_env();
+  inline napi_value CopyBuffer(napi_env env, const char* buf, uint32_t size) {
     return napi_buffer_copy(env, buf, size);
   }
 
-  inline napi_value StringConcat(napi_value str1, napi_value str2) {
-    napi_env env = napi_get_current_env();
+  inline napi_value StringConcat(napi_env env,
+                                 napi_value str1, napi_value str2) {
     return napi_string_concat(env, str1, str2);
   }
 
   inline napi_value MakeCallback(
+      napi_env env,
       napi_value target,
       napi_value func,
       int argc,
       napi_value* argv
   ) {
-    napi_env env = napi_get_current_env();
     return napi_make_callback(env, target, func, argc, argv);
   }
 
   // Length helpers
-  inline int Length(napi_value val) {
-    napi_env env = napi_get_current_env();
+  inline int Length(napi_env env, napi_value val) {
     assert(napi_get_type_of_value(env, val) == napi_array);
     return napi_get_array_length(env, val);
   }
 
-  inline int Length(napi_callback_info info) {
-    napi_env env = napi_get_current_env();
+  inline int Length(napi_env env, napi_callback_info info) {
     return napi_get_cb_args_length(env, info);
   }
 
   // Conversion helpers
-  inline void To(napi_value v, int32_t& o) {
-    napi_env env = napi_get_current_env();
+  inline void To(napi_env env, napi_value v, int32_t& o) {
     o = napi_get_value_int32(env, v);
   }
 
-  inline void To(napi_value v, uint32_t& o) {
-    napi_env env = napi_get_current_env();
+  inline void To(napi_env env, napi_value v, uint32_t& o) {
     o = napi_get_value_uint32(env, v);
   }
 
-  inline void To(napi_value v, int64_t& o) {
-    napi_env env = napi_get_current_env();
+  inline void To(napi_env env, napi_value v, int64_t& o) {
     o = napi_get_value_int64(env, v);
   }
 
-  inline void To(napi_value v, bool& o) {
-    napi_env env = napi_get_current_env();
+  inline void To(napi_env env, napi_value v, bool& o) {
     o = napi_get_value_bool(env, v);
   }
 
-  inline void To(napi_value v, double& o) {
-    napi_env env = napi_get_current_env();
+  inline void To(napi_env env, napi_value v, double& o) {
     o = napi_get_number_from_value (env, v);
   }
 
   template<typename T>
-  inline T To(napi_value v) {
+  inline T To(napi_env env, napi_value v) {
     T ret;
-    To(v, ret);
+    To(env, v, ret);
     return ret;
   }
 
-  inline napi_value ToString(napi_value v) {
-    napi_env env = napi_get_current_env();
+  inline napi_value ToString(napi_env env, napi_value v) {
     return napi_coerce_to_string(env, v);
   }
-  inline napi_value ToObject(napi_value v) {
-    napi_env env = napi_get_current_env();
+  inline napi_value ToObject(napi_env env, napi_value v) {
     return napi_coerce_to_object(env, v);
   }
 
-  inline bool Equals(napi_value lhs, napi_value rhs) {
-    napi_env env = napi_get_current_env();
+  inline bool Equals(napi_env env, napi_value lhs, napi_value rhs) {
     return napi_strict_equals(env, lhs, rhs);
   }
 
-  inline napi_value* GetArguments(napi_callback_info info) {
-    napi_env env = napi_get_current_env();
+  inline std::vector<napi_value> GetArguments(napi_env env,
+                                              napi_callback_info info) {
     int len = napi_get_cb_args_length(env, info);
-    napi_value* args = (napi_value*) malloc(len * sizeof(napi_value));
-    napi_get_cb_args(env, info, args, len);
+    std::vector<napi_value> args;
+    args.reserve(len);
+    napi_get_cb_args(env, info, args.data(), args.size());
     return args;
   }
 
@@ -430,8 +375,8 @@ namespace Napi {
     static inline T* Unwrap(napi_value object) {
       napi_env env = napi_get_current_env();
       assert(!napi_is_empty(env, object));
-      assert(napi_get_internal_field_count(env, object) > 0);
-      void* ptr = napi_get_internal_field_pointer(env, object, 0);
+      assert(Napi::Has(env, object, "internal_field"));
+      void* ptr = Napi::Get(env, object, "internal_field");
       ObjectWrap* wrap = static_cast<ObjectWrap*>(ptr);
       return static_cast<T*>(wrap);
     }
@@ -449,8 +394,8 @@ namespace Napi {
     inline void Wrap(napi_value object) {
       napi_env env = napi_get_current_env();
       assert(napi_is_persistent_empty(env, persistent()));
-      assert(napi_get_internal_field_count(env, object) > 0);
-      napi_set_internal_field_pointer(env, object, 0, this);
+      assert(Napi::Has(env, object, "internal_field"));
+      Napi::Set(env, object, "internal_field", this);
       napi_release_persistent(env, persistent());
       handle_ = napi_create_persistent(env, object);
       napi_persistent_make_weak(env, persistent(), this);
@@ -768,7 +713,6 @@ namespace Napi {
     napi_async_set_complete(req, &AsyncWorker::CallWorkComplete);
     napi_async_queue_worker(req);
   }
-
 } // namespace Napi
 
 

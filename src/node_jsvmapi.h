@@ -112,9 +112,6 @@ enum napi_valuetype {
   napi_number,
   napi_string,
   napi_symbol,
-  napi_regexp,
-  napi_date,
-  napi_array,
   napi_object,
   napi_function,
 };
@@ -132,7 +129,7 @@ NODE_EXTERN napi_value napi_get_false(napi_env e);
 NODE_EXTERN napi_value napi_get_true(napi_env e);
 NODE_EXTERN napi_value napi_get_global_scope(napi_env e);
 
-NODE_EXTERN napi_value napi_new_value(napi_env env);
+NODE_EXTERN napi_value napi_new_empty_value(napi_env env);
 
 // Methods to create Primitive types/Objects
 NODE_EXTERN napi_value napi_create_object(napi_env e);
@@ -157,8 +154,6 @@ NODE_EXTERN napi_value napi_create_type_error(napi_env e, napi_value msg);
 
 // Methods to get the the native napi_value from Primitive type
 NODE_EXTERN napi_valuetype napi_get_type_of_value(napi_env e, napi_value v);
-NODE_EXTERN bool napi_is_int32(napi_env e, napi_value v);
-NODE_EXTERN bool napi_is_uint32(napi_env e, napi_value v);
 NODE_EXTERN double napi_get_number_from_value(napi_env e, napi_value v);
 NODE_EXTERN int napi_get_string_from_value(napi_env e, napi_value v,
                                            char* buf, const int buf_size);
@@ -201,6 +196,9 @@ NODE_EXTERN napi_value napi_get_element(napi_env e,
                                         napi_value object, uint32_t i);
 NODE_EXTERN void napi_define_property(napi_env e, napi_value object,
                                       napi_property_descriptor* property);
+
+NODE_EXTERN bool napi_is_date(napi_env e, napi_value v);
+NODE_EXTERN bool napi_is_regexp(napi_env e, napi_value v);
 
 
 // Methods to work with Arrays
@@ -260,10 +258,6 @@ NODE_EXTERN void napi_wrap(napi_env e, napi_value jsObject, void* nativeObj,
                            napi_destruct napi_destructor,
                            napi_weakref* handle);
 NODE_EXTERN void* napi_unwrap(napi_env e, napi_value jsObject);
-
-NODE_EXTERN int napi_get_internal_field_count(napi_env env, napi_value jsObject);
-NODE_EXTERN void* napi_get_internal_field_pointer(napi_env env, napi_value jsObject, int index);
-NODE_EXTERN void napi_set_internal_field_pointer(napi_env env, napi_value jsObject,  int index, void* nativeObj);
 
 NODE_EXTERN napi_value napi_create_constructor(
   napi_env e,
