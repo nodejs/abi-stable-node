@@ -11,9 +11,8 @@
  *    requiring all operations to go across the DLL boundary, i.e. no inlining
  *    even for operations such as asking for the type of a napi_value or retrieving a
  *    function napi_callback's arguments.
- *  - The V8 implementation of the API is roughly hacked together with no
- *    attention paid to error handling or fault tolerance.
- *  - Error handling in general is not included in the API at this time.
+ *  - The V8 implementation of the API is roughly hacked together with only basic
+ *    error handling or fault tolerance.
  *
  ******************************************************************************/
 #ifndef SRC_NODE_JSVMAPI_H_
@@ -257,16 +256,21 @@ NODE_EXTERN napi_status napi_make_callback(napi_env e,
                                            napi_value* result);
 
 // Methods to work with napi_callbacks
-NODE_EXTERN int napi_get_cb_args_length(napi_env e, napi_callback_info cbinfo);
-NODE_EXTERN void napi_get_cb_args(napi_env e, napi_callback_info cbinfo,
+NODE_EXTERN napi_status napi_get_cb_args_length(napi_env e, 
+                                  napi_callback_info cbinfo, int* result);
+NODE_EXTERN napi_status napi_get_cb_args(napi_env e, napi_callback_info cbinfo,
                                   napi_value* buffer, size_t bufferlength);
-NODE_EXTERN napi_value napi_get_cb_this(napi_env e, napi_callback_info cbinfo);
+NODE_EXTERN napi_status napi_get_cb_this(napi_env e, 
+                                  napi_callback_info cbinfo, napi_value* result);
 // V8 concept; see note in .cc file
-NODE_EXTERN napi_value napi_get_cb_holder(napi_env e, napi_callback_info cbinfo);
-NODE_EXTERN void* napi_get_cb_data(napi_env e, napi_callback_info cbinfo);
-NODE_EXTERN bool napi_is_construct_call(napi_env e, napi_callback_info cbinfo);
-NODE_EXTERN napi_status napi_set_return_value(napi_env e, napi_callback_info cbinfo,
-                                       napi_value v);
+NODE_EXTERN napi_status napi_get_cb_holder(napi_env e, 
+                                  napi_callback_info cbinfo, napi_value* result);
+NODE_EXTERN napi_status napi_get_cb_data(napi_env e, 
+                                  napi_callback_info cbinfo, void** result);
+NODE_EXTERN napi_status napi_is_construct_call(napi_env e, 
+                                  napi_callback_info cbinfo, bool* result);
+NODE_EXTERN napi_status napi_set_return_value(napi_env e, 
+                                  napi_callback_info cbinfo, napi_value v);
 
 // Methods to support ObjectWrap
 // Consider: current implementation for supporting ObjectWrap pattern is
@@ -279,8 +283,8 @@ NODE_EXTERN napi_status napi_set_return_value(napi_env e, napi_callback_info cbi
 // instead NAPI should do an external data concept like JsSetExternalData
 // and use that for "wrapping a native object".
 NODE_EXTERN napi_status napi_wrap(napi_env e, napi_value jsObject, void* nativeObj,
-                           napi_destruct napi_destructor,
-                           napi_weakref* handle);
+                                  napi_destruct napi_destructor,
+                                  napi_weakref* handle);
 NODE_EXTERN napi_status napi_unwrap(napi_env e, napi_value jsObject, void** result);
 
 NODE_EXTERN napi_status napi_create_constructor(napi_env e,
@@ -292,33 +296,37 @@ NODE_EXTERN napi_status napi_create_constructor(napi_env e,
                                                 napi_value* result);
 
 // Methods to control object lifespan
-NODE_EXTERN napi_status napi_create_persistent(napi_env e, napi_value v, napi_persistent* result);
+NODE_EXTERN napi_status napi_create_persistent(napi_env e, napi_value v, 
+                                               napi_persistent* result);
 NODE_EXTERN napi_status napi_release_persistent(napi_env e, napi_persistent p);
-NODE_EXTERN napi_status napi_get_persistent_value(napi_env e, napi_persistent p, napi_value* result);
+NODE_EXTERN napi_status napi_get_persistent_value(napi_env e, napi_persistent p, 
+                                                  napi_value* result);
 
-NODE_EXTERN napi_status napi_create_weakref(napi_env e, napi_value v, napi_weakref* result);
+NODE_EXTERN napi_status napi_create_weakref(napi_env e, napi_value v, 
+                                            napi_weakref* result);
 NODE_EXTERN napi_status napi_get_weakref_value(napi_env e, napi_weakref w,
-                                        napi_value* result);
+                                               napi_value* result);
 NODE_EXTERN napi_status napi_release_weakref(napi_env e, napi_weakref w);
 
-NODE_EXTERN napi_handle_scope napi_open_handle_scope(napi_env e);
-NODE_EXTERN void napi_close_handle_scope(napi_env e, napi_handle_scope s);
-NODE_EXTERN napi_escapable_handle_scope
-                napi_open_escapable_handle_scope(napi_env e);
-NODE_EXTERN void napi_close_escapable_handle_scope(napi_env e,
-                                                   napi_escapable_handle_scope s);
-NODE_EXTERN napi_value napi_escape_handle(napi_env e,
-                                          napi_escapable_handle_scope s,
-                                          napi_value v);
+NODE_EXTERN napi_status napi_open_handle_scope(napi_env e, napi_handle_scope* result);
+NODE_EXTERN napi_status napi_close_handle_scope(napi_env e, napi_handle_scope s);
+NODE_EXTERN napi_status napi_open_escapable_handle_scope(napi_env e, 
+                                                napi_escapable_handle_scope* result);
+NODE_EXTERN napi_status napi_close_escapable_handle_scope(napi_env e,
+                                                          napi_escapable_handle_scope s);
+NODE_EXTERN napi_status napi_escape_handle(napi_env e,
+                                           napi_escapable_handle_scope s,
+                                           napi_value v,
+                                           napi_value* result);
 
 // Methods to support error handling
-NODE_EXTERN void napi_throw(napi_env e, napi_value error);
-NODE_EXTERN void napi_throw_error(napi_env e, const char* msg);
-NODE_EXTERN void napi_throw_type_error(napi_env e, const char* msg);
+NODE_EXTERN napi_status napi_throw(napi_env e, napi_value error);
+NODE_EXTERN napi_status napi_throw_error(napi_env e, const char* msg);
+NODE_EXTERN napi_status napi_throw_type_error(napi_env e, const char* msg);
 
 // Methods to support catching exceptions
-NODE_EXTERN bool napi_is_exception_pending(napi_env e);
-NODE_EXTERN napi_value napi_get_and_clear_last_exception(napi_env e);
+NODE_EXTERN napi_status napi_is_exception_pending(napi_env e, bool* result);
+NODE_EXTERN napi_status napi_get_and_clear_last_exception(napi_env e, napi_value* result);
 
 // Methods to provide node::Buffer functionality with napi types
 NODE_EXTERN napi_status napi_buffer_new(napi_env e,
