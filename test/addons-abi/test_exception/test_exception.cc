@@ -9,7 +9,7 @@ NAPI_METHOD(returnException) {
   napi_get_cb_args(env, info, &jsFunction, 1);
 
   // What is the return value when there was an exception?
-  napi_call_function(env, napi_get_global_scope(env), jsFunction, 0, 0);
+  napi_call_function(env, napi_get_global(env), jsFunction, 0, 0);
 
   napi_set_return_value(env, info, napi_get_and_clear_last_exception(env));
 }
@@ -19,7 +19,7 @@ NAPI_METHOD(allowException) {
 
   napi_get_cb_args(env, info, &jsFunction, 1);
 
-  napi_call_function(env, napi_get_global_scope(env), jsFunction, 0, 0);
+  napi_call_function(env, napi_get_global(env), jsFunction, 0, 0);
 
   exceptionWasPending = napi_is_exception_pending(env);
 }

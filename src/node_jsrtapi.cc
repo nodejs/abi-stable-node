@@ -653,9 +653,9 @@ napi_value napi_get_cb_holder(napi_env e, napi_func_cb_info cbinfo) {
 	return reinterpret_cast<napi_value>(info->_arguments[0]);
 }
 
-napi_value napi_call_function(napi_env e, napi_value scope,
+napi_value napi_call_function(napi_env e, napi_value recv,
   napi_value func, int argc, napi_value* argv) {
-  JsValueRef object = reinterpret_cast<JsValueRef>(scope);
+  JsValueRef object = reinterpret_cast<JsValueRef>(recv);
   JsValueRef function = reinterpret_cast<JsValueRef>(func);
   JsErrorCode error = JsNoError;
   std::vector<JsValueRef> args(argc+1);
@@ -668,7 +668,7 @@ napi_value napi_call_function(napi_env e, napi_value scope,
   return reinterpret_cast<napi_value>(result);
 }
 
-napi_value napi_get_global_scope(napi_env e) {
+napi_value napi_get_global(napi_env e) {
   JsValueRef globalObject = nullptr;
   JsErrorCode error = JsNoError;
   error = JsGetGlobalObject(&globalObject);

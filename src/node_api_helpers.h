@@ -216,7 +216,7 @@ namespace Napi {
     inline napi_value
     Call(int argc, napi_value argv[]) const {
       napi_env env = napi_get_current_env();
-      return Call_(napi_get_global_scope(env), argc, argv);
+      return Call_(napi_get_global(env), argc, argv);
     }
 
    private:
