@@ -3,6 +3,12 @@
 static double value_ = 1;
 
 void GetValue(napi_env env, napi_callback_info info) {
+  napi_status status;
+
+  int argc;
+  status = napi_get_cb_args_length(env, info, &argc);
+  if (status != napi_ok) return;
+
   if (napi_get_cb_args_length(env, info) != 0) {
     napi_throw_type_error(env, "Wrong number of arguments");
     return;
@@ -13,6 +19,12 @@ void GetValue(napi_env env, napi_callback_info info) {
 }
 
 void SetValue(napi_env env, napi_callback_info info) {
+  napi_status status;
+
+  int argc;
+  status = napi_get_cb_args_length(env, info, &argc);
+  if (status != napi_ok) return;
+
   if (napi_get_cb_args_length(env, info) != 1) {
     napi_throw_type_error(env, "Wrong number of arguments");
     return;
@@ -25,6 +37,12 @@ void SetValue(napi_env env, napi_callback_info info) {
 }
 
 void Echo(napi_env env, napi_callback_info info) {
+  napi_status status;
+
+  int argc;
+  status = napi_get_cb_args_length(env, info, &argc);
+  if (status != napi_ok) return;
+
   if (napi_get_cb_args_length(env, info) != 1) {
     napi_throw_type_error(env, "Wrong number of arguments");
     return;

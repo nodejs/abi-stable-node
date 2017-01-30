@@ -1,6 +1,12 @@
 #include <node_jsvmapi.h>
 
 void Copy(napi_env env, napi_callback_info info) {
+  napi_status status;
+
+  int argc;
+  status = napi_get_cb_args_length(env, info, &argc);
+  if (status != napi_ok) return;
+
   if (napi_get_cb_args_length(env, info) < 1) {
     napi_throw_type_error(env, "Wrong number of arguments");
     return;
@@ -26,6 +32,12 @@ void Copy(napi_env env, napi_callback_info info) {
 }
 
 void Length(napi_env env, napi_callback_info info) {
+  napi_status status;
+
+  int argc;
+  status = napi_get_cb_args_length(env, info, &argc);
+  if (status != napi_ok) return;
+
   if (napi_get_cb_args_length(env, info) < 1) {
     napi_throw_type_error(env, "Wrong number of arguments");
     return;
@@ -45,6 +57,12 @@ void Length(napi_env env, napi_callback_info info) {
 }
 
 void Utf8Length(napi_env env, napi_callback_info info) {
+  napi_status status;
+
+  int argc;
+  status = napi_get_cb_args_length(env, info, &argc);
+  if (status != napi_ok) return;
+
   if (napi_get_cb_args_length(env, info) < 1) {
     napi_throw_type_error(env, "Wrong number of arguments");
     return;

@@ -1,13 +1,20 @@
 #include <node_jsvmapi.h>
 
 void Get(napi_env env, napi_callback_info info) {
-  if (napi_get_cb_args_length(env, info) < 2) {
+  napi_status status;
+
+  int argc;
+  status = napi_get_cb_args_length(env, info, &argc);
+  if (status != napi_ok) return;
+
+  if (argc < 2) {
     napi_throw_type_error(env, "Wrong number of arguments");
     return;
   }
 
   napi_value args[2];
-  napi_get_cb_args(env, info, args, 2);
+  status = napi_get_cb_args(env, info, args, 2);
+  if (status != napi_ok) return;
 
   if (napi_get_type_of_value(env, args[0]) != napi_object) {
     napi_throw_type_error(env,
@@ -33,6 +40,12 @@ void Get(napi_env env, napi_callback_info info) {
 }
 
 void Has(napi_env env, napi_callback_info info) {
+  napi_status status;
+
+  int argc;
+  status = napi_get_cb_args_length(env, info, &argc);
+  if (status != napi_ok) return;
+
   if (napi_get_cb_args_length(env, info) < 2) {
     napi_throw_type_error(env, "Wrong number of arguments");
     return;
@@ -78,6 +91,12 @@ void New(napi_env env, napi_callback_info info) {
 }
 
 void Inflate(napi_env env, napi_callback_info info) {
+  napi_status status;
+
+  int argc;
+  status = napi_get_cb_args_length(env, info, &argc);
+  if (status != napi_ok) return;
+
   if (napi_get_cb_args_length(env, info) < 1) {
     napi_throw_type_error(env, "Wrong number of arguments");
     return;

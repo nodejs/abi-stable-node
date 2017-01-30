@@ -4,46 +4,83 @@ static double value_ = 1;
 napi_persistent constructor_;
 
 void GetValue(napi_env env, napi_callback_info info) {
-  if (napi_get_cb_args_length(env, info) != 0) {
+  napi_status status;
+
+  int argc;
+  status = napi_get_cb_args_length(env, info, &argc);
+  if (status != napi_ok) return;
+
+  if (argc != 0) {
     napi_throw_type_error(env, "Wrong number of arguments");
     return;
   }
 
-  napi_value number = napi_create_number(env, value_);
-  napi_set_return_value(env, info, number);
+  napi_value number;
+  status = napi_create_number(env, value_, &number);
+  if (status != napi_ok) return;
+
+  status = napi_set_return_value(env, info, number);
+  if (status != napi_ok) return;
 }
 
 void SetValue(napi_env env, napi_callback_info info) {
-  if (napi_get_cb_args_length(env, info) != 1) {
+  napi_status status;
+
+  int argc;
+  status = napi_get_cb_args_length(env, info, &argc);
+  if (status != napi_ok) return;
+
+  if (argc != 1) {
     napi_throw_type_error(env, "Wrong number of arguments");
     return;
   }
 
   napi_value arg;
-  napi_get_cb_args(env, info, &arg, 1);
+  status = napi_get_cb_args(env, info, &arg, 1);
+  if (status != napi_ok) return;
 
-  value_ = napi_get_number_from_value(env, arg);
+  status = napi_get_number_from_value(env, arg, &value_);
+  if (status != napi_ok) return;
 }
 
 void Echo(napi_env env, napi_callback_info info) {
-  if (napi_get_cb_args_length(env, info) != 1) {
+  napi_status status;
+
+  int argc;
+  status = napi_get_cb_args_length(env, info, &argc);
+  if (status != napi_ok) return;
+
+  if (argc != 1) {
     napi_throw_type_error(env, "Wrong number of arguments");
     return;
   }
 
   napi_value arg;
-  napi_get_cb_args(env, info, &arg, 1);
+  status = napi_get_cb_args(env, info, &arg, 1);
+  if (status != napi_ok) return;
 
-  napi_set_return_value(env, info, arg);
+  status = napi_set_return_value(env, info, arg);
+  if (status != napi_ok) return;
 }
 
 void New(napi_env env, napi_callback_info info) {
-  napi_value jsthis = napi_get_cb_this(env, info);
-  napi_set_return_value(env, info, jsthis);
+  napi_status status;
+
+  napi_value jsthis;
+  status = napi_get_cb_this(env, info, &jsthis);
+  if (status != napi_ok) return;
+
+  status = napi_set_return_value(env, info, jsthis);
+  if (status != napi_ok) return;
 }
 
 void Init(napi_env env, napi_value exports, napi_value module) {
-  napi_value number = napi_create_number(env, value_);
+  napi_status status;
+
+  napi_value number;
+  status = napi_create_number(env, value_, &number);
+  if (status != napi_ok) return;
+
   napi_property_descriptor properties[] = {
     { "echo", Echo },
     { "accessorValue", nullptr, GetValue, SetValue },
@@ -52,12 +89,21 @@ void Init(napi_env env, napi_value exports, napi_value module) {
     { "hiddenValue", nullptr, nullptr, nullptr, number,
       static_cast<napi_property_attributes>(napi_read_only | napi_dont_enum) },
   };
-  napi_value cons = napi_create_constructor(env, "MyObject", New,
-    nullptr, sizeof(properties)/sizeof(*properties), properties);
 
-  napi_set_property(env, module, napi_property_name(env, "exports"),
-                    cons);
-  constructor_ = napi_create_persistent(env, cons);
+  napi_value cons;
+  status = napi_create_constructor(env, "MyObject", New,
+    nullptr, sizeof(properties)/sizeof(*properties), properties, &cons);
+  if (status != napi_ok) return;
+
+  napi_propertyname name;
+  status = napi_property_name(env, "exports", &name);
+  if (status != napi_ok) return;
+
+  status = napi_set_property(env, module, name, cons);
+  if (status != napi_ok) return;
+
+  status = napi_create_persistent(env, cons, &constructor_);
+  if (status != napi_ok) return;
 }
 
 NODE_MODULE_ABI(addon, Init)
