@@ -1290,7 +1290,7 @@ napi_status napi_throw(napi_env e, napi_value error) {
       v8impl::V8LocalValueFromJsValue(error));
   // any VM calls after this point and before returning
   // to the javascript invoker will fail
-  return GET_RETURN_STATUS();
+  return napi_ok;
 }
 
 napi_status napi_throw_error(napi_env e, const char* msg) {
@@ -1303,7 +1303,7 @@ napi_status napi_throw_error(napi_env e, const char* msg) {
   isolate->ThrowException(v8::Exception::Error(str));
   // any VM calls after this point and before returning
   // to the javascript invoker will fail
-  return GET_RETURN_STATUS();
+  return napi_ok;
 }
 
 napi_status napi_throw_type_error(napi_env e, const char* msg) {
@@ -1316,7 +1316,7 @@ napi_status napi_throw_type_error(napi_env e, const char* msg) {
   isolate->ThrowException(v8::Exception::TypeError(str));
   // any VM calls after this point and before returning
   // to the javascript invoker will fail
-  return GET_RETURN_STATUS();
+  return napi_ok;
 }
 
 napi_status napi_get_number_from_value(napi_env e, napi_value v, double* result) {
