@@ -58,29 +58,17 @@ NAPI_METHOD(wasPending) {
 
 NAPI_MODULE_INIT(Init) {
   napi_status status;
-  napi_propertyname name;
-  napi_value fn;
 
-  status = napi_property_name(env, "returnException", &name);
-  if (status != napi_ok) return;
-  status = napi_create_function(env, returnException, nullptr, &fn);
-  if (status != napi_ok) return;
-  status = napi_set_property(env, exports, name, fn);
-  if (status != napi_ok) return;
+  napi_property_descriptor descriptors[] = {
+    { "returnException", returnException },
+    { "allowException", allowException },
+    { "wasPending", wasPending },
+  };
 
-  status = napi_property_name(env, "allowException", &name);
-  if (status != napi_ok) return;
-  status = napi_create_function(env, allowException, nullptr, &fn);
-  if (status != napi_ok) return;
-  status = napi_set_property(env, exports, name, fn);
-  if (status != napi_ok) return;
-
-  status = napi_property_name(env, "wasPending", &name);
-  if (status != napi_ok) return;
-  status = napi_create_function(env, wasPending, nullptr, &fn);
-  if (status != napi_ok) return;
-  status = napi_set_property(env, exports, name, fn);
-  if (status != napi_ok) return;
+  for (int i = 0; i < sizeof(descriptors) / sizeof(*descriptors); i++) {
+    status = napi_define_property(env, exports, &descriptors[i]);
+    if (status != napi_ok) return;
+  }
 }
 
 NODE_MODULE_ABI(addon, Init)

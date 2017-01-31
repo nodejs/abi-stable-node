@@ -7,15 +7,20 @@ void Copy(napi_env env, napi_callback_info info) {
   status = napi_get_cb_args_length(env, info, &argc);
   if (status != napi_ok) return;
 
-  if (napi_get_cb_args_length(env, info) < 1) {
+  if (argc < 1) {
     napi_throw_type_error(env, "Wrong number of arguments");
     return;
   }
 
   napi_value args[1];
-  napi_get_cb_args(env, info, args, 1);
+  status = napi_get_cb_args(env, info, args, 1);
+  if (status != napi_ok) return;
 
-  if (napi_get_type_of_value(env, args[0]) != napi_string) {
+  napi_valuetype valuetype;
+  status = napi_get_type_of_value(env, args[0], &valuetype);
+  if (status != napi_ok) return;
+
+  if (valuetype != napi_string) {
     napi_throw_type_error(env, "Wrong type of argments. Expects a string.");
     return;
   }
@@ -23,11 +28,17 @@ void Copy(napi_env env, napi_callback_info info) {
   char buffer[128];
   int buffer_size = 128;
 
-  int remain = napi_get_string_from_value(env, args[0], buffer, buffer_size);
+  int remain;
+  status = napi_get_string_from_value(env, args[0], buffer, buffer_size, &remain);
+  if (status != napi_ok) return;
 
   if (remain == 0) {
-    napi_value output = napi_create_string(env, buffer);
-    napi_set_return_value(env, info, output);
+    napi_value output;
+    status = napi_create_string(env, buffer, &output);
+    if (status != napi_ok) return;
+
+    status = napi_set_return_value(env, info, output);
+    if (status != napi_ok) return;
   }
 }
 
@@ -38,22 +49,34 @@ void Length(napi_env env, napi_callback_info info) {
   status = napi_get_cb_args_length(env, info, &argc);
   if (status != napi_ok) return;
 
-  if (napi_get_cb_args_length(env, info) < 1) {
+  if (argc < 1) {
     napi_throw_type_error(env, "Wrong number of arguments");
     return;
   }
 
   napi_value args[1];
-  napi_get_cb_args(env, info, args, 1);
+  status = napi_get_cb_args(env, info, args, 1);
+  if (status != napi_ok) return;
 
-  if (napi_get_type_of_value(env, args[0]) != napi_string) {
+  napi_valuetype valuetype;
+  status = napi_get_type_of_value(env, args[0], &valuetype);
+  if (status != napi_ok) return;
+
+  if (valuetype != napi_string) {
     napi_throw_type_error(env, "Wrong type of argments. Expects a string.");
     return;
   }
 
-  int length = napi_get_string_length(env, args[0]);
-  napi_value output = napi_create_number(env, length);
-  napi_set_return_value(env, info, output);
+  int length;
+  status = napi_get_string_length(env, args[0], &length);
+  if (status != napi_ok) return;
+
+  napi_value output;
+  status = napi_create_number(env, length, &output);
+  if (status != napi_ok) return;
+
+  status = napi_set_return_value(env, info, output);
+  if (status != napi_ok) return;
 }
 
 void Utf8Length(napi_env env, napi_callback_info info) {
@@ -63,34 +86,49 @@ void Utf8Length(napi_env env, napi_callback_info info) {
   status = napi_get_cb_args_length(env, info, &argc);
   if (status != napi_ok) return;
 
-  if (napi_get_cb_args_length(env, info) < 1) {
+  if (argc < 1) {
     napi_throw_type_error(env, "Wrong number of arguments");
     return;
   }
 
   napi_value args[1];
-  napi_get_cb_args(env, info, args, 1);
+  status = napi_get_cb_args(env, info, args, 1);
+  if (status != napi_ok) return;
 
-  if (napi_get_type_of_value(env, args[0]) != napi_string) {
+  napi_valuetype valuetype;
+  status = napi_get_type_of_value(env, args[0], &valuetype);
+  if (status != napi_ok) return;
+
+  if (valuetype != napi_string) {
     napi_throw_type_error(env, "Wrong type of argments. Expects a string.");
     return;
   }
 
-  int length = napi_get_string_utf8_length(env, args[0]);
-  napi_value output = napi_create_number(env, length);
-  napi_set_return_value(env, info, output);
+  int length;
+  status = napi_get_string_utf8_length(env, args[0], &length);
+  if (status != napi_ok) return;
+
+  napi_value output;
+  status = napi_create_number(env, length, &output);
+  if (status != napi_ok) return;
+
+  status = napi_set_return_value(env, info, output);
+  if (status != napi_ok) return;
 }
 
 void Init(napi_env env, napi_value exports, napi_value module) {
-  napi_set_property(env, exports,
-                    napi_property_name(env, "Copy"),
-                    napi_create_function(env, Copy, nullptr));
-  napi_set_property(env, exports,
-                    napi_property_name(env, "Length"),
-                    napi_create_function(env, Length, nullptr));
-  napi_set_property(env, exports,
-                    napi_property_name(env, "Utf8Length"),
-                    napi_create_function(env, Utf8Length, nullptr));
+  napi_status status;
+
+  napi_property_descriptor properties[] = {
+    { "Copy", Copy },
+    { "Length", Length },
+    { "Utf8Length", Utf8Length },
+  };
+
+  for (int i = 0; i < sizeof(properties) / sizeof(*properties); i++) {
+    status = napi_define_property(env, exports, &properties[i]);
+    if (status != napi_ok) return;
+  }
 }
 
 NODE_MODULE_ABI(addon, Init)

@@ -24,16 +24,14 @@ void doInstanceOf(napi_env env, napi_callback_info info) {
 void Init(napi_env env, napi_value exports, napi_value module) {
   napi_status status;
 
-  napi_propertyname name;
-  status = napi_property_name(env, "doInstanceOf", &name);
-  if (status != napi_ok) return;
+  napi_property_descriptor descriptors[] = {
+    { "doInstanceOf", doInstanceOf },
+  };
 
-  napi_value fn;
-  status = napi_create_function(env, doInstanceOf, nullptr, &fn);
-  if (status != napi_ok) return;
-
-  status = napi_set_property(env, exports, name, fn);
-  if (status != napi_ok) return;
+  for (int i = 0; i < sizeof(descriptors) / sizeof(*descriptors); i++) {
+    status = napi_define_property(env, exports, &descriptors[i]);
+    if (status != napi_ok) return;
+  }
 }
 
 NODE_MODULE_ABI(addon, Init)

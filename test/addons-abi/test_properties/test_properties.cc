@@ -9,13 +9,17 @@ void GetValue(napi_env env, napi_callback_info info) {
   status = napi_get_cb_args_length(env, info, &argc);
   if (status != napi_ok) return;
 
-  if (napi_get_cb_args_length(env, info) != 0) {
+  if (argc != 0) {
     napi_throw_type_error(env, "Wrong number of arguments");
     return;
   }
 
-  napi_value number = napi_create_number(env, value_);
-  napi_set_return_value(env, info, number);
+  napi_value number;
+  status = napi_create_number(env, value_, &number);
+  if (status != napi_ok) return;
+
+  status = napi_set_return_value(env, info, number);
+  if (status != napi_ok) return;
 }
 
 void SetValue(napi_env env, napi_callback_info info) {
@@ -25,15 +29,17 @@ void SetValue(napi_env env, napi_callback_info info) {
   status = napi_get_cb_args_length(env, info, &argc);
   if (status != napi_ok) return;
 
-  if (napi_get_cb_args_length(env, info) != 1) {
+  if (argc != 1) {
     napi_throw_type_error(env, "Wrong number of arguments");
     return;
   }
 
   napi_value arg;
-  napi_get_cb_args(env, info, &arg, 1);
+  status = napi_get_cb_args(env, info, &arg, 1);
+  if (status != napi_ok) return;
 
-  value_ = napi_get_number_from_value(env, arg);
+  status = napi_get_number_from_value(env, arg, &value_);
+  if (status != napi_ok) return;
 }
 
 void Echo(napi_env env, napi_callback_info info) {
@@ -43,19 +49,26 @@ void Echo(napi_env env, napi_callback_info info) {
   status = napi_get_cb_args_length(env, info, &argc);
   if (status != napi_ok) return;
 
-  if (napi_get_cb_args_length(env, info) != 1) {
+  if (argc != 1) {
     napi_throw_type_error(env, "Wrong number of arguments");
     return;
   }
 
   napi_value arg;
-  napi_get_cb_args(env, info, &arg, 1);
+  status = napi_get_cb_args(env, info, &arg, 1);
+  if (status != napi_ok) return;
 
-  napi_set_return_value(env, info, arg);
+  status = napi_set_return_value(env, info, arg);
+  if (status != napi_ok) return;
 }
 
 void Init(napi_env env, napi_value exports, napi_value module) {
-  napi_value number = napi_create_number(env, value_);
+  napi_status status;
+
+  napi_value number;
+  status = napi_create_number(env, value_, &number);
+  if (status != napi_ok) return;
+
   napi_property_descriptor properties[] = {
     { "echo", Echo },
     { "accessorValue", nullptr, GetValue, SetValue },
@@ -66,7 +79,8 @@ void Init(napi_env env, napi_value exports, napi_value module) {
   };
 
   for (int i = 0; i < sizeof(properties) / sizeof(*properties); i++) {
-    napi_define_property(env, exports, &properties[i]);
+    status = napi_define_property(env, exports, &properties[i]);
+    if (status != napi_ok) return;
   }
 }
 
