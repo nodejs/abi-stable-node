@@ -511,8 +511,7 @@ namespace v8impl {
     CHECK_NEW_FROM_UTF8_LEN((isolate), (result), (str), -1)
 
 #define GET_RETURN_STATUS()                                             \
-  v8impl::TryCatch::lastException().IsEmpty()                           \
-    ? napi_ok : napi_pending_exception
+  (tryCatch.HasCaught() ? napi_ok : napi_pending_exception)
 
 // Static last error returned from napi_get_last_error_info
 napi_extended_error_info static_last_error;
