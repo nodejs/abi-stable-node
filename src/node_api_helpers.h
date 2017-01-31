@@ -44,11 +44,11 @@ namespace Napi {
   class HandleScope {
    public:
     HandleScope() {
-      env = napi_get_current_env();
-      scope = napi_open_handle_scope(env);
+      napi_get_current_env(&env);
+      napi_open_handle_scope(env, &scope);
     }
     explicit HandleScope(napi_env e) : env(e) {
-      scope = napi_open_handle_scope(env);
+      napi_open_handle_scope(env, &scope);
     }
     ~HandleScope() {
       napi_close_handle_scope(env, scope);
@@ -62,18 +62,20 @@ namespace Napi {
   class EscapableHandleScope {
    public:
     EscapableHandleScope() {
-      env = napi_get_current_env();
-      scope = napi_open_escapable_handle_scope(env);
+      napi_get_current_env(&env);
+      napi_open_escapable_handle_scope(env, &scope);
     }
     explicit EscapableHandleScope(napi_env e) : env(e) {
-      scope = napi_open_escapable_handle_scope(e);
+      napi_open_escapable_handle_scope(e, &scope);
     }
     ~EscapableHandleScope() {
       napi_close_escapable_handle_scope(env, scope);
     }
 
     napi_value Escape(napi_value escapee) {
-      return napi_escape_handle(env, scope, escapee);
+      napi_value result;
+      napi_escape_handle(env, scope, escapee, &result);
+      return result;
     }
 
    private:
@@ -86,17 +88,21 @@ namespace Napi {
     inline explicit Utf8String(napi_value from) :
         length_(0), str_(str_st_) {
       if (from != NULL) {
-        napi_env env = napi_get_current_env();
-        napi_value string = napi_coerce_to_string(env, from);
+        napi_env env;
+        napi_get_current_env(&env);
+        napi_value string;
+        napi_coerce_to_string(env, from, &string);
         if (string != NULL) {
-          size_t len = 3 * napi_get_string_length(env, string) + 1;
-          assert(len <= INT_MAX);
-          if (len > sizeof(str_st_)) {
-            str_ = new char[len];
+          int len;
+          napi_get_string_length(env, string, &len);
+          size_t utf8len = 3 * len + 1;
+          assert(utf8len <= INT_MAX);
+          if (utf8len > sizeof(str_st_)) {
+            str_ = new char[utf8len];
             assert(str_ != 0);
           }
-          length_ = napi_get_string_utf8(env, string, str_,
-                                         static_cast<int>(len));
+          napi_get_string_utf8(env, string, str_,
+            static_cast<int>(utf8len), &length_);
           str_[length_] = '\0';
         }
       }
@@ -131,17 +137,21 @@ namespace Napi {
   class Callback {
    public:
     Callback() {
-      napi_env env = napi_get_current_env();
+      napi_env env;
+      napi_get_current_env(&env);
       HandleScope scope(env);
-      napi_value obj = napi_create_object(env);
-      handle = napi_create_persistent(env, obj);
+      napi_value obj;
+      napi_create_object(env, &obj);
+      napi_create_persistent(env, obj, &handle);
     }
 
     explicit Callback(napi_value fn) {
-      napi_env env = napi_get_current_env();
+      napi_env env;
+      napi_get_current_env(&env);
       HandleScope scope(env);
-      napi_value obj = napi_create_object(env);
-      handle = napi_create_persistent(env, obj);
+      napi_value obj;
+      napi_create_object(env, &obj);
+      napi_create_persistent(env, obj, &handle);
       SetFunction(fn);
     }
 
@@ -149,19 +159,30 @@ namespace Napi {
       if (handle == NULL) {
         return;
       }
-      napi_release_persistent(napi_get_current_env(), handle);
+
+      napi_env env;
+      napi_get_current_env(&env);
+      napi_release_persistent(env, handle);
     }
 
     bool operator==(const Callback &other) const {
       HandleScope scope;
-      napi_env env = napi_get_current_env();
-      napi_value a = napi_get_element(env,
-                                      napi_get_persistent_value(env, handle),
-                                      kCallbackIndex);
-      napi_value b = napi_get_element(env,
-                                      napi_get_persistent_value(env,
-                                      other.handle), kCallbackIndex);
-      return napi_strict_equals(env, a, b);
+      napi_env env;
+      napi_get_current_env(&env);
+
+      napi_value ha;
+      napi_get_persistent_value(env, handle, &ha);
+      napi_value hb;
+      napi_get_persistent_value(env, other.handle, &hb);
+
+      napi_value a;
+      napi_get_element(env, ha, kCallbackIndex, &a);
+      napi_value b;
+      napi_get_element(env, hb, kCallbackIndex, &b);
+
+      bool result;
+      napi_strict_equals(env, a, b, &result);
+      return result;
     }
 
     bool operator!=(const Callback &other) const {
@@ -186,26 +207,35 @@ namespace Napi {
 
     inline void SetFunction(napi_value fn) {
       HandleScope scope;
-      napi_env env = napi_get_current_env();
-      napi_set_element(env, napi_get_persistent_value(env, handle),
-                       kCallbackIndex, fn);
+      napi_env env;
+      napi_get_current_env(&env);
+      napi_value h;
+      napi_get_persistent_value(env, handle, &h);
+      napi_set_element(env, h, kCallbackIndex, fn);
     }
 
     inline napi_value GetFunction() const {
       EscapableHandleScope scope;
-      napi_env env = napi_get_current_env();
-      return scope.Escape(
-          napi_get_element(env, napi_get_persistent_value(env, handle),
-                           kCallbackIndex));
+      napi_env env;
+      napi_get_current_env(&env);
+      napi_value h;
+      napi_get_persistent_value(env, handle, &h);
+      napi_value fn;
+      napi_get_element(env, h, kCallbackIndex, &fn);
+      return scope.Escape(fn);
     }
 
     inline bool IsEmpty() const {
       HandleScope scope;
-      napi_env env = napi_get_current_env();
-      napi_value fn =
-          napi_get_element(env,
-              napi_get_persistent_value(env, handle), kCallbackIndex);
-      return napi_undefined == napi_get_type_of_value(env, fn);
+      napi_env env;
+      napi_get_current_env(&env);
+      napi_value h;
+      napi_get_persistent_value(env, handle, &h);
+      napi_value fn;
+      napi_get_element(env, h, kCallbackIndex, &fn);
+      napi_valuetype valuetype;
+      napi_get_type_of_value(env, fn, &valuetype);
+      return napi_undefined == valuetype;
     }
 
     inline napi_value
@@ -217,8 +247,11 @@ namespace Napi {
 
     inline napi_value
     Call(int argc, napi_value argv[]) const {
-      napi_env env = napi_get_current_env();
-      return Call_(napi_get_global(env), argc, argv);
+      napi_env env;
+      napi_get_current_env(&env);
+      napi_value global;
+      napi_get_global(env, &global);
+      return Call_(global, argc, argv);
     }
 
    private:
@@ -230,17 +263,23 @@ namespace Napi {
                    int argc,
                    napi_value argv[]) const {
       EscapableHandleScope scope;
-      napi_env env = napi_get_current_env();
+      napi_env env;
+      napi_get_current_env(&env);
 
-      napi_value callback =
-          napi_get_element(env, napi_get_persistent_value(env, handle),
-                           kCallbackIndex);
-      return scope.Escape(napi_make_callback(
+      napi_value h;
+      napi_get_persistent_value(env, handle, &h);
+      napi_value fn;
+      napi_get_element(env, h, kCallbackIndex, &fn);
+
+      napi_value cb;
+      napi_make_callback(
         env,
         target,
-        callback,
+        fn,
         argc,
-        argv));
+        argv,
+        &cb);
+      return scope.Escape(cb);
     }
   };
 
@@ -252,18 +291,21 @@ namespace Napi {
     explicit AsyncWorker(Callback *callback_)
         : callback(callback_), errmsg_(NULL) {
       request = napi_create_async_work();
-      napi_env env = napi_get_current_env();
+      napi_env env;
+      napi_get_current_env(&env);
 
       HandleScope scope;
-      napi_value obj = napi_create_object(env);
-      persistentHandle = napi_create_persistent(env, obj);
+      napi_value obj;
+      napi_create_object(env, &obj);
+      napi_create_persistent(env, obj, &persistentHandle);
     }
 
     virtual ~AsyncWorker() {
       HandleScope scope;
 
       if (persistentHandle != NULL) {
-        napi_env env = napi_get_current_env();
+        napi_env env;
+        napi_get_current_env(&env);
         napi_release_persistent(env, persistentHandle);
         persistentHandle = NULL;
       }
@@ -287,52 +329,69 @@ namespace Napi {
     inline void SaveToPersistent(
         const char *key, napi_value value) {
       HandleScope scope;
-      napi_env env = napi_get_current_env();
-      napi_propertyname pnKey = napi_property_name(env, key);
-      napi_set_property(env, napi_get_persistent_value(env, persistentHandle),
-                        pnKey, value);
+      napi_env env;
+      napi_get_current_env(&env);
+      napi_propertyname pnKey;
+      napi_property_name(env, key, &pnKey);
+      napi_value h;
+      napi_get_persistent_value(env, persistentHandle, &h);
+      napi_set_property(env, h, pnKey, value);
     }
 
     inline void SaveToPersistent(
         napi_propertyname key, napi_value value) {
       HandleScope scope;
-      napi_env env = napi_get_current_env();
-      napi_set_property(env, napi_get_persistent_value(env, persistentHandle),
-                        key, value);
+      napi_env env;
+      napi_get_current_env(&env);
+      napi_value h;
+      napi_get_persistent_value(env, persistentHandle, &h);
+      napi_set_property(env, h, key, value);
     }
 
     inline void SaveToPersistent(
         uint32_t index, napi_value value) {
       HandleScope scope;
-      napi_env env = napi_get_current_env();
-      napi_set_element(env, napi_get_persistent_value(env, persistentHandle),
-                       index, value);
+      napi_env env;
+      napi_get_current_env(&env);
+      napi_value h;
+      napi_get_persistent_value(env, persistentHandle, &h);
+      napi_set_element(env, h, index, value);
     }
 
     inline napi_value GetFromPersistent(const char *key) const {
       EscapableHandleScope scope;
-      napi_env env = napi_get_current_env();
-      napi_propertyname pnKey = napi_property_name(env, key);
-      return scope.Escape(
-          napi_get_property(env,
-              napi_get_persistent_value(env, persistentHandle), pnKey));
+      napi_env env;
+      napi_get_current_env(&env);
+      napi_propertyname pnKey;
+      napi_property_name(env, key, &pnKey);
+      napi_value h;
+      napi_get_persistent_value(env, persistentHandle, &h);
+      napi_value v;
+      napi_get_property(env, h, pnKey, &v);
+      return scope.Escape(v);
     }
 
     inline napi_value
     GetFromPersistent(napi_propertyname key) const {
       EscapableHandleScope scope;
-      napi_env env = napi_get_current_env();
-      return scope.Escape(
-          napi_get_property(env,
-              napi_get_persistent_value(env, persistentHandle), key));
+      napi_env env;
+      napi_get_current_env(&env);
+      napi_value h;
+      napi_get_persistent_value(env, persistentHandle, &h);
+      napi_value v;
+      napi_get_property(env, h, key, &v);
+      return scope.Escape(v);
     }
 
     inline napi_value GetFromPersistent(uint32_t index) const {
       EscapableHandleScope scope;
-      napi_env env = napi_get_current_env();
-      return scope.Escape(
-          napi_get_element(env,
-              napi_get_persistent_value(env, persistentHandle), index));
+      napi_env env;
+      napi_get_current_env(&env);
+      napi_value h;
+      napi_get_persistent_value(env, persistentHandle, &h);
+      napi_value v;
+      napi_get_element(env, h, index, &v);
+      return scope.Escape(v);
     }
 
     virtual void Execute() = 0;
@@ -368,11 +427,15 @@ namespace Napi {
 
     virtual void HandleErrorCallback() {
       HandleScope scope;
-      napi_env env = napi_get_current_env();
+      napi_env env;
+      napi_get_current_env(&env);
 
-      napi_value argv[] = {
-        napi_create_error(env, napi_create_string(env, ErrorMessage()))
-      };
+      napi_value s;
+      napi_create_string(env, ErrorMessage(), &s);
+
+      napi_value argv[1];
+      napi_create_error(env, s, argv);
+
       callback->Call(1, argv);
     }
 

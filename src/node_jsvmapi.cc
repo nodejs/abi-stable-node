@@ -480,14 +480,13 @@ namespace v8impl {
 #define CHECK_MAYBE_NOTHING(maybe, status)                              \
   RETURN_STATUS_IF_FALSE(!((maybe).IsNothing()), (status))
 
+// NAPI_PREAMBLE is not wrapped in do..while: tryCatch must have function scope.
 #define NAPI_PREAMBLE(e)                                                \
-  do {                                                                  \
-    CHECK_ARG(e);                                                       \
-    RETURN_STATUS_IF_FALSE(v8impl::TryCatch::lastException().IsEmpty(), \
-      napi_pending_exception);                                          \
-    napi_clear_last_error();                                            \
-    v8impl::TryCatch tryCatch(v8impl::V8IsolateFromJsEnv((e)));         \
-  } while(0)
+  CHECK_ARG(e);                                                         \
+  RETURN_STATUS_IF_FALSE(v8impl::TryCatch::lastException().IsEmpty(),   \
+    napi_pending_exception);                                            \
+  napi_clear_last_error();                                              \
+  v8impl::TryCatch tryCatch(v8impl::V8IsolateFromJsEnv((e)))
 
 #define CHECK_TO_TYPE(type, context, result, src, status)               \
   do {                                                                  \
@@ -1257,10 +1256,14 @@ napi_status napi_call_function(napi_env e,
   v8::Local<v8::Function> v8func = v8impl::V8LocalFunctionFromJsValue(func);
   auto maybe = v8func->Call(context, v8recv, argc, args.data());
 
-  CHECK_MAYBE_EMPTY(maybe, napi_generic_failure);
-
-  *result = v8impl::JsValueFromV8LocalValue(maybe.ToLocalChecked());
-  return napi_ok;
+  if (tryCatch.HasCaught()) {
+    return napi_pending_exception;
+  }
+  else {
+    CHECK_MAYBE_EMPTY(maybe, napi_generic_failure);
+    *result = v8impl::JsValueFromV8LocalValue(maybe.ToLocalChecked());
+    return napi_ok;
+  }
 }
 
 napi_status napi_get_global(napi_env e, napi_value* result) {
@@ -1691,6 +1694,8 @@ napi_status napi_instanceof(napi_env e, napi_value obj, napi_value cons, bool* r
     return napi_set_last_error(napi_object_expected);
   }
 
+  v8Cons = prototypeProperty->ToObject();
+
   v8::Local<v8::Value> v8Obj = v8impl::V8LocalValueFromJsValue(obj);
   if (!v8Obj->StrictEquals(v8Cons)) {
     for (v8::Local<v8::Value> originalObj = v8Obj;
@@ -1748,7 +1753,8 @@ napi_status napi_make_callback(napi_env e,
 
 // Methods to support catching exceptions
 napi_status napi_is_exception_pending(napi_env e, bool* result) {
-  NAPI_PREAMBLE(e);
+  // NAPI_PREAMBLE is not used here: this function must execute when there is a pending exception.
+  CHECK_ARG(e);
   CHECK_ARG(result);
 
   *result = !v8impl::TryCatch::lastException().IsEmpty();
@@ -1756,7 +1762,8 @@ napi_status napi_is_exception_pending(napi_env e, bool* result) {
 }
 
 napi_status napi_get_and_clear_last_exception(napi_env e, napi_value* result) {
-  NAPI_PREAMBLE(e);
+  // NAPI_PREAMBLE is not used here: this function must execute when there is a pending exception.
+  CHECK_ARG(e);
   CHECK_ARG(result);
 
   // TODO: Is there a chance that an exception will be thrown in the process of
