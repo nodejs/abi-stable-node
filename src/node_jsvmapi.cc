@@ -1758,7 +1758,7 @@ napi_status napi_is_exception_pending(napi_env e, bool* result) {
   CHECK_ARG(result);
 
   *result = !v8impl::TryCatch::lastException().IsEmpty();
-  return GET_RETURN_STATUS();
+  return napi_ok;
 }
 
 napi_status napi_get_and_clear_last_exception(napi_env e, napi_value* result) {
@@ -1776,7 +1776,7 @@ napi_status napi_get_and_clear_last_exception(napi_env e, napi_value* result) {
     v8impl::TryCatch::lastException().Reset();
   }
 
-  return GET_RETURN_STATUS();
+  return napi_ok;
 }
 
 napi_status napi_buffer_new(napi_env e, char* data, uint32_t size, napi_value* result) {
