@@ -1,21 +1,40 @@
 #include <node_jsvmapi.h>
 
 void MyFunction(napi_env env, napi_callback_info info) {
-  napi_set_return_value(env, info, napi_create_string(env, "hello world"));
+  napi_status status;
+
+  napi_value str;
+  status = napi_create_string(env, "hello world", &str);
+  if (status != napi_ok) return;
+
+  status = napi_set_return_value(env, info, str);
+  if (status != napi_ok) return;
 }
 
 void CreateFunction(napi_env env, napi_callback_info info) {
-  napi_value fn = napi_create_function(env, MyFunction, nullptr);
+  napi_status status;
+
+  napi_value fn;
+  status = napi_create_function(env, MyFunction, nullptr, &fn);
+  if (status != napi_ok) return;
+
+  napi_propertyname name;
+  status = napi_property_name(env, "theFunction", &name);
+  if (status != napi_ok) return;
 
   // omit this to make it anonymous
-  napi_set_function_name(env, fn, napi_property_name(env, "theFunction"));
+  status = napi_set_function_name(env, fn, name);
+  if (status != napi_ok) return;
 
-  napi_set_return_value(env, info, fn);
+  status = napi_set_return_value(env, info, fn);
+  if (status != napi_ok) return;
 }
 
 void Init(napi_env env, napi_value exports, napi_value module) {
+  napi_status status;
   napi_property_descriptor desc = { "exports", CreateFunction };
-  napi_define_property(env, module, &desc);
+  status = napi_define_property(env, module, &desc);
+  if (status != napi_ok) return;
 }
 
 NODE_MODULE_ABI(addon, Init)

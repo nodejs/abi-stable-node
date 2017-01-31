@@ -1,5 +1,6 @@
 'use strict';
 
+try {
 var test_exception = require( "./build/Release/test_exception" );
 var assert = require( "assert" );
 var theError = new Error( "Some error" );
@@ -46,3 +47,9 @@ assert.strictEqual( undefined, caughtError,
 // Test that the exception state remains clear when no exception is thrown
 assert.strictEqual( test_exception.wasPending(), false,
 	"VM was not marked as having an exception pending when none was allowed through" );
+
+}
+catch (e) {
+	console.log(e);
+	process.stdin.resume();
+}
