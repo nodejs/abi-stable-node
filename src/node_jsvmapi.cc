@@ -511,7 +511,8 @@ namespace v8impl {
     CHECK_NEW_FROM_UTF8_LEN((isolate), (result), (str), -1)
 
 #define GET_RETURN_STATUS()                                             \
-  (tryCatch.HasCaught() ? napi_ok : napi_pending_exception)
+  (!tryCatch.HasCaught() ?                                              \
+    napi_ok : napi_set_last_error(napi_pending_exception))
 
 // Static last error returned from napi_get_last_error_info
 napi_extended_error_info static_last_error;
@@ -1716,6 +1717,7 @@ napi_status napi_instanceof(napi_env e, napi_value obj, napi_value cons, bool* r
 }
 
 napi_status napi_make_external(napi_env e, napi_value v, napi_value* result) {
+  NAPI_PREAMBLE(e);
   CHECK_ARG(result);
   // v8impl::TryCatch doesn't make sense here since we're not calling into the
   // engine at all.
