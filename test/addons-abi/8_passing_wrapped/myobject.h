@@ -5,9 +5,9 @@
 
 class MyObject {
  public:
-  static void Init(napi_env env);
+  static napi_status Init(napi_env env);
   static void Destructor(void* nativeObject);
-  static napi_value NewInstance(napi_env env, napi_value arg);
+  static napi_status NewInstance(napi_env env, napi_value arg, napi_value* instance);
   double Val() const { return val_; }
 
  private:

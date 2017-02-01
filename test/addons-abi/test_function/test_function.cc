@@ -1,31 +1,59 @@
 #include <node_jsvmapi.h>
 
 void Test(napi_env env, napi_callback_info info) {
-  if (napi_get_cb_args_length(env, info) < 1) {
+  napi_status status;
+
+  int argc;
+  status = napi_get_cb_args_length(env, info, &argc);
+  if (status != napi_ok) return;
+
+  if (argc < 1) {
     napi_throw_type_error(env, "Wrong number of arguments");
     return;
   }
 
   napi_value args[10];
-  napi_get_cb_args(env, info, args, 10);
+  status = napi_get_cb_args(env, info, args, 10);
+  if (status != napi_ok) return;
 
-  if (napi_get_type_of_value(env, args[0]) != napi_function) {
+  napi_valuetype valuetype;
+  status = napi_get_type_of_value(env, args[0], &valuetype);
+  if (status != napi_ok) return;
+
+  if (valuetype != napi_function) {
     napi_throw_type_error(env, "Wrong type of argments. Expects a function.");
     return;
   }
 
   napi_value function = args[0];
-  int argc = napi_get_cb_args_length(env, info) - 1;
   napi_value* argv = args + 1;
+  argc = argc - 1;
 
-  napi_value output = napi_call_function(env, napi_get_global(env), function, argc, argv);
-  napi_set_return_value(env, info, output);
+  napi_value global;
+  status = napi_get_global(env, &global);
+  if (status != napi_ok) return;
+
+  napi_value result;
+  status = napi_call_function(env, global, function, argc, argv, &result);
+  if (status != napi_ok) return;
+
+  status = napi_set_return_value(env, info, result);
+  if (status != napi_ok) return;
 }
 
 void Init(napi_env env, napi_value exports, napi_value module) {
-  napi_set_property(env, exports,
-                    napi_property_name(env, "Test"),
-                    napi_create_function(env, Test, nullptr));
+  napi_status status;
+
+  napi_propertyname name;
+  status = napi_property_name(env, "Test", &name);
+  if (status != napi_ok) return;
+
+  napi_value fn;
+  status =  napi_create_function(env, Test, nullptr, &fn);
+  if (status != napi_ok) return;
+
+  status = napi_set_property(env, exports, name, fn);
+  if (status != napi_ok) return;
 }
 
 NODE_MODULE_ABI(addon, Init)
