@@ -537,7 +537,7 @@ void napi_clear_last_error() {
 }
 
 const napi_extended_error_info* napi_get_last_error_info() {
-  static_assert(sizeof(error_messages) / sizeof(*error_messages) == napi_status_last, 
+  static_assert(sizeof(error_messages) / sizeof(*error_messages) == napi_status_last,
     "Count of error messages must match count of error values");
   assert(static_last_error.error_code < napi_status_last);
 
@@ -594,7 +594,7 @@ napi_status napi_create_function(
 
 napi_status napi_create_constructor(
     napi_env e,
-    char* utf8name,
+    const char* utf8name,
     napi_callback cb,
     void* data,
     int property_count,
