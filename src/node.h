@@ -41,7 +41,6 @@
 
 #include "v8.h"  // NOLINT(build/include_order)
 #include "node_version.h"  // NODE_MODULE_VERSION
-#include "tracing/trace_event.h"
 #include "node_jsvmapi.h"
 
 #define NODE_MAKE_VERSION(major, minor, patch)                                \
