@@ -11,13 +11,11 @@ void MyObject::Destructor(void* nativeObject) {
 napi_persistent MyObject::constructor;
 
 void MyObject::Init(napi_env env) {
-  napi_value function = napi_create_constructor_for_wrap(env, New);
-  napi_set_function_name(env, function, napi_property_name(env, "MyObject"));
-
-  constructor = napi_create_persistent(env, function);
+  napi_value cons = napi_create_constructor(env, "MyObject", New, nullptr, 0, nullptr);
+  constructor = napi_create_persistent(env, cons);
 }
 
-void MyObject::New(napi_env env, napi_func_cb_info info) {
+void MyObject::New(napi_env env, napi_callback_info info) {
   napi_value args[1];
   napi_get_cb_args(env, info, args, 1);
   MyObject* obj = new MyObject();
