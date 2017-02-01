@@ -1346,7 +1346,7 @@ napi_status napi_get_string_from_value(napi_env e,
     v8::String::Utf8Value str(v8impl::V8LocalValueFromJsValue(v));
     int len = str.length();
     if (buf_size > len) {
-      memcpy(buf, *str, len);
+      memcpy(buf, *str, len + 1);
       *result = 0;
     } else {
       memcpy(buf, *str, buf_size - 1);
