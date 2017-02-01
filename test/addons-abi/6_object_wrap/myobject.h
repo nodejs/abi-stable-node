@@ -12,10 +12,11 @@ class MyObject {
   explicit MyObject(double value_ = 0);
   ~MyObject();
 
-  static void New(napi_env env, napi_func_cb_info info);
-  static void GetValue(napi_env env, napi_func_cb_info info);
-  static void PlusOne(napi_env env, napi_func_cb_info info);
-  static void Multiply(napi_env env, napi_func_cb_info info);
+  static void New(napi_env env, napi_callback_info info);
+  static void GetValue(napi_env env, napi_callback_info info);
+  static void SetValue(napi_env env, napi_callback_info info);
+  static void PlusOne(napi_env env, napi_callback_info info);
+  static void Multiply(napi_env env, napi_callback_info info);
   static napi_persistent constructor;
   double value_;
 };

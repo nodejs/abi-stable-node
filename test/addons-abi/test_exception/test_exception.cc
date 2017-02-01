@@ -32,13 +32,13 @@ NAPI_METHOD(wasPending) {
 NAPI_MODULE_INIT(Init) {
   napi_set_property(env, exports,
                     napi_property_name(env, "returnException"),
-                    napi_create_function(env, returnException));
+                    napi_create_function(env, returnException, nullptr));
   napi_set_property(env, exports,
                     napi_property_name(env, "allowException"),
-                    napi_create_function(env, allowException));
+                    napi_create_function(env, allowException, nullptr));
   napi_set_property(env, exports,
                     napi_property_name(env, "wasPending"),
-                    napi_create_function(env, wasPending));
+                    napi_create_function(env, wasPending, nullptr));
 }
 
 NODE_MODULE_ABI(addon, Init)

@@ -1,6 +1,6 @@
 #include <node_jsvmapi.h>
 
-void RunCallback(napi_env env, const napi_func_cb_info info) {
+void RunCallback(napi_env env, const napi_callback_info info) {
   napi_value args[1];
   napi_get_cb_args(env, info, args, 1);
   napi_value cb = args[0];
@@ -11,9 +11,8 @@ void RunCallback(napi_env env, const napi_func_cb_info info) {
 }
 
 void Init(napi_env env, napi_value exports, napi_value module) {
-  napi_set_property(env, module,
-                        napi_property_name(env, "exports"),
-                        napi_create_function(env, RunCallback));
+  napi_property_descriptor desc = { "exports", RunCallback };
+  napi_define_property(env, module, &desc);
 }
 
 NODE_MODULE_ABI(addon, Init)

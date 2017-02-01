@@ -1,12 +1,12 @@
 #include "myobject.h"
 
-void napi_create_object(napi_env env, napi_func_cb_info info) {
+void CreateObject(napi_env env, napi_callback_info info) {
   napi_value args[1];
   napi_get_cb_args(env, info, args, 1);
   napi_set_return_value(env, info, MyObject::NewInstance(env, args[0]));
 }
 
-void Add(napi_env env, napi_func_cb_info info) {
+void Add(napi_env env, napi_callback_info info) {
   napi_value args[2];
   napi_get_cb_args(env, info, args, 2);
   MyObject* obj1 = reinterpret_cast<MyObject*>(napi_unwrap(env, args[0]));
@@ -18,14 +18,11 @@ void Add(napi_env env, napi_func_cb_info info) {
 void Init(napi_env env, napi_value exports, napi_value module) {
   MyObject::Init(env);
 
-  napi_set_property(env, exports,
-              napi_property_name(env, "createObject"),
-              napi_create_function(env, napi_create_object));
+  napi_property_descriptor desc = { "createObject", CreateObject };
+  napi_define_property(env, exports, &desc);
 
-
-  napi_set_property(env, exports,
-              napi_property_name(env, "add"),
-              napi_create_function(env, Add));
+  napi_property_descriptor desc2 = { "add", Add };
+  napi_define_property(env, exports, &desc2);
 }
 
 
