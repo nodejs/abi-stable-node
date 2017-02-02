@@ -10,7 +10,7 @@ void RunCallback(napi_env env, const napi_callback_info info) {
   napi_value cb = args[0];
 
   napi_value argv[1];
-  status = napi_create_string(env, "hello world", argv);
+  status = napi_create_string_utf8(env, "hello world", -1, argv);
   if (status != napi_ok) return;
 
   napi_value global;

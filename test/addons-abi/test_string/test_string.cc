@@ -28,18 +28,15 @@ void Copy(napi_env env, napi_callback_info info) {
   char buffer[128];
   int buffer_size = 128;
 
-  int remain;
-  status = napi_get_string_from_value(env, args[0], buffer, buffer_size, &remain);
+  status = napi_get_value_string_utf8(env, args[0], buffer, buffer_size, nullptr);
   if (status != napi_ok) return;
 
-  if (remain == 0) {
-    napi_value output;
-    status = napi_create_string(env, buffer, &output);
-    if (status != napi_ok) return;
+  napi_value output;
+  status = napi_create_string_utf8(env, buffer, -1, &output);
+  if (status != napi_ok) return;
 
-    status = napi_set_return_value(env, info, output);
-    if (status != napi_ok) return;
-  }
+  status = napi_set_return_value(env, info, output);
+  if (status != napi_ok) return;
 }
 
 void Length(napi_env env, napi_callback_info info) {
@@ -67,8 +64,8 @@ void Length(napi_env env, napi_callback_info info) {
     return;
   }
 
-  int length;
-  status = napi_get_string_length(env, args[0], &length);
+  size_t length;
+  status = napi_get_value_string_length(env, args[0], &length);
   if (status != napi_ok) return;
 
   napi_value output;
@@ -104,8 +101,8 @@ void Utf8Length(napi_env env, napi_callback_info info) {
     return;
   }
 
-  int length;
-  status = napi_get_string_utf8_length(env, args[0], &length);
+  size_t length;
+  status = napi_get_value_string_utf8_length(env, args[0], &length);
   if (status != napi_ok) return;
 
   napi_value output;

@@ -501,10 +501,10 @@ namespace v8impl {
 
 #define CHECK_NEW_FROM_UTF8_LEN(isolate, result, str, len)              \
   do {                                                                  \
-    auto name_maybe = v8::String::NewFromUtf8((isolate), (str),         \
+    auto str_maybe = v8::String::NewFromUtf8((isolate), (str),          \
       v8::NewStringType::kInternalized, (len));                         \
-    CHECK_MAYBE_EMPTY(name_maybe, napi_generic_failure);                \
-    result = name_maybe.ToLocalChecked();                               \
+    CHECK_MAYBE_EMPTY(str_maybe, napi_generic_failure);                 \
+    result = str_maybe.ToLocalChecked();                                \
   } while(0)
 
 #define CHECK_NEW_FROM_UTF8(isolate, result, str)                       \
@@ -1002,28 +1002,29 @@ napi_status napi_create_array_with_length(napi_env e, int length, napi_value* re
   return GET_RETURN_STATUS();
 }
 
-napi_status napi_create_string(napi_env e, const char* s, napi_value* result) {
+napi_status napi_create_string_utf8(napi_env e, const char* s, size_t length,
+                                    napi_value* result) {
   NAPI_PREAMBLE(e);
   CHECK_ARG(result);
 
   auto isolate = v8impl::V8IsolateFromJsEnv(e);
   v8::Local<v8::String> str;
-  CHECK_NEW_FROM_UTF8(isolate, str, s);
+  CHECK_NEW_FROM_UTF8_LEN(isolate, str, s, static_cast<int>(length));
 
   *result = v8impl::JsValueFromV8LocalValue(str);
   return GET_RETURN_STATUS();
 }
 
-napi_status napi_create_string_with_length(napi_env e,
-                                           const char* s,
-                                           size_t length,
-                                           napi_value* result) {
+napi_status napi_create_string_utf16(napi_env e, const char16_t* s, size_t length,
+  napi_value* result) {
   NAPI_PREAMBLE(e);
   CHECK_ARG(result);
 
   auto isolate = v8impl::V8IsolateFromJsEnv(e);
-  v8::Local<v8::String> str;
-  CHECK_NEW_FROM_UTF8_LEN(isolate, str, s, length);
+  auto str_maybe = v8::String::NewFromTwoByte(isolate, reinterpret_cast<const uint16_t*>(s),
+    v8::NewStringType::kInternalized, static_cast<int>(length));
+  CHECK_MAYBE_EMPTY(str_maybe, napi_generic_failure);
+  v8::Local<v8::String> str = str_maybe.ToLocalChecked();
 
   *result = v8impl::JsValueFromV8LocalValue(str);
   return GET_RETURN_STATUS();
@@ -1319,54 +1320,11 @@ napi_status napi_throw_type_error(napi_env e, const char* msg) {
   return napi_ok;
 }
 
-napi_status napi_get_number_from_value(napi_env e, napi_value v, double* result) {
+napi_status napi_get_value_double(napi_env e, napi_value v, double* result) {
   NAPI_PREAMBLE(e);
   CHECK_ARG(result);
 
   *result = v8impl::V8LocalValueFromJsValue(v)->NumberValue();
-
-  return GET_RETURN_STATUS();
-}
-
-napi_status napi_get_string_from_value(napi_env e,
-                                       napi_value v,
-                                       char* buf,
-                                       const int buf_size,
-                                       int* result) {
-  NAPI_PREAMBLE(e);
-  CHECK_ARG(result);
-
-  napi_valuetype v_type;
-  napi_status err = napi_get_type_of_value(e, v, &v_type);
-
-  // Consider: Should we pre-emptively set the length to zero ?
-  RETURN_STATUS_IF_FALSE(err == napi_ok, err);
-
-  if (v_type == napi_number) {
-    v8::String::Utf8Value str(v8impl::V8LocalValueFromJsValue(v));
-    int len = str.length();
-    if (buf_size > len) {
-      memcpy(buf, *str, len);
-      *result = 0;
-    } else {
-      memcpy(buf, *str, buf_size - 1);
-      *result = len - buf_size + 1;
-    }
-  } else {
-    int len = 0;
-    err = napi_get_string_utf8_length(e, v, &len);
-    RETURN_STATUS_IF_FALSE(err == napi_ok, err);
-
-    int copied = v8impl::V8LocalValueFromJsValue(v).As<v8::String>()
-        ->WriteUtf8(
-            buf,
-            buf_size,
-            0,
-            v8::String::REPLACE_INVALID_UTF8 |
-            v8::String::PRESERVE_ONE_BYTE_NULL);
-    // add one for null ending
-    *result = len - copied + 1;
-  }
 
   return GET_RETURN_STATUS();
 }
@@ -1407,34 +1365,98 @@ napi_status napi_get_value_bool(napi_env e, napi_value v, bool* result) {
   return GET_RETURN_STATUS();
 }
 
-napi_status napi_get_string_length(napi_env e, napi_value v, int* result) {
+// Gets the number of CHARACTERS in the string.
+napi_status napi_get_value_string_length(napi_env e, napi_value v, size_t* result) {
   NAPI_PREAMBLE(e);
   CHECK_ARG(result);
 
-  *result = v8impl::V8LocalValueFromJsValue(v).As<v8::String>()->Length();
+  v8::Isolate *isolate = v8impl::V8IsolateFromJsEnv(e);
+  v8::Local<v8::Context> context = isolate->GetCurrentContext();
+  v8::Local<v8::String> str;
+
+  CHECK_TO_STRING(context, str, v);
+
+  *result = static_cast<size_t>(str->Length());
 
   return GET_RETURN_STATUS();
 }
 
-napi_status napi_get_string_utf8_length(napi_env e, napi_value v, int* result) {
+// Gets the number of BYTES in the UTF-8 encoded representation of the string.
+napi_status napi_get_value_string_utf8_length(napi_env e, napi_value v, size_t* result) {
   NAPI_PREAMBLE(e);
   CHECK_ARG(result);
 
-  *result = v8impl::V8LocalValueFromJsValue(v).As<v8::String>()->Utf8Length();
+  v8::Isolate *isolate = v8impl::V8IsolateFromJsEnv(e);
+  v8::Local<v8::Context> context = isolate->GetCurrentContext();
+  v8::Local<v8::String> str;
+
+  CHECK_TO_STRING(context, str, v);
+
+  *result = static_cast<size_t>(str->Utf8Length());
 
   return GET_RETURN_STATUS();
 }
 
-napi_status napi_get_string_utf8(napi_env e, napi_value v, char* buf, int bufsize, int* result) {
+// Copies a JavaScript string into a UTF-8 string buffer. The result is the number
+// of bytes copied into buf, including the null terminator. If the buf size is
+// insufficient, the string will be truncated, including a null terminator.
+napi_status napi_get_value_string_utf8(
+    napi_env e, napi_value v, char* buf, size_t bufsize, size_t* result) {
+  NAPI_PREAMBLE(e);
+
+  v8::Isolate *isolate = v8impl::V8IsolateFromJsEnv(e);
+  v8::Local<v8::Context> context = isolate->GetCurrentContext();
+  v8::Local<v8::String> str;
+
+  CHECK_TO_STRING(context, str, v);
+
+  size_t copied = static_cast<size_t>(str->WriteUtf8(
+    buf, static_cast<int>(bufsize), nullptr, v8::String::REPLACE_INVALID_UTF8));
+
+  if (result != nullptr) {
+    *result = copied;
+  }
+
+  return GET_RETURN_STATUS();
+}
+
+// Gets the number of 2-byte code units in the UTF-16 encoded representation of the string.
+napi_status napi_get_value_string_utf16_length(napi_env e, napi_value v, size_t* result) {
   NAPI_PREAMBLE(e);
   CHECK_ARG(result);
 
-  *result = v8impl::V8LocalValueFromJsValue(v).As<v8::String>()
-      ->WriteUtf8(
-          buf,
-          bufsize,
-          0,
-          v8::String::NO_NULL_TERMINATION | v8::String::REPLACE_INVALID_UTF8);
+  v8::Isolate *isolate = v8impl::V8IsolateFromJsEnv(e);
+  v8::Local<v8::Context> context = isolate->GetCurrentContext();
+  v8::Local<v8::String> str;
+
+  CHECK_TO_STRING(context, str, v);
+
+  // V8 assumes UTF-16 length is the same as the number of characters.
+  *result = static_cast<size_t>(str->Length());
+
+  return GET_RETURN_STATUS();
+}
+
+// Copies a JavaScript string into a UTF-16 string buffer. The result is the number
+// of 2-byte code units copied into buf, including the null terminator. If the buf
+// size is insufficient, the string will be truncated, including a null terminator.
+napi_status napi_get_value_string_utf16(
+    napi_env e, napi_value v, char16_t* buf, size_t bufsize, size_t* result) {
+  NAPI_PREAMBLE(e);
+  CHECK_ARG(result);
+
+  v8::Isolate *isolate = v8impl::V8IsolateFromJsEnv(e);
+  v8::Local<v8::Context> context = isolate->GetCurrentContext();
+  v8::Local<v8::String> str;
+
+  CHECK_TO_STRING(context, str, v);
+
+  size_t copied = static_cast<size_t>(str->Write(
+    reinterpret_cast<uint16_t*>(buf), 0, static_cast<int>(bufsize), v8::String::NO_OPTIONS));
+
+  if (result != nullptr) {
+    *result = copied;
+  }
 
   return GET_RETURN_STATUS();
 }

@@ -55,7 +55,7 @@ void MyObject::New(napi_env env, napi_callback_info info) {
     if (status != napi_ok) return;
 
     if (valuetype != napi_undefined) {
-      status = napi_get_number_from_value(env, args[0], &value);
+      status = napi_get_value_double(env, args[0], &value);
       if (status != napi_ok) return;
     }
 
@@ -127,7 +127,7 @@ void MyObject::SetValue(napi_env env, napi_callback_info info) {
   status = napi_unwrap(env, jsthis, reinterpret_cast<void**>(&obj));
   if (status != napi_ok) return;
 
-  status = napi_get_number_from_value(env, value, &obj->value_);
+  status = napi_get_value_double(env, value, &obj->value_);
   if (status != napi_ok) return;
 }
 
@@ -165,7 +165,7 @@ void MyObject::Multiply(napi_env env, napi_callback_info info) {
 
   double multiple = 1;
   if (valuetype != napi_undefined) {
-    status = napi_get_number_from_value(env, args[0], &multiple);
+    status = napi_get_value_double(env, args[0], &multiple);
     if (status != napi_ok) return;
   }
 
