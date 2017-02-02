@@ -87,28 +87,25 @@ namespace Napi {
    public:
     inline explicit Utf8String(napi_value from) :
         length_(0), str_(str_st_) {
-      if (from != NULL) {
+      if (from != nullptr) {
         napi_env env;
         napi_get_current_env(&env);
-        napi_value string;
+        napi_value string = nullptr;
         napi_coerce_to_string(env, from, &string);
-        if (string != NULL) {
-          int len;
-          napi_get_string_length(env, string, &len);
-          size_t utf8len = 3 * len + 1;
-          assert(utf8len <= INT_MAX);
-          if (utf8len > sizeof(str_st_)) {
-            str_ = new char[utf8len];
+        if (string != nullptr) {
+          napi_get_value_string_utf8_length(env, string, &length_);
+          size_t bufsize = length_ + 1;
+          assert(bufsize <= INT_MAX);
+          if (bufsize > sizeof(str_st_)) {
+            str_ = new char[bufsize];
             assert(str_ != 0);
           }
-          napi_get_string_utf8(env, string, str_,
-            static_cast<int>(utf8len), &length_);
-          str_[length_] = '\0';
+          napi_get_value_string_utf8(env, string, str_, bufsize, nullptr);
         }
       }
     }
 
-    inline int length() const {
+    inline size_t length() const {
       return length_;
     }
 
@@ -124,7 +121,7 @@ namespace Napi {
    private:
     NAPI_DISALLOW_ASSIGN_COPY_MOVE(Utf8String)
 
-    int length_;
+    size_t length_;
     char *str_;
     char str_st_[1024];
   };
@@ -431,7 +428,7 @@ namespace Napi {
       napi_get_current_env(&env);
 
       napi_value s;
-      napi_create_string(env, ErrorMessage(), &s);
+      napi_create_string_utf8(env, ErrorMessage(), -1, &s);
 
       napi_value argv[1];
       napi_create_error(env, s, argv);

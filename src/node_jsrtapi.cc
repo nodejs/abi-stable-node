@@ -1,4 +1,4 @@
-/*******************************************************************************
+﻿/*******************************************************************************
 * Experimental prototype for demonstrating VM agnostic and ABI stable API
 * for native modules to use instead of using Nan and V8 APIs directly.
 *
@@ -288,7 +288,7 @@ napi_status napi_create_constructor(napi_env e, const char* utf8name, napi_callb
   CHECK_ARG(result);
 
   napi_value namestring;
-  CHECK_NAPI(napi_create_string(e, utf8name, &namestring));
+  CHECK_NAPI(napi_create_string_utf8(e, utf8name, -1, &namestring));
   JsValueRef constructor;
   CHECK_JSRT(JsCreateNamedFunction(namestring, CallbackWrapper, (void*)cb, &constructor));
 
@@ -538,17 +538,19 @@ napi_status napi_create_array_with_length(napi_env e, int length, napi_value* re
   return napi_ok;
 }
 
-napi_status napi_create_string(napi_env e, const char* s, napi_value* result) {
+napi_status napi_create_string_utf8(napi_env e, const char* s, size_t length,
+                                    napi_value* result) {
   CHECK_ARG(result);
-  size_t length = strlen(s);
-  CHECK_JSRT(JsCreateStringUtf8((uint8_t*)s, length, reinterpret_cast<JsValueRef*>(result)));
+  CHECK_JSRT(JsCreateStringUtf8(
+    reinterpret_cast<const uint8_t*>(s), length, reinterpret_cast<JsValueRef*>(result)));
   return napi_ok;
 }
 
-napi_status napi_create_string_with_length(napi_env e,
-  const char* s, size_t length, napi_value* result) {
+napi_status napi_create_string_utf16(napi_env e, const char16_t* s, size_t length,
+                                     napi_value* result) {
   CHECK_ARG(result);
-  CHECK_JSRT(JsCreateStringUtf8((uint8_t*)s, length, reinterpret_cast<JsValueRef*>(result)));
+  CHECK_JSRT(JsCreateStringUtf16(
+    reinterpret_cast<const uint16_t*>(s), length, reinterpret_cast<JsValueRef*>(result)));
   return napi_ok;
 }
 
@@ -749,26 +751,13 @@ napi_status napi_throw_type_error(napi_env e, const char* msg) {
   return napi_ok;
 }
 
-napi_status napi_get_number_from_value(napi_env e, napi_value v, double* result) {
+napi_status napi_get_value_double(napi_env e, napi_value v, double* result) {
   CHECK_ARG(result);
   JsValueRef value = reinterpret_cast<JsValueRef>(v);
   JsValueRef numberValue = nullptr;
   double doubleValue = 0.0;
   CHECK_JSRT(JsConvertValueToNumber(value, &numberValue));
   CHECK_JSRT(JsNumberToDouble(numberValue, result));
-  return napi_ok;
-}
-
-napi_status napi_get_string_from_value(napi_env e, napi_value v,
-  char* buf, const int buf_size, int* remain) {
-  CHECK_ARG(remain);
-  int len = 0;
-  size_t copied = 0;
-  JsValueRef stringValue = reinterpret_cast<JsValueRef>(v);
-  CHECK_JSRT(JsGetStringLength(stringValue, &len));
-  CHECK_JSRT(JsCopyStringUtf8(stringValue, (uint8_t*)buf, buf_size, &copied));
-  // add one for null ending
-  *remain = len - static_cast<int>(copied) + 1;
   return napi_ok;
 }
 
@@ -814,28 +803,109 @@ napi_status napi_get_value_bool(napi_env e, napi_value v, bool* result) {
   return napi_ok;
 }
 
-napi_status napi_get_string_length(napi_env e, napi_value v, int* result) {
+// Gets the number of CHARACTERS in the string.
+napi_status napi_get_value_string_length(napi_env e, napi_value v, size_t* result) {
   CHECK_ARG(result);
-  JsValueRef stringValue = reinterpret_cast<JsValueRef>(v);
-  int length = 0;
-  CHECK_JSRT(JsGetStringLength(stringValue, result));
-  return napi_ok;
-}
 
-napi_status napi_get_string_utf8_length(napi_env e, napi_value v, int* result) {
-  CHECK_ARG(result);
-  JsValueRef strRef = reinterpret_cast<JsValueRef>(v);
-  int length = 0;
-  CHECK_JSRT(JsGetStringLength(strRef, &length));
-  return napi_ok;
-}
-
-napi_status napi_get_string_utf8(napi_env e, napi_value v, char* buf, int bufsize, int* length) {
-  CHECK_ARG(length);
   JsValueRef value = reinterpret_cast<JsValueRef>(v);
-  size_t len = 0;
-  CHECK_JSRT(JsCopyStringUtf8(value, (uint8_t*)buf, bufsize, &len));
-  *length = static_cast<int>(len);
+  JsValueRef stringValue;
+  CHECK_JSRT(JsConvertValueToString(value, &stringValue));
+
+  int length = 0;
+  CHECK_JSRT(JsGetStringLength(stringValue, &length));
+  *result = static_cast<size_t>(length);
+  return napi_ok;
+}
+
+// Gets the number of BYTES in the UTF-8 encoded representation of the string.
+napi_status napi_get_value_string_utf8_length(napi_env e, napi_value v, size_t* result) {
+  CHECK_ARG(result);
+
+  JsValueRef value = reinterpret_cast<JsValueRef>(v);
+  JsValueRef stringValue;
+  CHECK_JSRT(JsConvertValueToString(value, &stringValue));
+
+  CHECK_JSRT(JsCopyStringUtf8(stringValue, nullptr, 0, result));
+  return napi_ok;
+}
+
+// Copies a JavaScript string into a UTF-8 string buffer. The result is the number
+// of bytes copied into buf, including the null terminator. If the buf size is
+// insufficient, the string will be truncated, including a null terminator.
+napi_status napi_get_value_string_utf8(
+    napi_env e, napi_value v, char* buf, size_t bufsize, size_t* result) {
+  CHECK_ARG(buf);
+
+  if (bufsize == 0) {
+    *result = 0;
+    return napi_ok;
+  }
+
+  JsValueRef value = reinterpret_cast<JsValueRef>(v);
+  JsValueRef stringValue;
+  CHECK_JSRT(JsConvertValueToString(value, &stringValue));
+
+  size_t copied = 0;
+  CHECK_JSRT(JsCopyStringUtf8(
+    stringValue, reinterpret_cast<uint8_t*>(buf), bufsize, &copied));
+
+  if (copied < bufsize) {
+    buf[copied] = 0;
+    copied++;
+  }
+  else {
+    buf[bufsize - 1] = 0;
+  }
+
+  if (result != nullptr) {
+    *result = copied;
+  }
+  return napi_ok;
+}
+
+// Gets the number of 2-byte code units in the UTF-16 encoded representation of the string.
+napi_status napi_get_value_string_utf16_length(napi_env e, napi_value v, size_t* result) {
+  CHECK_ARG(result);
+
+  JsValueRef value = reinterpret_cast<JsValueRef>(v);
+  JsValueRef stringValue;
+  CHECK_JSRT(JsConvertValueToString(value, &stringValue));
+
+  CHECK_JSRT(JsCopyStringUtf16(stringValue, 0, 0, nullptr, result));
+  return napi_ok;
+}
+
+// Copies a JavaScript string into a UTF-16 string buffer. The result is the number
+// of 2-byte code units copied into buf, including the null terminator. If the buf
+// size is insufficient, the string will be truncated, including a null terminator.
+napi_status napi_get_value_string_utf16(
+    napi_env e, napi_value v, char16_t* buf, size_t bufsize, size_t* result) {
+  CHECK_ARG(buf);
+
+  if (bufsize == 0) {
+    *result = 0;
+    return napi_ok;
+  }
+
+  JsValueRef value = reinterpret_cast<JsValueRef>(v);
+  JsValueRef stringValue;
+  CHECK_JSRT(JsConvertValueToString(value, &stringValue));
+
+  size_t copied = 0;
+  CHECK_JSRT(JsCopyStringUtf16(
+    stringValue, 0, bufsize, reinterpret_cast<uint16_t*>(buf), &copied));
+
+  if (copied < bufsize) {
+    buf[copied] = 0;
+    copied++;
+  }
+  else {
+    buf[bufsize - 1] = 0;
+  }
+
+  if (result != nullptr) {
+    *result = copied;
+  }
   return napi_ok;
 }
 

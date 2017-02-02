@@ -158,9 +158,10 @@ NODE_EXTERN napi_status napi_create_array(napi_env e, napi_value* result);
 NODE_EXTERN napi_status napi_create_array_with_length(napi_env e, int length,
                                                         napi_value* result);
 NODE_EXTERN napi_status napi_create_number(napi_env e, double val, napi_value* result);
-NODE_EXTERN napi_status napi_create_string(napi_env e, const char* s, napi_value* result);
-NODE_EXTERN napi_status napi_create_string_with_length(napi_env e, const char* s,
-                                                    size_t length, napi_value* result);
+NODE_EXTERN napi_status napi_create_string_utf8(napi_env e, const char* s,
+                                                size_t length, napi_value* result);
+NODE_EXTERN napi_status napi_create_string_utf16(napi_env e, const char16_t* s,
+                                                 size_t length, napi_value* result);
 NODE_EXTERN napi_status napi_create_boolean(napi_env e, bool b, napi_value* result);
 NODE_EXTERN napi_status napi_create_symbol(napi_env e, const char* s, napi_value* result);
 NODE_EXTERN napi_status napi_create_function(napi_env e, napi_callback cb,
@@ -170,20 +171,30 @@ NODE_EXTERN napi_status napi_create_type_error(napi_env e, napi_value msg, napi_
 
 // Methods to get the the native napi_value from Primitive type
 NODE_EXTERN napi_status napi_get_type_of_value(napi_env e, napi_value vv, napi_valuetype* result);
-NODE_EXTERN napi_status napi_get_number_from_value(napi_env e, napi_value v, double* result);
-NODE_EXTERN napi_status napi_get_string_from_value(napi_env e, napi_value v,
-                                           char* buf, const int buf_size, int* result);
+NODE_EXTERN napi_status napi_get_value_double(napi_env e, napi_value v, double* result);
 NODE_EXTERN napi_status napi_get_value_int32(napi_env e, napi_value v, int32_t* result);
 NODE_EXTERN napi_status napi_get_value_uint32(napi_env e, napi_value v, uint32_t* result);
 NODE_EXTERN napi_status napi_get_value_int64(napi_env e, napi_value v, int64_t* result);
 NODE_EXTERN napi_status napi_get_value_bool(napi_env e, napi_value v, bool* result);
 
-NODE_EXTERN napi_status napi_get_string_length(napi_env e, napi_value v, int* result);
+// Gets the number of CHARACTERS in the string.
+NODE_EXTERN napi_status napi_get_value_string_length(napi_env e, napi_value v, size_t* result);
 
-// Do we need utf16 as well?
-NODE_EXTERN napi_status napi_get_string_utf8_length(napi_env e, napi_value v, int* result);
-NODE_EXTERN napi_status napi_get_string_utf8(napi_env e, napi_value v,
-                                     char* buf, int bufsize, int* result);
+// Gets the number of BYTES in the UTF-8 encoded representation of the string.
+NODE_EXTERN napi_status napi_get_value_string_utf8_length(napi_env e, napi_value v,
+                                               size_t* result);
+
+// Copies UTF-8 encoded bytes from a string into a buffer.
+NODE_EXTERN napi_status napi_get_value_string_utf8(napi_env e, napi_value v,
+  char* buf, size_t bufsize, size_t* result);
+
+// Gets the number of 2-byte code units in the UTF-16 encoded representation of the string.
+NODE_EXTERN napi_status napi_get_value_string_utf16_length(napi_env e, napi_value v,
+                                               size_t* result);
+
+// Copies UTF-16 encoded bytes from a string into a buffer.
+NODE_EXTERN napi_status napi_get_value_string_utf16(napi_env e, napi_value v,
+  char16_t* buf, size_t bufsize, size_t* result);
 
 // Methods to coerce values
 // These APIs may execute user script
