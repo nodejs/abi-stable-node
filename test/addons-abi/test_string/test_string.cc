@@ -64,7 +64,7 @@ void Length(napi_env env, napi_callback_info info) {
     return;
   }
 
-  size_t length;
+  int length;
   status = napi_get_value_string_length(env, args[0], &length);
   if (status != napi_ok) return;
 
@@ -101,7 +101,7 @@ void Utf8Length(napi_env env, napi_callback_info info) {
     return;
   }
 
-  size_t length;
+  int length;
   status = napi_get_value_string_utf8_length(env, args[0], &length);
   if (status != napi_ok) return;
 

@@ -192,7 +192,7 @@ namespace v8impl {
     virtual bool IsConstructCall() = 0;
     virtual void* Data() = 0;
     virtual int ArgsLength() = 0;
-    virtual void Args(napi_value* buffer, size_t bufferlength) = 0;
+    virtual void Args(napi_value* buffer, int bufferlength) = 0;
     virtual void SetReturnValue(napi_value v) = 0;
   };
 
@@ -260,22 +260,18 @@ namespace v8impl {
         return _cbinfo.Length();
       }
 
-      virtual void Args(napi_value* buffer, size_t bufferlength) override {
+      virtual void Args(napi_value* buffer, int bufferlength) override {
         int i = 0;
-        // size_t appropriate for the buffer length parameter?
-        // Probably this API is not the way to go.
-        int min =
-          static_cast<int>(bufferlength) < _cbinfo.Length() ?
-          static_cast<int>(bufferlength) : _cbinfo.Length();
+        int min = bufferlength < _cbinfo.Length() ? bufferlength : _cbinfo.Length();
 
         for (; i < min; i += 1) {
           buffer[i] = v8impl::JsValueFromV8LocalValue(_cbinfo[i]);
         }
 
-        if (i < static_cast<int>(bufferlength)) {
+        if (i < bufferlength) {
           napi_value undefined = v8impl::JsValueFromV8LocalValue(
             v8::Undefined(v8::Isolate::GetCurrent()));
-          for (; i < static_cast<int>(bufferlength); i += 1) {
+          for (; i < bufferlength; i += 1) {
             buffer[i] = undefined;
           }
         }
@@ -306,11 +302,11 @@ namespace v8impl {
         return 0;
       }
 
-      virtual void Args(napi_value* buffer, size_t bufferlength) override {
+      virtual void Args(napi_value* buffer, int bufferlength) override {
         if (bufferlength > 0) {
           napi_value undefined = v8impl::JsValueFromV8LocalValue(
             v8::Undefined(v8::Isolate::GetCurrent()));
-          for (int i = 0; i < static_cast<int>(bufferlength); i += 1) {
+          for (int i = 0; i < bufferlength; i += 1) {
             buffer[i] = undefined;
           }
         }
@@ -344,14 +340,14 @@ namespace v8impl {
         return 1;
       }
 
-      virtual void Args(napi_value* buffer, size_t bufferlength) override {
+      virtual void Args(napi_value* buffer, int bufferlength) override {
         if (bufferlength > 0) {
           buffer[0] = v8impl::JsValueFromV8LocalValue(_value);
 
           if (bufferlength > 1) {
             napi_value undefined = v8impl::JsValueFromV8LocalValue(
               v8::Undefined(v8::Isolate::GetCurrent()));
-            for (int i = 1; i < static_cast<int>(bufferlength); i += 1) {
+            for (int i = 1; i < bufferlength; i += 1) {
               buffer[i] = undefined;
             }
           }
@@ -524,6 +520,8 @@ const char* error_messages[] = {
   "An object was expected",
   "A string was expected",
   "A function was expected",
+  "A number was expected",
+  "A boolean was expected",
   "Unknown failure",
   "An exception is pending"
 };
@@ -1002,27 +1000,27 @@ napi_status napi_create_array_with_length(napi_env e, int length, napi_value* re
   return GET_RETURN_STATUS();
 }
 
-napi_status napi_create_string_utf8(napi_env e, const char* s, size_t length,
+napi_status napi_create_string_utf8(napi_env e, const char* s, int length,
                                     napi_value* result) {
   NAPI_PREAMBLE(e);
   CHECK_ARG(result);
 
   auto isolate = v8impl::V8IsolateFromJsEnv(e);
   v8::Local<v8::String> str;
-  CHECK_NEW_FROM_UTF8_LEN(isolate, str, s, static_cast<int>(length));
+  CHECK_NEW_FROM_UTF8_LEN(isolate, str, s, length);
 
   *result = v8impl::JsValueFromV8LocalValue(str);
   return GET_RETURN_STATUS();
 }
 
-napi_status napi_create_string_utf16(napi_env e, const char16_t* s, size_t length,
+napi_status napi_create_string_utf16(napi_env e, const char16_t* s, int length,
   napi_value* result) {
   NAPI_PREAMBLE(e);
   CHECK_ARG(result);
 
   auto isolate = v8impl::V8IsolateFromJsEnv(e);
   auto str_maybe = v8::String::NewFromTwoByte(isolate, reinterpret_cast<const uint16_t*>(s),
-    v8::NewStringType::kInternalized, static_cast<int>(length));
+    v8::NewStringType::kInternalized, length);
   CHECK_MAYBE_EMPTY(str_maybe, napi_generic_failure);
   v8::Local<v8::String> str = str_maybe.ToLocalChecked();
 
@@ -1185,7 +1183,7 @@ napi_status napi_is_construct_call(napi_env e, napi_callback_info cbinfo, bool* 
 // copy encoded arguments into provided buffer or return direct pointer to
 // encoded arguments array?
 napi_status napi_get_cb_args(napi_env e, napi_callback_info cbinfo,
-                      napi_value* buffer, size_t bufferlength) {
+                      napi_value* buffer, int bufferlength) {
   NAPI_PREAMBLE(e);
   CHECK_ARG(buffer);
 
@@ -1324,7 +1322,10 @@ napi_status napi_get_value_double(napi_env e, napi_value v, double* result) {
   NAPI_PREAMBLE(e);
   CHECK_ARG(result);
 
-  *result = v8impl::V8LocalValueFromJsValue(v)->NumberValue();
+  v8::Local<v8::Value> value = v8impl::V8LocalValueFromJsValue(v);
+  if (!value->IsNumber()) return napi_set_last_error(napi_number_expected);
+
+  *result = value.As<v8::Number>()->Value();
 
   return GET_RETURN_STATUS();
 }
@@ -1333,7 +1334,10 @@ napi_status napi_get_value_int32(napi_env e, napi_value v, int32_t* result) {
   NAPI_PREAMBLE(e);
   CHECK_ARG(result);
 
-  *result = v8impl::V8LocalValueFromJsValue(v)->Int32Value();
+  v8::Local<v8::Value> value = v8impl::V8LocalValueFromJsValue(v);
+  if (!value->IsNumber()) return napi_set_last_error(napi_number_expected);
+
+  *result = value.As<v8::Int32>()->Value();
 
   return GET_RETURN_STATUS();
 }
@@ -1342,7 +1346,10 @@ napi_status napi_get_value_uint32(napi_env e, napi_value v, uint32_t* result) {
   NAPI_PREAMBLE(e);
   CHECK_ARG(result);
 
-  *result = v8impl::V8LocalValueFromJsValue(v)->Uint32Value();
+  v8::Local<v8::Value> value = v8impl::V8LocalValueFromJsValue(v);
+  if (!value->IsNumber()) return napi_set_last_error(napi_number_expected);
+
+  *result = value.As<v8::Uint32>()->Value();
 
   return GET_RETURN_STATUS();
 }
@@ -1351,7 +1358,10 @@ napi_status napi_get_value_int64(napi_env e, napi_value v, int64_t* result) {
   NAPI_PREAMBLE(e);
   CHECK_ARG(result);
 
-  *result = v8impl::V8LocalValueFromJsValue(v)->IntegerValue();
+  v8::Local<v8::Value> value = v8impl::V8LocalValueFromJsValue(v);
+  if (!value->IsNumber()) return napi_set_last_error(napi_number_expected);
+
+  *result = value.As<v8::Integer>()->Value();
 
   return GET_RETURN_STATUS();
 }
@@ -1360,39 +1370,36 @@ napi_status napi_get_value_bool(napi_env e, napi_value v, bool* result) {
   NAPI_PREAMBLE(e);
   CHECK_ARG(result);
 
-  *result = v8impl::V8LocalValueFromJsValue(v)->BooleanValue();
+  v8::Local<v8::Value> value = v8impl::V8LocalValueFromJsValue(v);
+  if (!value->IsBoolean()) return napi_set_last_error(napi_boolean_expected);
+
+  *result = value.As<v8::Boolean>()->Value();
 
   return GET_RETURN_STATUS();
 }
 
 // Gets the number of CHARACTERS in the string.
-napi_status napi_get_value_string_length(napi_env e, napi_value v, size_t* result) {
+napi_status napi_get_value_string_length(napi_env e, napi_value v, int* result) {
   NAPI_PREAMBLE(e);
   CHECK_ARG(result);
 
-  v8::Isolate *isolate = v8impl::V8IsolateFromJsEnv(e);
-  v8::Local<v8::Context> context = isolate->GetCurrentContext();
-  v8::Local<v8::String> str;
+  v8::Local<v8::Value> value = v8impl::V8LocalValueFromJsValue(v);
+  if (!value->IsString()) return napi_set_last_error(napi_string_expected);
 
-  CHECK_TO_STRING(context, str, v);
-
-  *result = static_cast<size_t>(str->Length());
+  *result = value.As<v8::String>()->Length();
 
   return GET_RETURN_STATUS();
 }
 
 // Gets the number of BYTES in the UTF-8 encoded representation of the string.
-napi_status napi_get_value_string_utf8_length(napi_env e, napi_value v, size_t* result) {
+napi_status napi_get_value_string_utf8_length(napi_env e, napi_value v, int* result) {
   NAPI_PREAMBLE(e);
   CHECK_ARG(result);
 
-  v8::Isolate *isolate = v8impl::V8IsolateFromJsEnv(e);
-  v8::Local<v8::Context> context = isolate->GetCurrentContext();
-  v8::Local<v8::String> str;
+  v8::Local<v8::Value> value = v8impl::V8LocalValueFromJsValue(v);
+  if (!value->IsString()) return napi_set_last_error(napi_string_expected);
 
-  CHECK_TO_STRING(context, str, v);
-
-  *result = static_cast<size_t>(str->Utf8Length());
+  *result = value.As<v8::String>()->Utf8Length();
 
   return GET_RETURN_STATUS();
 }
@@ -1401,17 +1408,14 @@ napi_status napi_get_value_string_utf8_length(napi_env e, napi_value v, size_t* 
 // of bytes copied into buf, including the null terminator. If the buf size is
 // insufficient, the string will be truncated, including a null terminator.
 napi_status napi_get_value_string_utf8(
-    napi_env e, napi_value v, char* buf, size_t bufsize, size_t* result) {
+    napi_env e, napi_value v, char* buf, int bufsize, int* result) {
   NAPI_PREAMBLE(e);
 
-  v8::Isolate *isolate = v8impl::V8IsolateFromJsEnv(e);
-  v8::Local<v8::Context> context = isolate->GetCurrentContext();
-  v8::Local<v8::String> str;
+  v8::Local<v8::Value> value = v8impl::V8LocalValueFromJsValue(v);
+  if (!value->IsString()) return napi_set_last_error(napi_string_expected);
 
-  CHECK_TO_STRING(context, str, v);
-
-  size_t copied = static_cast<size_t>(str->WriteUtf8(
-    buf, static_cast<int>(bufsize), nullptr, v8::String::REPLACE_INVALID_UTF8));
+  int copied = value.As<v8::String>()->WriteUtf8(
+    buf, bufsize, nullptr, v8::String::REPLACE_INVALID_UTF8);
 
   if (result != nullptr) {
     *result = copied;
@@ -1421,18 +1425,15 @@ napi_status napi_get_value_string_utf8(
 }
 
 // Gets the number of 2-byte code units in the UTF-16 encoded representation of the string.
-napi_status napi_get_value_string_utf16_length(napi_env e, napi_value v, size_t* result) {
+napi_status napi_get_value_string_utf16_length(napi_env e, napi_value v, int* result) {
   NAPI_PREAMBLE(e);
   CHECK_ARG(result);
 
-  v8::Isolate *isolate = v8impl::V8IsolateFromJsEnv(e);
-  v8::Local<v8::Context> context = isolate->GetCurrentContext();
-  v8::Local<v8::String> str;
-
-  CHECK_TO_STRING(context, str, v);
+  v8::Local<v8::Value> value = v8impl::V8LocalValueFromJsValue(v);
+  if (!value->IsString()) return napi_set_last_error(napi_string_expected);
 
   // V8 assumes UTF-16 length is the same as the number of characters.
-  *result = static_cast<size_t>(str->Length());
+  *result = value.As<v8::String>()->Length();
 
   return GET_RETURN_STATUS();
 }
@@ -1441,18 +1442,15 @@ napi_status napi_get_value_string_utf16_length(napi_env e, napi_value v, size_t*
 // of 2-byte code units copied into buf, including the null terminator. If the buf
 // size is insufficient, the string will be truncated, including a null terminator.
 napi_status napi_get_value_string_utf16(
-    napi_env e, napi_value v, char16_t* buf, size_t bufsize, size_t* result) {
+    napi_env e, napi_value v, char16_t* buf, int bufsize, int* result) {
   NAPI_PREAMBLE(e);
   CHECK_ARG(result);
 
-  v8::Isolate *isolate = v8impl::V8IsolateFromJsEnv(e);
-  v8::Local<v8::Context> context = isolate->GetCurrentContext();
-  v8::Local<v8::String> str;
+  v8::Local<v8::Value> value = v8impl::V8LocalValueFromJsValue(v);
+  if (!value->IsString()) return napi_set_last_error(napi_string_expected);
 
-  CHECK_TO_STRING(context, str, v);
-
-  size_t copied = static_cast<size_t>(str->Write(
-    reinterpret_cast<uint16_t*>(buf), 0, static_cast<int>(bufsize), v8::String::NO_OPTIONS));
+  int copied = value.As<v8::String>()->Write(
+    reinterpret_cast<uint16_t*>(buf), 0, bufsize, v8::String::NO_OPTIONS);
 
   if (result != nullptr) {
     *result = copied;
@@ -1801,7 +1799,7 @@ napi_status napi_get_and_clear_last_exception(napi_env e, napi_value* result) {
   return napi_ok;
 }
 
-napi_status napi_buffer_new(napi_env e, char* data, uint32_t size, napi_value* result) {
+napi_status napi_buffer_new(napi_env e, char* data, size_t size, napi_value* result) {
   NAPI_PREAMBLE(e);
   CHECK_ARG(result);
 
@@ -1814,7 +1812,7 @@ napi_status napi_buffer_new(napi_env e, char* data, uint32_t size, napi_value* r
 }
 
 napi_status napi_buffer_copy(napi_env e, const char* data,
-                             uint32_t size, napi_value* result) {
+                             size_t size, napi_value* result) {
   NAPI_PREAMBLE(e);
   CHECK_ARG(result);
 

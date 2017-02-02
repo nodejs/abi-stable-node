@@ -94,9 +94,8 @@ namespace Napi {
         napi_coerce_to_string(env, from, &string);
         if (string != nullptr) {
           napi_get_value_string_utf8_length(env, string, &length_);
-          size_t bufsize = length_ + 1;
-          assert(bufsize <= INT_MAX);
-          if (bufsize > sizeof(str_st_)) {
+          int bufsize = length_ + 1;
+          if (static_cast<size_t>(bufsize) > sizeof(str_st_)) {
             str_ = new char[bufsize];
             assert(str_ != 0);
           }
@@ -121,7 +120,7 @@ namespace Napi {
    private:
     NAPI_DISALLOW_ASSIGN_COPY_MOVE(Utf8String)
 
-    size_t length_;
+    int length_;
     char *str_;
     char str_st_[1024];
   };
