@@ -1,4 +1,4 @@
-#include <node_jsvmapi.h>
+﻿#include <node_jsvmapi.h>
 
 void Get(napi_env env, napi_callback_info info) {
   napi_status status;
@@ -40,22 +40,19 @@ void Get(napi_env env, napi_callback_info info) {
   char buffer[128];
   int buffer_size = 128;
 
-  int remain;
-  status = napi_get_string_from_value(env, args[1], buffer, buffer_size, &remain);
+  status = napi_get_value_string_utf8(env, args[1], buffer, buffer_size, nullptr);
   if (status != napi_ok) return;
 
-  if (remain == 0) {
-    napi_propertyname property_name;
-    status = napi_property_name(env, buffer, &property_name);
+  napi_propertyname property_name;
+  status = napi_property_name(env, buffer, &property_name);
   if (status != napi_ok) return;
 
-    napi_value output;
-    status = napi_get_property(env, object, property_name, &output);
-    if (status != napi_ok) return;
+  napi_value output;
+  status = napi_get_property(env, object, property_name, &output);
+  if (status != napi_ok) return;
 
-    status = napi_set_return_value(env, info, output);
-    if (status != napi_ok) return;
-  }
+  status = napi_set_return_value(env, info, output);
+  if (status != napi_ok) return;
 }
 
 void Has(napi_env env, napi_callback_info info) {
@@ -95,29 +92,26 @@ void Has(napi_env env, napi_callback_info info) {
   }
 
   napi_value obj = args[0];
-  char buffer[128];
-  int buffer_size = 128;
+  const int buffer_size = 128;
+  char buffer[buffer_size];
 
-  int remain;
-  status = napi_get_string_from_value(env, args[1], buffer, buffer_size, &remain);
+  status = napi_get_value_string_utf8(env, args[1], buffer, buffer_size, nullptr);
   if (status != napi_ok) return;
 
-  if (remain == 0) {
-    napi_propertyname property_name;
-    status = napi_property_name(env, buffer, &property_name);
-    if (status != napi_ok) return;
+  napi_propertyname property_name;
+  status = napi_property_name(env, buffer, &property_name);
+  if (status != napi_ok) return;
 
-    bool has_property;
-    status = napi_has_property(env, obj, property_name, &has_property);
-    if (status != napi_ok) return;
+  bool has_property;
+  status = napi_has_property(env, obj, property_name, &has_property);
+  if (status != napi_ok) return;
 
-    napi_value ret;
-    status = napi_create_boolean(env, has_property, &ret);
-    if (status != napi_ok) return;
+  napi_value ret;
+  status = napi_create_boolean(env, has_property, &ret);
+  if (status != napi_ok) return;
 
-    status = napi_set_return_value(env, info, ret);
-    if (status != napi_ok) return;
-  }
+  status = napi_set_return_value(env, info, ret);
+  if (status != napi_ok) return;
 }
 
 void New(napi_env env, napi_callback_info info) {
@@ -142,7 +136,7 @@ void New(napi_env env, napi_callback_info info) {
   if (status != napi_ok) return;
 
   napi_value str;
-  status = napi_create_string(env, "test string", &str);
+  status = napi_create_string_utf8(env, "test string", -1, &str);
   if (status != napi_ok) return;
 
   status = napi_set_property(env, ret, test_string, str);
@@ -189,9 +183,18 @@ void Inflate(napi_env env, napi_callback_info info) {
   if (status != napi_ok) return;
 
   for (uint32_t i = 0; i < length; i++) {
+    napi_value property_str;
+    status = napi_get_element(env, propertynames, i, &property_str);
+    if (status != napi_ok) return;
+
+    const int buffer_size = 128;
+    char buffer[buffer_size];
+
+    status = napi_get_value_string_utf8(env, property_str, buffer, buffer_size, nullptr);
+    if (status != napi_ok) return;
+
     napi_propertyname propertyname;
-    status = napi_get_element(env, propertynames, i,
-      reinterpret_cast<napi_value*>(&propertyname));
+    status = napi_property_name(env, buffer, &propertyname);
     if (status != napi_ok) return;
 
     napi_value value;
@@ -199,7 +202,7 @@ void Inflate(napi_env env, napi_callback_info info) {
     if (status != napi_ok) return;
 
     double double_val;
-    status = napi_get_number_from_value(env, value, &double_val);
+    status = napi_get_value_double(env, value, &double_val);
     if (status != napi_ok) return;
 
     status = napi_create_number(env, double_val + 1, &value);

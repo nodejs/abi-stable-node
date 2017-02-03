@@ -42,7 +42,7 @@ void MyObject::New(napi_env env, napi_callback_info info) {
     obj->counter_ = 0;
   }
   else {
-    status = napi_get_number_from_value(env, args[0], &obj->counter_);
+    status = napi_get_value_double(env, args[0], &obj->counter_);
     if (status != napi_ok) return;
   }
 

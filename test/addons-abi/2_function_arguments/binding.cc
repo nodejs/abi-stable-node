@@ -30,11 +30,11 @@ void Add(napi_env env, napi_callback_info info) {
   }
 
   double value0;
-  status = napi_get_number_from_value(env, args[0], &value0);
+  status = napi_get_value_double(env, args[0], &value0);
   if (status != napi_ok) return;
 
   double value1;
-  status = napi_get_number_from_value(env, args[1], &value1);
+  status = napi_get_value_double(env, args[1], &value1);
   if (status != napi_ok) return;
 
   napi_value sum;
