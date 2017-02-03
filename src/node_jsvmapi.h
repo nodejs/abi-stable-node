@@ -66,13 +66,13 @@ NODE_EXTERN void napi_module_register(void* mod);
 
 #if defined(_MSC_VER)
 #pragma section(".CRT$XCU", read)
-#define NODE_ABI_CTOR(fn)                                               \
+#define NODE_ABI_CTOR(fn)                                             \
   static void __cdecl fn(void);                                       \
   __declspec(dllexport, allocate(".CRT$XCU"))                         \
       void (__cdecl*fn ## _)(void) = fn;                              \
   static void __cdecl fn(void)
 #else
-#define NODE_ABI_CTOR(fn)                                               \
+#define NODE_ABI_CTOR(fn)                                             \
   static void fn(void) __attribute__((constructor));                  \
   static void fn(void)
 #endif
@@ -91,7 +91,7 @@ NODE_EXTERN void napi_module_register(void* mod);
       priv,                                                           \
       NULL                                                            \
     };                                                                \
-    NODE_ABI_CTOR(_register_ ## modname) {                              \
+    NODE_ABI_CTOR(_register_ ## modname) {                            \
       napi_module_register(&_module);                                 \
     }                                                                 \
   }
@@ -121,6 +121,8 @@ enum napi_status {
   napi_object_expected,
   napi_string_expected,
   napi_function_expected,
+  napi_number_expected,
+  napi_boolean_expected,
   napi_generic_failure,
   napi_pending_exception,
   napi_status_last
@@ -158,9 +160,10 @@ NODE_EXTERN napi_status napi_create_array(napi_env e, napi_value* result);
 NODE_EXTERN napi_status napi_create_array_with_length(napi_env e, int length,
                                                         napi_value* result);
 NODE_EXTERN napi_status napi_create_number(napi_env e, double val, napi_value* result);
-NODE_EXTERN napi_status napi_create_string(napi_env e, const char* s, napi_value* result);
-NODE_EXTERN napi_status napi_create_string_with_length(napi_env e, const char* s,
-                                                    size_t length, napi_value* result);
+NODE_EXTERN napi_status napi_create_string_utf8(napi_env e, const char* s,
+                                                int length, napi_value* result);
+NODE_EXTERN napi_status napi_create_string_utf16(napi_env e, const char16_t* s,
+                                                 int length, napi_value* result);
 NODE_EXTERN napi_status napi_create_boolean(napi_env e, bool b, napi_value* result);
 NODE_EXTERN napi_status napi_create_symbol(napi_env e, const char* s, napi_value* result);
 NODE_EXTERN napi_status napi_create_function(napi_env e, napi_callback cb,
@@ -170,23 +173,35 @@ NODE_EXTERN napi_status napi_create_type_error(napi_env e, napi_value msg, napi_
 
 // Methods to get the the native napi_value from Primitive type
 NODE_EXTERN napi_status napi_get_type_of_value(napi_env e, napi_value vv, napi_valuetype* result);
-NODE_EXTERN napi_status napi_get_number_from_value(napi_env e, napi_value v, double* result);
-NODE_EXTERN napi_status napi_get_string_from_value(napi_env e, napi_value v,
-                                           char* buf, const int buf_size, int* result);
+NODE_EXTERN napi_status napi_get_value_double(napi_env e, napi_value v, double* result);
 NODE_EXTERN napi_status napi_get_value_int32(napi_env e, napi_value v, int32_t* result);
 NODE_EXTERN napi_status napi_get_value_uint32(napi_env e, napi_value v, uint32_t* result);
 NODE_EXTERN napi_status napi_get_value_int64(napi_env e, napi_value v, int64_t* result);
 NODE_EXTERN napi_status napi_get_value_bool(napi_env e, napi_value v, bool* result);
 
-NODE_EXTERN napi_status napi_get_string_length(napi_env e, napi_value v, int* result);
+// Gets the number of CHARACTERS in the string.
+NODE_EXTERN napi_status napi_get_value_string_length(napi_env e, napi_value v, int* result);
 
-// Do we need utf16 as well?
-NODE_EXTERN napi_status napi_get_string_utf8_length(napi_env e, napi_value v, int* result);
-NODE_EXTERN napi_status napi_get_string_utf8(napi_env e, napi_value v,
-                                     char* buf, int bufsize, int* result);
+// Gets the number of BYTES in the UTF-8 encoded representation of the string.
+NODE_EXTERN napi_status napi_get_value_string_utf8_length(napi_env e, napi_value v,
+                                               int* result);
+
+// Copies UTF-8 encoded bytes from a string into a buffer.
+NODE_EXTERN napi_status napi_get_value_string_utf8(napi_env e, napi_value v,
+                                               char* buf, int bufsize, int* result);
+
+// Gets the number of 2-byte code units in the UTF-16 encoded representation of the string.
+NODE_EXTERN napi_status napi_get_value_string_utf16_length(napi_env e, napi_value v,
+                                               int* result);
+
+// Copies UTF-16 encoded bytes from a string into a buffer.
+NODE_EXTERN napi_status napi_get_value_string_utf16(napi_env e, napi_value v,
+                                               char16_t* buf, int bufsize, int* result);
 
 // Methods to coerce values
 // These APIs may execute user script
+NODE_EXTERN napi_status napi_coerce_to_bool(napi_env e, napi_value v, napi_value* result);
+NODE_EXTERN napi_status napi_coerce_to_number(napi_env e, napi_value v, napi_value* result);
 NODE_EXTERN napi_status napi_coerce_to_object(napi_env e, napi_value v, napi_value* result);
 NODE_EXTERN napi_status napi_coerce_to_string(napi_env e, napi_value v, napi_value* result);
 
@@ -258,7 +273,7 @@ NODE_EXTERN napi_status napi_make_callback(napi_env e,
 NODE_EXTERN napi_status napi_get_cb_args_length(napi_env e,
                                   napi_callback_info cbinfo, int* result);
 NODE_EXTERN napi_status napi_get_cb_args(napi_env e, napi_callback_info cbinfo,
-                                  napi_value* buffer, size_t bufferlength);
+                                  napi_value* buffer, int bufferlength);
 NODE_EXTERN napi_status napi_get_cb_this(napi_env e,
                                   napi_callback_info cbinfo, napi_value* result);
 // V8 concept; see note in .cc file
@@ -330,11 +345,11 @@ NODE_EXTERN napi_status napi_get_and_clear_last_exception(napi_env e, napi_value
 // Methods to provide node::Buffer functionality with napi types
 NODE_EXTERN napi_status napi_buffer_new(napi_env e,
                                         char* data,
-                                        uint32_t size,
+                                        size_t size,
                                         napi_value* result);
 NODE_EXTERN napi_status napi_buffer_copy(napi_env e,
                                          const char* data,
-                                         uint32_t size,
+                                         size_t size,
                                          napi_value* result);
 NODE_EXTERN napi_status napi_buffer_has_instance(napi_env e, napi_value v, bool* result);
 NODE_EXTERN napi_status napi_buffer_data(napi_env e, napi_value v, char** result);
