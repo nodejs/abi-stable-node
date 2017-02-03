@@ -200,6 +200,8 @@ NODE_EXTERN napi_status napi_get_value_string_utf16(napi_env e, napi_value v,
 
 // Methods to coerce values
 // These APIs may execute user script
+NODE_EXTERN napi_status napi_coerce_to_bool(napi_env e, napi_value v, napi_value* result);
+NODE_EXTERN napi_status napi_coerce_to_number(napi_env e, napi_value v, napi_value* result);
 NODE_EXTERN napi_status napi_coerce_to_object(napi_env e, napi_value v, napi_value* result);
 NODE_EXTERN napi_status napi_coerce_to_string(napi_env e, napi_value v, napi_value* result);
 

@@ -326,7 +326,7 @@ napi_status napi_set_function_name(napi_env e, napi_value func,
   napi_propertyname name) {
   // TODO: Consider removing the napi_set_function_name API.
   // Chakra can only set a function name when creating the function.
-  // So, add a name parameter to napi_create_function instead. 
+  // So, add a name parameter to napi_create_function instead.
   return napi_ok;
 }
 
@@ -902,6 +902,20 @@ napi_status napi_get_value_string_utf16(
   if (result != nullptr) {
     *result = static_cast<int>(copied);
   }
+  return napi_ok;
+}
+
+napi_status napi_coerce_to_number(napi_env e, napi_value v, napi_value* result) {
+  CHECK_ARG(result);
+  JsValueRef value = reinterpret_cast<JsValueRef>(v);
+  CHECK_JSRT(JsConvertValueToNumber(value, reinterpret_cast<JsValueRef*>(result)));
+  return napi_ok;
+}
+
+napi_status napi_coerce_to_bool(napi_env e, napi_value v, napi_value* result) {
+  CHECK_ARG(result);
+  JsValueRef value = reinterpret_cast<JsValueRef>(v);
+  CHECK_JSRT(JsConvertValueToBoolean(value, reinterpret_cast<JsValueRef*>(result)));
   return napi_ok;
 }
 
