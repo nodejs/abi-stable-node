@@ -26,7 +26,7 @@ void Test(napi_env env, napi_callback_info info) {
   }
 
   double input;
-  status = napi_get_number_from_value(env, args[0], &input);
+  status = napi_get_value_double(env, args[0], &input);
   if (status != napi_ok) return;
 
   napi_value output;

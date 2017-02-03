@@ -38,7 +38,7 @@ void SetValue(napi_env env, napi_callback_info info) {
   status = napi_get_cb_args(env, info, &arg, 1);
   if (status != napi_ok) return;
 
-  status = napi_get_number_from_value(env, arg, &value_);
+  status = napi_get_value_double(env, arg, &value_);
   if (status != napi_ok) return;
 }
 

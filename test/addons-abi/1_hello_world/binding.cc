@@ -3,7 +3,7 @@
 void Method(napi_env env, napi_callback_info info) {
   napi_status status;
   napi_value world;
-  status = napi_create_string(env, "world", &world);
+  status = napi_create_string_utf8(env, "world", -1, &world);
   if (status != napi_ok) return;
   status = napi_set_return_value(env, info, world);
   if (status != napi_ok) return;

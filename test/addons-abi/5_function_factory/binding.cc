@@ -4,7 +4,7 @@ void MyFunction(napi_env env, napi_callback_info info) {
   napi_status status;
 
   napi_value str;
-  status = napi_create_string(env, "hello world", &str);
+  status = napi_create_string_utf8(env, "hello world", -1, &str);
   if (status != napi_ok) return;
 
   status = napi_set_return_value(env, info, str);

@@ -1,4 +1,4 @@
-/*******************************************************************************
+﻿/*******************************************************************************
 * Experimental prototype for demonstrating VM agnostic and ABI stable API
 * for native modules to use instead of using Nan and V8 APIs directly.
 *
@@ -186,6 +186,14 @@ void CHAKRA_CALLBACK JsObjectWrapWrapperBeforeCollectCallback(JsRef ref, void* c
     if (err != JsNoError) return napi_set_last_error(err);              \
   } while(0)
 
+#define CHECK_JSRT_EXPECTED(expr, expected)                             \
+  do {                                                                  \
+    JsErrorCode err = (expr);                                           \
+    if (err == JsErrorInvalidArgument)                                  \
+      return napi_set_last_error(expected);                             \
+    if (err != JsNoError) return napi_set_last_error(err);              \
+  } while(0)
+
 // This does not call napi_set_last_error because the expression
 // is assumed to be a NAPI function call that already did.
 #define CHECK_NAPI(expr)                                                \
@@ -204,6 +212,8 @@ const char* error_messages[] = {
   "An object was expected",
   "A string was expected",
   "A function was expected",
+  "A number was expected",
+  "A boolean was expected",
   "Unknown failure",
   "An exception is pending"
 };
@@ -288,7 +298,7 @@ napi_status napi_create_constructor(napi_env e, const char* utf8name, napi_callb
   CHECK_ARG(result);
 
   napi_value namestring;
-  CHECK_NAPI(napi_create_string(e, utf8name, &namestring));
+  CHECK_NAPI(napi_create_string_utf8(e, utf8name, -1, &namestring));
   JsValueRef constructor;
   CHECK_JSRT(JsCreateNamedFunction(namestring, CallbackWrapper, (void*)cb, &constructor));
 
@@ -316,7 +326,7 @@ napi_status napi_set_function_name(napi_env e, napi_value func,
   napi_propertyname name) {
   // TODO: Consider removing the napi_set_function_name API.
   // Chakra can only set a function name when creating the function.
-  // So, add a name parameter to napi_create_function instead. 
+  // So, add a name parameter to napi_create_function instead.
   return napi_ok;
 }
 
@@ -538,17 +548,23 @@ napi_status napi_create_array_with_length(napi_env e, int length, napi_value* re
   return napi_ok;
 }
 
-napi_status napi_create_string(napi_env e, const char* s, napi_value* result) {
+napi_status napi_create_string_utf8(napi_env e, const char* s, int length,
+                                    napi_value* result) {
   CHECK_ARG(result);
-  size_t length = strlen(s);
-  CHECK_JSRT(JsCreateStringUtf8((uint8_t*)s, length, reinterpret_cast<JsValueRef*>(result)));
+  CHECK_JSRT(JsCreateStringUtf8(
+    reinterpret_cast<const uint8_t*>(s),
+    length < 0 ? strlen(s) : static_cast<size_t>(length),
+    reinterpret_cast<JsValueRef*>(result)));
   return napi_ok;
 }
 
-napi_status napi_create_string_with_length(napi_env e,
-  const char* s, size_t length, napi_value* result) {
+napi_status napi_create_string_utf16(napi_env e, const char16_t* s, int length,
+                                     napi_value* result) {
   CHECK_ARG(result);
-  CHECK_JSRT(JsCreateStringUtf8((uint8_t*)s, length, reinterpret_cast<JsValueRef*>(result)));
+  CHECK_JSRT(JsCreateStringUtf16(
+    reinterpret_cast<const uint16_t*>(s),
+    length < 0 ? std::char_traits<char16_t>::length(s) : static_cast<size_t>(length),
+    reinterpret_cast<JsValueRef*>(result)));
   return napi_ok;
 }
 
@@ -650,25 +666,21 @@ napi_status napi_is_construct_call(napi_env e, napi_callback_info cbinfo, bool* 
 // copy encoded arguments into provided buffer or return direct pointer to
 // encoded arguments array?
 napi_status napi_get_cb_args(napi_env e, napi_callback_info cbinfo,
-  napi_value* buffer, size_t bufferlength) {
+  napi_value* buffer, int bufferlength) {
   CHECK_ARG(cbinfo);
   const CallbackInfo *info = reinterpret_cast<CallbackInfo*>(cbinfo);
 
   int i = 0;
-  // size_t appropriate for the buffer length parameter?
-  // Probably this API is not the way to go.
-  int min =
-    static_cast<int>(bufferlength) < (info->argc) - 1 ?
-    static_cast<int>(bufferlength) : (info->argc) - 1;
+  int min = bufferlength < (info->argc) - 1 ? bufferlength : (info->argc) - 1;
 
   for (; i < min; i++) {
     buffer[i] = info->argv[i + 1];
   }
 
-  if (i < static_cast<int>(bufferlength)) {
+  if (i < bufferlength) {
     napi_value undefined;
     CHECK_JSRT(JsGetUndefinedValue(reinterpret_cast<JsValueRef*>(&undefined)));
-    for (; i < static_cast<int>(bufferlength); i += 1) {
+    for (; i < bufferlength; i += 1) {
       buffer[i] = undefined;
     }
   }
@@ -749,26 +761,12 @@ napi_status napi_throw_type_error(napi_env e, const char* msg) {
   return napi_ok;
 }
 
-napi_status napi_get_number_from_value(napi_env e, napi_value v, double* result) {
+napi_status napi_get_value_double(napi_env e, napi_value v, double* result) {
   CHECK_ARG(result);
   JsValueRef value = reinterpret_cast<JsValueRef>(v);
   JsValueRef numberValue = nullptr;
   double doubleValue = 0.0;
-  CHECK_JSRT(JsConvertValueToNumber(value, &numberValue));
-  CHECK_JSRT(JsNumberToDouble(numberValue, result));
-  return napi_ok;
-}
-
-napi_status napi_get_string_from_value(napi_env e, napi_value v,
-  char* buf, const int buf_size, int* remain) {
-  CHECK_ARG(remain);
-  int len = 0;
-  size_t copied = 0;
-  JsValueRef stringValue = reinterpret_cast<JsValueRef>(v);
-  CHECK_JSRT(JsGetStringLength(stringValue, &len));
-  CHECK_JSRT(JsCopyStringUtf8(stringValue, (uint8_t*)buf, buf_size, &copied));
-  // add one for null ending
-  *remain = len - static_cast<int>(copied) + 1;
+  CHECK_JSRT_EXPECTED(JsNumberToDouble(value, result), napi_number_expected);
   return napi_ok;
 }
 
@@ -777,8 +775,7 @@ napi_status napi_get_value_int32(napi_env e, napi_value v, int32_t* result) {
   JsValueRef value = reinterpret_cast<JsValueRef>(v);
   int valueInt;
   JsValueRef numberValue = nullptr;
-  CHECK_JSRT(JsConvertValueToNumber(value, &numberValue));
-  CHECK_JSRT(JsNumberToInt(numberValue, &valueInt));
+  CHECK_JSRT_EXPECTED(JsNumberToInt(value, &valueInt), napi_number_expected);
   *result = static_cast<int32_t>(valueInt);
   return napi_ok;
 }
@@ -788,8 +785,7 @@ napi_status napi_get_value_uint32(napi_env e, napi_value v, uint32_t* result) {
   JsValueRef value = reinterpret_cast<JsValueRef>(v);
   int valueInt;
   JsValueRef numberValue = nullptr;
-  CHECK_JSRT(JsConvertValueToNumber(value, &numberValue));
-  CHECK_JSRT(JsNumberToInt(numberValue, &valueInt));
+  CHECK_JSRT_EXPECTED(JsNumberToInt(value, &valueInt), napi_number_expected);
   *result = static_cast<uint32_t>(valueInt);
   return napi_ok;
 }
@@ -799,8 +795,7 @@ napi_status napi_get_value_int64(napi_env e, napi_value v, int64_t* result) {
   JsValueRef value = reinterpret_cast<JsValueRef>(v);
   int valueInt;
   JsValueRef numberValue = nullptr;
-  CHECK_JSRT(JsConvertValueToNumber(value, &numberValue));
-  CHECK_JSRT(JsNumberToInt(numberValue, &valueInt));
+  CHECK_JSRT_EXPECTED(JsNumberToInt(value, &valueInt), napi_number_expected);
   *result = static_cast<int64_t>(valueInt);
   return napi_ok;
 }
@@ -809,33 +804,118 @@ napi_status napi_get_value_bool(napi_env e, napi_value v, bool* result) {
   CHECK_ARG(result);
   JsValueRef value = reinterpret_cast<JsValueRef>(v);
   JsValueRef booleanValue = nullptr;
-  CHECK_JSRT(JsConvertValueToBoolean(value, &booleanValue));
-  CHECK_JSRT(JsBooleanToBool(booleanValue, result));
+  CHECK_JSRT_EXPECTED(JsBooleanToBool(value, result), napi_boolean_expected);
   return napi_ok;
 }
 
-napi_status napi_get_string_length(napi_env e, napi_value v, int* result) {
+// Gets the number of CHARACTERS in the string.
+napi_status napi_get_value_string_length(napi_env e, napi_value v, int* result) {
   CHECK_ARG(result);
-  JsValueRef stringValue = reinterpret_cast<JsValueRef>(v);
-  int length = 0;
-  CHECK_JSRT(JsGetStringLength(stringValue, result));
-  return napi_ok;
-}
 
-napi_status napi_get_string_utf8_length(napi_env e, napi_value v, int* result) {
-  CHECK_ARG(result);
-  JsValueRef strRef = reinterpret_cast<JsValueRef>(v);
-  int length = 0;
-  CHECK_JSRT(JsGetStringLength(strRef, &length));
-  return napi_ok;
-}
-
-napi_status napi_get_string_utf8(napi_env e, napi_value v, char* buf, int bufsize, int* length) {
-  CHECK_ARG(length);
   JsValueRef value = reinterpret_cast<JsValueRef>(v);
-  size_t len = 0;
-  CHECK_JSRT(JsCopyStringUtf8(value, (uint8_t*)buf, bufsize, &len));
-  *length = static_cast<int>(len);
+  CHECK_JSRT_EXPECTED(JsGetStringLength(value, result), napi_string_expected);
+  return napi_ok;
+}
+
+// Gets the number of BYTES in the UTF-8 encoded representation of the string.
+napi_status napi_get_value_string_utf8_length(napi_env e, napi_value v, int* result) {
+  CHECK_ARG(result);
+
+  JsValueRef value = reinterpret_cast<JsValueRef>(v);
+
+  size_t length;
+  CHECK_JSRT_EXPECTED(JsCopyStringUtf8(value, nullptr, 0, &length), napi_string_expected);
+  *result = length;
+  return napi_ok;
+}
+
+// Copies a JavaScript string into a UTF-8 string buffer. The result is the number
+// of bytes copied into buf, including the null terminator. If the buf size is
+// insufficient, the string will be truncated, including a null terminator.
+napi_status napi_get_value_string_utf8(
+    napi_env e, napi_value v, char* buf, int bufsize, int* result) {
+  CHECK_ARG(buf);
+
+  if (bufsize == 0) {
+    *result = 0;
+    return napi_ok;
+  }
+
+  JsValueRef value = reinterpret_cast<JsValueRef>(v);
+
+  size_t copied = 0;
+  CHECK_JSRT_EXPECTED(JsCopyStringUtf8(value, reinterpret_cast<uint8_t*>(buf),
+    static_cast<size_t>(bufsize), &copied), napi_string_expected);
+
+  if (copied < static_cast<size_t>(bufsize)) {
+    buf[copied] = 0;
+    copied++;
+  }
+  else {
+    buf[bufsize - 1] = 0;
+  }
+
+  if (result != nullptr) {
+    *result = static_cast<int>(copied);
+  }
+  return napi_ok;
+}
+
+// Gets the number of 2-byte code units in the UTF-16 encoded representation of the string.
+napi_status napi_get_value_string_utf16_length(napi_env e, napi_value v, int* result) {
+  CHECK_ARG(result);
+
+  JsValueRef value = reinterpret_cast<JsValueRef>(v);
+
+  size_t length;
+  CHECK_JSRT_EXPECTED(JsCopyStringUtf16(value, 0, 0, nullptr, &length), napi_string_expected);
+  *result = length;
+  return napi_ok;
+}
+
+// Copies a JavaScript string into a UTF-16 string buffer. The result is the number
+// of 2-byte code units copied into buf, including the null terminator. If the buf
+// size is insufficient, the string will be truncated, including a null terminator.
+napi_status napi_get_value_string_utf16(
+    napi_env e, napi_value v, char16_t* buf, int bufsize, int* result) {
+  CHECK_ARG(buf);
+
+  if (bufsize == 0) {
+    *result = 0;
+    return napi_ok;
+  }
+
+  JsValueRef value = reinterpret_cast<JsValueRef>(v);
+
+  size_t copied = 0;
+  CHECK_JSRT_EXPECTED(JsCopyStringUtf16(value, 0, static_cast<size_t>(bufsize),
+    reinterpret_cast<uint16_t*>(buf), &copied), napi_string_expected);
+
+  if (copied < static_cast<size_t>(bufsize)) {
+    buf[copied] = 0;
+    copied++;
+  }
+  else {
+    buf[bufsize - 1] = 0;
+  }
+
+  if (result != nullptr) {
+    *result = static_cast<int>(copied);
+  }
+  return napi_ok;
+}
+
+napi_status napi_coerce_to_number(napi_env e, napi_value v, napi_value* result) {
+  CHECK_ARG(result);
+  JsValueRef value = reinterpret_cast<JsValueRef>(v);
+  CHECK_JSRT(JsConvertValueToNumber(value, reinterpret_cast<JsValueRef*>(result)));
+  return napi_ok;
+}
+
+napi_status napi_coerce_to_bool(napi_env e, napi_value v, napi_value* result) {
+  CHECK_ARG(result);
+  JsValueRef value = reinterpret_cast<JsValueRef>(v);
+  CHECK_JSRT(JsConvertValueToBoolean(value, reinterpret_cast<JsValueRef*>(result)));
   return napi_ok;
 }
 
@@ -1001,7 +1081,7 @@ void CALLBACK ExternalArrayBufferFinalizeCallback(void *data)
 	static_cast<ArrayBufferFinalizeInfo*>(data)->Free();
 }
 
-napi_status napi_buffer_new(napi_env e, char* data, uint32_t size, napi_value* result) {
+napi_status napi_buffer_new(napi_env e, char* data, size_t size, napi_value* result) {
   CHECK_ARG(result);
   // TODO(tawoll): Replace v8impl with jsrt-based version.
 
@@ -1014,7 +1094,7 @@ napi_status napi_buffer_new(napi_env e, char* data, uint32_t size, napi_value* r
   return napi_ok;
 }
 
-napi_status napi_buffer_copy(napi_env e, const char* data, uint32_t size, napi_value* result) {
+napi_status napi_buffer_copy(napi_env e, const char* data, size_t size, napi_value* result) {
   CHECK_ARG(result);
   // TODO(tawoll): Implement node::Buffer in terms of napi to avoid using chakra shim here.
 
