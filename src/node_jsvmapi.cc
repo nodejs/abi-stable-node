@@ -499,7 +499,7 @@ namespace v8impl {
     CHECK_TO_TYPE(Number, context, result, src, napi_string_expected)
 
 #define CHECK_TO_BOOL(context, result, src)                             \
-    CHECK_TO_TYPE(Boolean, context, result, src, napi_string_expected)
+    CHECK_TO_TYPE(Boolean, context, result, src, napi_boolean_expected)
 
 #define CHECK_NEW_FROM_UTF8_LEN(isolate, result, str, len)              \
   do {                                                                  \
