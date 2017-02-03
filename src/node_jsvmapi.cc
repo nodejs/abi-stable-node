@@ -495,6 +495,12 @@ namespace v8impl {
 #define CHECK_TO_STRING(context, result, src)                           \
     CHECK_TO_TYPE(String, context, result, src, napi_string_expected)
 
+#define CHECK_TO_NUMBER(context, result, src)                           \
+    CHECK_TO_TYPE(Number, context, result, src, napi_string_expected)
+
+#define CHECK_TO_BOOL(context, result, src)                             \
+    CHECK_TO_TYPE(Boolean, context, result, src, napi_string_expected)
+
 #define CHECK_NEW_FROM_UTF8_LEN(isolate, result, str, len)              \
   do {                                                                  \
     auto str_maybe = v8::String::NewFromUtf8((isolate), (str),          \
@@ -1323,7 +1329,7 @@ napi_status napi_get_value_double(napi_env e, napi_value v, double* result) {
   CHECK_ARG(result);
 
   v8::Local<v8::Value> value = v8impl::V8LocalValueFromJsValue(v);
-  if (!value->IsNumber()) return napi_set_last_error(napi_number_expected);
+  RETURN_STATUS_IF_FALSE(value->IsNumber(), napi_number_expected);
 
   *result = value.As<v8::Number>()->Value();
 
@@ -1335,7 +1341,7 @@ napi_status napi_get_value_int32(napi_env e, napi_value v, int32_t* result) {
   CHECK_ARG(result);
 
   v8::Local<v8::Value> value = v8impl::V8LocalValueFromJsValue(v);
-  if (!value->IsNumber()) return napi_set_last_error(napi_number_expected);
+  RETURN_STATUS_IF_FALSE(value->IsNumber(), napi_number_expected);
 
   *result = value.As<v8::Int32>()->Value();
 
@@ -1347,7 +1353,7 @@ napi_status napi_get_value_uint32(napi_env e, napi_value v, uint32_t* result) {
   CHECK_ARG(result);
 
   v8::Local<v8::Value> value = v8impl::V8LocalValueFromJsValue(v);
-  if (!value->IsNumber()) return napi_set_last_error(napi_number_expected);
+  RETURN_STATUS_IF_FALSE(value->IsNumber(), napi_number_expected);
 
   *result = value.As<v8::Uint32>()->Value();
 
@@ -1359,7 +1365,7 @@ napi_status napi_get_value_int64(napi_env e, napi_value v, int64_t* result) {
   CHECK_ARG(result);
 
   v8::Local<v8::Value> value = v8impl::V8LocalValueFromJsValue(v);
-  if (!value->IsNumber()) return napi_set_last_error(napi_number_expected);
+  RETURN_STATUS_IF_FALSE(value->IsNumber(), napi_number_expected);
 
   *result = value.As<v8::Integer>()->Value();
 
@@ -1371,7 +1377,7 @@ napi_status napi_get_value_bool(napi_env e, napi_value v, bool* result) {
   CHECK_ARG(result);
 
   v8::Local<v8::Value> value = v8impl::V8LocalValueFromJsValue(v);
-  if (!value->IsBoolean()) return napi_set_last_error(napi_boolean_expected);
+  RETURN_STATUS_IF_FALSE(value->IsBoolean(), napi_boolean_expected);
 
   *result = value.As<v8::Boolean>()->Value();
 
@@ -1384,7 +1390,7 @@ napi_status napi_get_value_string_length(napi_env e, napi_value v, int* result) 
   CHECK_ARG(result);
 
   v8::Local<v8::Value> value = v8impl::V8LocalValueFromJsValue(v);
-  if (!value->IsString()) return napi_set_last_error(napi_string_expected);
+  RETURN_STATUS_IF_FALSE(value->IsString(), napi_string_expected);
 
   *result = value.As<v8::String>()->Length();
 
@@ -1397,7 +1403,7 @@ napi_status napi_get_value_string_utf8_length(napi_env e, napi_value v, int* res
   CHECK_ARG(result);
 
   v8::Local<v8::Value> value = v8impl::V8LocalValueFromJsValue(v);
-  if (!value->IsString()) return napi_set_last_error(napi_string_expected);
+  RETURN_STATUS_IF_FALSE(value->IsString(), napi_string_expected);
 
   *result = value.As<v8::String>()->Utf8Length();
 
@@ -1412,7 +1418,7 @@ napi_status napi_get_value_string_utf8(
   NAPI_PREAMBLE(e);
 
   v8::Local<v8::Value> value = v8impl::V8LocalValueFromJsValue(v);
-  if (!value->IsString()) return napi_set_last_error(napi_string_expected);
+  RETURN_STATUS_IF_FALSE(value->IsString(), napi_string_expected);
 
   int copied = value.As<v8::String>()->WriteUtf8(
     buf, bufsize, nullptr, v8::String::REPLACE_INVALID_UTF8);
@@ -1430,7 +1436,7 @@ napi_status napi_get_value_string_utf16_length(napi_env e, napi_value v, int* re
   CHECK_ARG(result);
 
   v8::Local<v8::Value> value = v8impl::V8LocalValueFromJsValue(v);
-  if (!value->IsString()) return napi_set_last_error(napi_string_expected);
+  RETURN_STATUS_IF_FALSE(value->IsString(), napi_string_expected);
 
   // V8 assumes UTF-16 length is the same as the number of characters.
   *result = value.As<v8::String>()->Length();
@@ -1447,7 +1453,7 @@ napi_status napi_get_value_string_utf16(
   CHECK_ARG(result);
 
   v8::Local<v8::Value> value = v8impl::V8LocalValueFromJsValue(v);
-  if (!value->IsString()) return napi_set_last_error(napi_string_expected);
+  RETURN_STATUS_IF_FALSE(value->IsString(), napi_string_expected);
 
   int copied = value.As<v8::String>()->Write(
     reinterpret_cast<uint16_t*>(buf), 0, bufsize, v8::String::NO_OPTIONS);
@@ -1469,6 +1475,34 @@ napi_status napi_coerce_to_object(napi_env e, napi_value v, napi_value* result) 
   CHECK_TO_OBJECT(context, obj, v);
 
   *result = v8impl::JsValueFromV8LocalValue(obj);
+  return GET_RETURN_STATUS();
+}
+
+napi_status napi_coerce_to_bool(napi_env e, napi_value v, napi_value* result) {
+  NAPI_PREAMBLE(e);
+  CHECK_ARG(result);
+
+  v8::Isolate *isolate = v8impl::V8IsolateFromJsEnv(e);
+  v8::Local<v8::Context> context = isolate->GetCurrentContext();
+  v8::Local<v8::Boolean> b;
+
+  CHECK_TO_BOOL(context, b, v);
+
+  *result = v8impl::JsValueFromV8LocalValue(b);
+  return GET_RETURN_STATUS();
+}
+
+napi_status napi_coerce_to_number(napi_env e, napi_value v, napi_value* result) {
+  NAPI_PREAMBLE(e);
+  CHECK_ARG(result);
+
+  v8::Isolate *isolate = v8impl::V8IsolateFromJsEnv(e);
+  v8::Local<v8::Context> context = isolate->GetCurrentContext();
+  v8::Local<v8::Number> num;
+
+  CHECK_TO_NUMBER(context, num, v);
+
+  *result = v8impl::JsValueFromV8LocalValue(num);
   return GET_RETURN_STATUS();
 }
 
