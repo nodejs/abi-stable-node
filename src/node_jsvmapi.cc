@@ -1,4 +1,4 @@
-﻿/*******************************************************************************
+/*******************************************************************************
  * Experimental prototype for demonstrating VM agnostic and ABI stable API
  * for native modules to use instead of using Nan and V8 APIs directly.
  *
@@ -201,7 +201,7 @@ namespace v8impl {
     public:
       CallbackWrapperBase(const T& cbinfo)
         : _cbinfo(cbinfo),
-          _cbdata(cbinfo.Data().As<v8::Object>()) {
+          _cbdata(v8::Local<v8::Object>::Cast(cbinfo.Data())) {
       }
 
       virtual napi_value This() override {
