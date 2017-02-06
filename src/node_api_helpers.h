@@ -1,4 +1,4 @@
-﻿#ifndef SRC_NODE_API_HELPERS_H_
+#ifndef SRC_NODE_API_HELPERS_H_
 #define SRC_NODE_API_HELPERS_H_
 
 ////////////////////////////////////////////////////////////////////////////////

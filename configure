@@ -408,6 +408,18 @@ parser.add_option('--no-browser-globals',
     help='do not export browser globals like setTimeout, console, etc. ' +
          '(This mode is not officially supported for regular applications)')
 
+parser.add_option('--with-napi',
+    action='store_true',
+    dest='enable_napi',
+    default=True,
+    help='Build with ABI-stable API for addons. (Default)')
+
+parser.add_option('--without-napi',
+    action='store_false',
+    dest='enable_napi',
+    default=True,
+    help='Build without ABI-stable API for addons.')
+
 (options, args) = parser.parse_args()
 
 # Expand ~ in the install prefix now, it gets written to multiple files.
@@ -704,6 +716,7 @@ def configure_mips(o):
 def configure_node(o):
   if options.dest_os == 'android':
     o['variables']['OS'] = 'android'
+  o['variables']['enable_napi'] = b(options.enable_napi)
   o['variables']['node_prefix'] = options.prefix
   o['variables']['node_install_npm'] = b(not options.without_npm)
   o['default_configuration'] = 'Debug' if options.debug else 'Release'
@@ -1228,6 +1241,7 @@ config = {
   'BUILDTYPE': 'Debug' if options.debug else 'Release',
   'USE_XCODE': str(int(options.use_xcode or 0)),
   'PYTHON': sys.executable,
+  'NAPI': str(options.enable_napi)
 }
 
 if options.prefix:

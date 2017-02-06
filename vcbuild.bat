@@ -35,6 +35,7 @@ set download_arg=
 set release_urls_arg=
 set build_release=
 set enable_vtune_arg=
+set without_napi_arg=
 set configure_flags=
 set build_addons=
 set build_addons_abi=
@@ -79,6 +80,7 @@ if /i "%1"=="without-intl"     set i18n_arg=%1&goto arg-ok
 if /i "%1"=="download-all"  set download_arg="--download=all"&goto arg-ok
 if /i "%1"=="ignore-flaky"  set test_args=%test_args% --flaky-tests=dontcare&goto arg-ok
 if /i "%1"=="enable-vtune"  set enable_vtune_arg=1&goto arg-ok
+if /i "%1"=="without-napi"  set without_napi=1&goto arg-ok
 
 echo Warning: ignoring invalid command line option `%1`.
 
@@ -107,6 +109,7 @@ if defined noperfctr set configure_flags=%configure_flags% --without-perfctr& se
 if defined release_urlbase set release_urlbase_arg=--release-urlbase=%release_urlbase%
 if defined download_arg set configure_flags=%configure_flags% %download_arg%
 if defined enable_vtune_arg set configure_flags=%configure_flags% --enable-vtune-profiling
+if defined without_napi_arg set configure_flags=%configure_flags% --without-napi
 
 if "%i18n_arg%"=="full-icu" set configure_flags=%configure_flags% --with-intl=full-icu
 if "%i18n_arg%"=="small-icu" set configure_flags=%configure_flags% --with-intl=small-icu
@@ -332,7 +335,7 @@ echo Failed to create vc project files.
 goto exit
 
 :help
-echo vcbuild.bat [debug/release] [msi] [test-all/test-uv/test-internet/test-pummel/test-simple/test-message] [clean] [noprojgen] [small-icu/full-icu/without-intl] [nobuild] [nosign] [x86/x64] [vc2013/vc2015] [download-all] [enable-vtune]
+echo vcbuild.bat [debug/release] [msi] [test-all/test-uv/test-internet/test-pummel/test-simple/test-message] [clean] [noprojgen] [small-icu/full-icu/without-intl] [nobuild] [nosign] [x86/x64] [vc2013/vc2015] [download-all] [enable-vtune] [enable-napi]
 echo Examples:
 echo   vcbuild.bat                : builds release build
 echo   vcbuild.bat debug          : builds debug build
@@ -340,6 +343,7 @@ echo   vcbuild.bat release msi    : builds release build and MSI installer packa
 echo   vcbuild.bat test           : builds debug build and runs tests
 echo   vcbuild.bat build-release  : builds the release distribution as used by nodejs.org
 echo   vcbuild.bat enable-vtune   : builds nodejs with Intel VTune profiling support to profile JavaScript
+echo   vcbuild.bat enable-napi    : builds nodejs with ABI-stable C API support for addons
 goto exit
 
 :exit

@@ -129,7 +129,6 @@
         'src/handle_wrap.cc',
         'src/js_stream.cc',
         'src/node.cc',
-        'src/node_asyncapi.cc',
         'src/node_buffer.cc',
         'src/node_config.cc',
         'src/node_constants.cc',
@@ -137,7 +136,6 @@
         'src/node_file.cc',
         'src/node_http_parser.cc',
         'src/node_javascript.cc',
-        'src/node_jsvmapi.cc',
         'src/node_main.cc',
         'src/node_os.cc',
         'src/node_revert.cc',
@@ -170,19 +168,12 @@
         'src/handle_wrap.h',
         'src/js_stream.h',
         'src/node.h',
-        'src/node_api_helpers.h',
-        'src/node_asyncapi.h',
-        'src/node_asyncapi_internal.h',
-        'src/node_asyncapi_types.h',
         'src/node_buffer.h',
         'src/node_constants.h',
         'src/node_file.h',
         'src/node_http_parser.h',
         'src/node_internals.h',
         'src/node_javascript.h',
-        'src/node_jsvmapi.h',
-        'src/node_jsvmapi_internal.h',
-        'src/node_jsvmapi_types.h',
         'src/node_root_certs.h',
         'src/node_version.h',
         'src/node_watchdog.h',
@@ -224,6 +215,22 @@
 
 
       'conditions': [
+        [ 'enable_napi=="true"', {
+          'sources': [
+            'src/node_asyncapi.cc',
+            'src/node_jsvmapi.cc',
+            'src/node_api_helpers.h',
+            'src/node_asyncapi.h',
+            'src/node_asyncapi_internal.h',
+            'src/node_asyncapi_types.h',
+            'src/node_jsvmapi.h',
+            'src/node_jsvmapi_internal.h',
+            'src/node_jsvmapi_types.h'
+          ],
+          'defines': [
+            'ENABLE_NAPI'
+          ]
+        }],
         [ 'node_tag!=""', {
           'defines': [ 'NODE_TAG="<(node_tag)"' ],
         }],

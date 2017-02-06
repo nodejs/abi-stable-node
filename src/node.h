@@ -1,15 +1,7 @@
 #ifndef SRC_NODE_H_
 #define SRC_NODE_H_
 
-#ifdef _WIN32
-# ifndef BUILDING_NODE_EXTENSION
-#   define NODE_EXTERN __declspec(dllexport)
-# else
-#   define NODE_EXTERN __declspec(dllimport)
-# endif
-#else
-# define NODE_EXTERN /* nothing */
-#endif
+#include "node_macros.h"
 
 #ifdef BUILDING_NODE_EXTENSION
 # undef BUILDING_V8_SHARED
@@ -41,7 +33,6 @@
 
 #include "v8.h"  // NOLINT(build/include_order)
 #include "node_version.h"  // NODE_MODULE_VERSION
-#include "node_jsvmapi.h"
 
 #define NODE_MAKE_VERSION(major, minor, patch)                                \
   ((major) * 0x1000 + (minor) * 0x100 + (patch))
@@ -389,17 +380,8 @@ typedef void (*addon_context_register_func)(
     v8::Local<v8::Context> context,
     void* priv);
 
-
 #define NM_F_BUILTIN 0x01
 #define NM_F_LINKED  0x02
-
-struct node_module_old {
-  int version;
-  void* dso_handle;
-  const char* filename;
-  node::addon_register_func register_func;
-  const char* modname;
-};
 
 struct node_module {
   int nm_version;
@@ -418,10 +400,10 @@ node_module* get_linked_module(const char *name);
 
 extern "C" NODE_EXTERN void node_module_register(void* mod);
 
-#ifdef _WIN32
-# define NODE_MODULE_EXPORT __declspec(dllexport)
+#ifdef NODE_SHARED_MODE
+# define NODE_CTOR_PREFIX
 #else
-# define NODE_MODULE_EXPORT __attribute__((visibility("default")))
+# define NODE_CTOR_PREFIX static
 #endif
 
 #if defined(_MSC_VER)

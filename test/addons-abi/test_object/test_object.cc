@@ -1,4 +1,4 @@
-﻿#include <node_jsvmapi.h>
+#include <node_jsvmapi.h>
 
 void Get(napi_env env, napi_callback_info info) {
   napi_status status;
