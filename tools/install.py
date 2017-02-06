@@ -106,7 +106,7 @@ def subdir_files(path, dest, action):
   for subdir, files in ret.items():
     action(files, subdir + '/')
 
-def files(action):
+def files(action, conf):
   is_windows = sys.platform == 'win32'
   output_file = 'node'
   output_prefix = 'out/Release/'
@@ -141,22 +141,25 @@ def files(action):
 
   if 'true' == variables.get('node_install_npm'): npm_files(action)
 
-  headers(action)
+  headers(action, conf)
 
-def headers(action):
+def headers(action, conf):
   action([
     'common.gypi',
     'config.gypi',
     'src/node.h',
-    'src/node_api_helpers.h',
-    'src/node_asyncapi.h',
-    'src/node_asyncapi_types.h',
-    'src/node_jsvmapi.h',
-    'src/node_jsvmapi_types.h',
     'src/node_buffer.h',
     'src/node_object_wrap.h',
-    'src/node_version.h',
+    'src/node_version.h'
   ], 'include/node/')
+  if conf['variables']['enable_napi'] == 'true':
+    action([
+      'src/node_api_helpers.h',
+      'src/node_asyncapi.h',
+      'src/node_asyncapi_types.h',
+      'src/node_jsvmapi.h',
+      'src/node_jsvmapi_types.h'
+    ], 'include/node/')
 
   # Add the expfile that is created on AIX
   if sys.platform.startswith('aix'):
@@ -205,11 +208,11 @@ def run(args):
   cmd = args[1] if len(args) > 1 else 'install'
 
   if os.environ.get('HEADERS_ONLY'):
-    if cmd == 'install': return headers(install)
-    if cmd == 'uninstall': return headers(uninstall)
+    if cmd == 'install': return headers(install, conf)
+    if cmd == 'uninstall': return headers(uninstall, conf)
   else:
-    if cmd == 'install': return files(install)
-    if cmd == 'uninstall': return files(uninstall)
+    if cmd == 'install': return files(install, conf)
+    if cmd == 'uninstall': return files(uninstall, conf)
 
   raise RuntimeError('Bad command: %s\n' % cmd)
 

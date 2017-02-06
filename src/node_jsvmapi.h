@@ -1,4 +1,4 @@
-﻿/*******************************************************************************
+/*******************************************************************************
  * Experimental prototype for demonstrating VM agnostic and ABI stable API
  * for native modules to use instead of using Nan and V8 APIs directly.
  *
@@ -34,6 +34,15 @@
 #endif
 
 namespace node {
+
+struct node_module_old {
+  int version;
+  void* dso_handle;
+  const char* filename;
+  node::addon_register_func register_func;
+  const char* modname;
+};
+
 NODE_EXTERN typedef void (*addon_abi_register_func)(
   napi_env env,
   napi_value exports,

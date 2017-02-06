@@ -1,4 +1,4 @@
-﻿#ifndef SRC_NODE_JSVMAPI_TYPES_H_
+#ifndef SRC_NODE_JSVMAPI_TYPES_H_
 #define SRC_NODE_JSVMAPI_TYPES_H_
 
 #include <stddef.h>

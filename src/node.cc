@@ -29,7 +29,9 @@
 #include "node_lttng.h"
 #endif
 
+#if defined ENABLE_NAPI
 #include "node_jsvmapi_internal.h"
+#endif
 
 #include "ares.h"
 #include "async-wrap.h"
@@ -97,7 +99,6 @@ typedef int mode_t;
 #elif !defined(_MSC_VER)
 extern char **environ;
 #endif
-
 
 namespace node {
 
@@ -2418,6 +2419,7 @@ void DLOpen(const FunctionCallbackInfo<Value>& args) {
     return;
   }
 
+#ifdef ENABLE_NAPI
 // try loading with node 0.10 manner in case of node 0.10
   struct node_module_old* mod;
   char symbol[1024], *base, *pos;
@@ -2475,6 +2477,7 @@ void DLOpen(const FunctionCallbackInfo<Value>& args) {
     mp->nm_context_register_func = NULL;
     mp->nm_modname = mod->modname;
   }
+#endif /* def ENABLE_NAPI */
 
   if (mp == nullptr) {
     uv_dlclose(&lib);
@@ -2482,9 +2485,13 @@ void DLOpen(const FunctionCallbackInfo<Value>& args) {
     return;
   }
 
+#ifdef ENABLE_NAPI
   bool isNapiModule = mp->nm_version == -1;
 
   if (mp->nm_version != NODE_MODULE_VERSION && !isNapiModule) {
+#else /* !defined ENABLE_NAPI */
+  if (mp->nm_version != NODE_MODULE_VERSION) {
+#endif /* def ENABLE_NAPI */
     char errmsg[1024];
     snprintf(errmsg,
              sizeof(errmsg),
@@ -2515,6 +2522,7 @@ void DLOpen(const FunctionCallbackInfo<Value>& args) {
   Local<String> exports_string = env->exports_string();
   Local<Object> exports = module->Get(exports_string)->ToObject(env->isolate());
 
+#ifdef ENABLE_NAPI
   if (isNapiModule) {
     if (mp->nm_register_func != nullptr) {
       reinterpret_cast<node::addon_abi_register_func>(mp->nm_register_func)(
@@ -2525,18 +2533,18 @@ void DLOpen(const FunctionCallbackInfo<Value>& args) {
     } else {
       uv_dlclose(&lib);
       env->ThrowError("Module has no declared entry point.");
-      return;
     }
+    return;
+  }
+#endif /* def ENABLE_NAPI */
+  if (mp->nm_context_register_func != nullptr) {
+    mp->nm_context_register_func(exports, module, env->context(), mp->nm_priv);
+  } else if (mp->nm_register_func != nullptr) {
+    mp->nm_register_func(exports, module, mp->nm_priv);
   } else {
-    if (mp->nm_context_register_func != nullptr) {
-      mp->nm_context_register_func(exports, module, env->context(), mp->nm_priv);
-    } else if (mp->nm_register_func != nullptr) {
-      mp->nm_register_func(exports, module, mp->nm_priv);
-    } else {
-      uv_dlclose(&lib);
-      env->ThrowError("Module has no declared entry point.");
-      return;
-    }
+    uv_dlclose(&lib);
+    env->ThrowError("Module has no declared entry point.");
+    return;
   }
 
   // Tell coverity that 'handle' should not be freed when we return.
@@ -2763,6 +2771,7 @@ static void LinkedBinding(const FunctionCallbackInfo<Value>& args) {
                                   env->context(),
                                   mod->nm_priv);
   } else if (mod->nm_register_func != nullptr) {
+#ifdef ENABLE_NAPI
     if (mod->nm_version != -1) {
       mod->nm_register_func(exports, module, mod->nm_priv);
     } else {
@@ -2772,6 +2781,9 @@ static void LinkedBinding(const FunctionCallbackInfo<Value>& args) {
           v8impl::JsValueFromV8LocalValue(module),
           mod->nm_priv);
     }
+#else /* !defined ENABLE_NAPI */
+    mod->nm_register_func(exports, module, mod->nm_priv);
+#endif /* def ENABLE_NAPI */
   } else {
     return env->ThrowError("Linked module has no declared entry point.");
   }

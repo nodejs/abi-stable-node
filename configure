@@ -118,6 +118,11 @@ parser.add_option("--partly-static",
     help="Generate an executable with libgcc and libstdc++ libraries. This "
          "will not work on OSX when using the default compilation environment")
 
+parser.add_option("--enable-napi",
+    action="store_true",
+    dest="enable_napi",
+    help="Enable C API for addons.")
+
 parser.add_option("--enable-vtune-profiling",
     action="store_true",
     dest="enable_vtune_profiling",
@@ -767,6 +772,7 @@ def configure_mips(o):
 def configure_node(o):
   if options.dest_os == 'android':
     o['variables']['OS'] = 'android'
+  o['variables']['enable_napi'] = b(options.enable_napi)
   o['variables']['node_prefix'] = options.prefix
   o['variables']['node_install_npm'] = b(not options.without_npm)
   o['default_configuration'] = 'Debug' if options.debug else 'Release'
@@ -1336,6 +1342,7 @@ config = {
   'BUILDTYPE': 'Debug' if options.debug else 'Release',
   'USE_XCODE': str(int(options.use_xcode or 0)),
   'PYTHON': sys.executable,
+  'NAPI': str(options.enable_napi)
 }
 
 if options.prefix:
