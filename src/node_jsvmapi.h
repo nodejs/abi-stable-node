@@ -1,4 +1,4 @@
-﻿/*******************************************************************************
+/*******************************************************************************
  * Experimental prototype for demonstrating VM agnostic and ABI stable API
  * for native modules to use instead of using Nan and V8 APIs directly.
  *
@@ -19,21 +19,11 @@
 #define SRC_NODE_JSVMAPI_H_
 
 #include <stddef.h>
+#include "node_macros.h"
 #include "node_jsvmapi_types.h"
 
-#ifndef NODE_EXTERN
-# ifdef _WIN32
-#   ifndef BUILDING_NODE_EXTENSION
-#     define NODE_EXTERN __declspec(dllexport)
-#   else
-#     define NODE_EXTERN __declspec(dllimport)
-#   endif
-# else
-#   define NODE_EXTERN /* nothing */
-# endif
-#endif
-
 namespace node {
+
 NODE_EXTERN typedef void (*addon_abi_register_func)(
   napi_env env,
   napi_value exports,
@@ -54,14 +44,6 @@ struct napi_module_struct {
 };
 
 NODE_EXTERN void napi_module_register(void* mod);
-
-#ifndef NODE_MODULE_EXPORT
-# ifdef _WIN32
-#   define NODE_MODULE_EXPORT __declspec(dllexport)
-# else
-#   define NODE_MODULE_EXPORT __attribute__((visibility("default")))
-# endif
-#endif
 
 #if defined(_MSC_VER)
 #pragma section(".CRT$XCU", read)
