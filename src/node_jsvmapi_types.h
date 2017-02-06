@@ -1,6 +1,8 @@
 ﻿#ifndef SRC_NODE_JSVMAPI_TYPES_H_
 #define SRC_NODE_JSVMAPI_TYPES_H_
 
+#include <stdint.h>
+
 // JSVM API types are all opaque pointers for ABI stability
 // typedef undefined structs instead of void* for compile time type safety
 typedef struct napi_env__ *napi_env;
@@ -32,6 +34,50 @@ struct napi_property_descriptor {
 
   napi_property_attributes attributes;
   void* data;
+};
+
+enum napi_valuetype {
+  // ES6 types (corresponds to typeof)
+  napi_undefined,
+  napi_null,
+  napi_boolean,
+  napi_number,
+  napi_string,
+  napi_symbol,
+  napi_object,
+  napi_function,
+};
+
+enum napi_typedarray_type {
+  napi_int8,
+  napi_uint8,
+  napi_uint8_clamped,
+  napi_int16,
+  napi_uint16,
+  napi_int32,
+  napi_uint32,
+  napi_float32,
+  napi_float64,
+};
+
+enum napi_status {
+  napi_ok,
+  napi_invalid_arg,
+  napi_object_expected,
+  napi_string_expected,
+  napi_function_expected,
+  napi_number_expected,
+  napi_boolean_expected,
+  napi_generic_failure,
+  napi_pending_exception,
+  napi_status_last
+};
+
+struct napi_extended_error_info {
+  const char* error_message;
+  void* engine_reserved;
+  uint32_t engine_error_code;
+  napi_status error_code;
 };
 
 #endif  // SRC_NODE_JSVMAPI_TYPES_H_

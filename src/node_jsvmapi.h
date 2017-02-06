@@ -19,8 +19,6 @@
 #define SRC_NODE_JSVMAPI_H_
 
 #include "node_jsvmapi_types.h"
-#include <stdlib.h>
-#include <stdint.h>
 
 #ifndef NODE_EXTERN
 # ifdef _WIN32
@@ -51,7 +49,7 @@ struct napi_module_struct {
   void* nm_context_register_func;
   const char* nm_modname;
   void* nm_priv;
-  struct node_module* nm_link;
+  void* nm_link;
 };
 
 NODE_EXTERN void napi_module_register(void* mod);
@@ -103,44 +101,6 @@ NODE_EXTERN void napi_module_register(void* mod);
 // TODO(ianhall): We're using C linkage for the API but we're also using the
 // bool type in these exports.  Is that safe and stable?
 extern "C" {
-enum napi_valuetype {
-  // ES6 types (corresponds to typeof)
-  napi_undefined,
-  napi_null,
-  napi_boolean,
-  napi_number,
-  napi_string,
-  napi_symbol,
-  napi_object,
-  napi_function,
-};
-
-enum napi_status {
-  napi_ok,
-  napi_invalid_arg,
-  napi_object_expected,
-  napi_string_expected,
-  napi_function_expected,
-  napi_number_expected,
-  napi_boolean_expected,
-  napi_generic_failure,
-  napi_pending_exception,
-  napi_status_last
-};
-
-struct napi_extended_error_info {
-  const char* error_message;
-  void* engine_reserved;
-  uint32_t engine_error_code;
-  napi_status error_code;
-
-  napi_extended_error_info() :
-    error_message(NULL),
-    engine_reserved(NULL),
-    engine_error_code(0),
-    error_code(napi_ok)
-  { }
-};
 
 NODE_EXTERN const napi_extended_error_info* napi_get_last_error_info();
 
@@ -354,6 +314,21 @@ NODE_EXTERN napi_status napi_buffer_copy(napi_env e,
 NODE_EXTERN napi_status napi_buffer_has_instance(napi_env e, napi_value v, bool* result);
 NODE_EXTERN napi_status napi_buffer_data(napi_env e, napi_value v, char** result);
 NODE_EXTERN napi_status napi_buffer_length(napi_env e, napi_value v, size_t* result);
+
+// Methods to work with array buffers and typed arrays
+NODE_EXTERN napi_status napi_is_arraybuffer(napi_env env, napi_value value, bool* result);
+NODE_EXTERN napi_status napi_create_arraybuffer(napi_env env, size_t byte_length, void** data,
+                                                napi_value* result);
+NODE_EXTERN napi_status napi_get_arraybuffer_info(napi_env env, napi_value arraybuffer,
+                                                  void** data, size_t* byte_length);
+NODE_EXTERN napi_status napi_is_typedarray(napi_env env, napi_value value, bool* result);
+NODE_EXTERN napi_status napi_create_typedarray(napi_env env, napi_typedarray_type type,
+                                               size_t length, napi_value arraybuffer,
+                                               size_t byte_offset, napi_value* result);
+NODE_EXTERN napi_status napi_get_typedarray_info(napi_env env, napi_value typedarray,
+                                                 napi_typedarray_type* type, size_t* length,
+                                                 void** data, napi_value* arraybuffer,
+                                                 size_t* byte_offset);
 } // extern "C"
 
 #endif  // SRC_NODE_JSVMAPI_H__

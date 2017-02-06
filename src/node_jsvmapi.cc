@@ -1,4 +1,4 @@
-/*******************************************************************************
+﻿/*******************************************************************************
  * Experimental prototype for demonstrating VM agnostic and ABI stable API
  * for native modules to use instead of using Nan and V8 APIs directly.
  *
@@ -517,7 +517,7 @@ namespace v8impl {
     napi_ok : napi_set_last_error(napi_pending_exception))
 
 // Static last error returned from napi_get_last_error_info
-napi_extended_error_info static_last_error;
+napi_extended_error_info static_last_error = {};
 
 // Warning: Keep in-sync with napi_status enum
 const char* error_messages[] = {
@@ -1879,5 +1879,189 @@ napi_status napi_buffer_length(napi_env e, napi_value v, size_t* result) {
   CHECK_ARG(result);
 
   *result = node::Buffer::Length(v8impl::V8LocalValueFromJsValue(v));
+  return GET_RETURN_STATUS();
+}
+
+napi_status napi_is_arraybuffer(napi_env e, napi_value value, bool* result) {
+  NAPI_PREAMBLE(e);
+  CHECK_ARG(result);
+
+  v8::Local<v8::Value> v8value = v8impl::V8LocalValueFromJsValue(value);
+  *result = v8value->IsArrayBuffer();
+
+  return GET_RETURN_STATUS();
+}
+
+napi_status napi_create_arraybuffer(napi_env e,
+                                    size_t byte_length,
+                                    void** data,
+                                    napi_value* result) {
+  NAPI_PREAMBLE(e);
+  CHECK_ARG(result);
+
+  v8::Isolate *isolate = v8impl::V8IsolateFromJsEnv(e);
+  v8::Local<v8::ArrayBuffer> buffer;
+  if (data == nullptr || *data == nullptr) {
+    // Internal data, allocated and owned by the ArrayBuffer.
+    buffer = v8::ArrayBuffer::New(isolate, byte_length);
+
+    // The newly-allocated buffer is optionally returned.
+    if (data != nullptr) {
+      *data = buffer->GetContents().Data();
+    }
+  }
+  else {
+    // External data, not owned by the ArrayBuffer.
+    buffer = v8::ArrayBuffer::New(isolate, *data, byte_length);
+  }
+
+  *result = v8impl::JsValueFromV8LocalValue(buffer);
+  return GET_RETURN_STATUS();
+}
+
+napi_status napi_get_arraybuffer_info(napi_env e,
+                                      napi_value arraybuffer,
+                                      void** data,
+                                      size_t* byte_length) {
+  NAPI_PREAMBLE(e);
+
+  v8::Local<v8::Value> value = v8impl::V8LocalValueFromJsValue(arraybuffer);
+  RETURN_STATUS_IF_FALSE(value->IsArrayBuffer(), napi_invalid_arg);
+
+  v8::ArrayBuffer::Contents contents = value.As<v8::ArrayBuffer>()->GetContents();
+
+  if (data != nullptr) {
+    *data = contents.Data();
+  }
+
+  if (byte_length != nullptr) {
+    *byte_length = contents.ByteLength();
+  }
+
+  return GET_RETURN_STATUS();
+}
+
+napi_status napi_is_typedarray(napi_env e, napi_value value, bool* result) {
+  NAPI_PREAMBLE(e);
+  CHECK_ARG(result);
+
+  v8::Local<v8::Value> v8value = v8impl::V8LocalValueFromJsValue(value);
+  *result = v8value->IsTypedArray();
+
+  return GET_RETURN_STATUS();
+}
+
+napi_status napi_create_typedarray(napi_env e,
+                                   napi_typedarray_type type,
+                                   size_t length,
+                                   napi_value arraybuffer,
+                                   size_t byte_offset,
+                                   napi_value* result) {
+  NAPI_PREAMBLE(e);
+  CHECK_ARG(result);
+
+  v8::Local<v8::Value> value = v8impl::V8LocalValueFromJsValue(arraybuffer);
+  RETURN_STATUS_IF_FALSE(value->IsArrayBuffer(), napi_invalid_arg);
+
+  v8::Local<v8::ArrayBuffer> buffer = value.As<v8::ArrayBuffer>();
+  v8::Local<v8::TypedArray> typedArray;
+
+  switch (type) {
+    case napi_int8:
+      typedArray = v8::Int8Array::New(buffer, byte_offset, length);
+      break;
+    case napi_uint8:
+      typedArray = v8::Uint8Array::New(buffer, byte_offset, length);
+      break;
+    case napi_uint8_clamped:
+      typedArray = v8::Uint8ClampedArray::New(buffer, byte_offset, length);
+      break;
+    case napi_int16:
+      typedArray = v8::Int16Array::New(buffer, byte_offset, length);
+      break;
+    case napi_uint16:
+      typedArray = v8::Uint16Array::New(buffer, byte_offset, length);
+      break;
+    case napi_int32:
+      typedArray = v8::Int32Array::New(buffer, byte_offset, length);
+      break;
+    case napi_uint32:
+      typedArray = v8::Uint32Array::New(buffer, byte_offset, length);
+      break;
+    case napi_float32:
+      typedArray = v8::Float32Array::New(buffer, byte_offset, length);
+      break;
+    case napi_float64:
+      typedArray = v8::Float64Array::New(buffer, byte_offset, length);
+      break;
+    default:
+      return napi_set_last_error(napi_invalid_arg);
+  }
+
+  *result = v8impl::JsValueFromV8LocalValue(typedArray);
+  return GET_RETURN_STATUS();
+}
+
+napi_status napi_get_typedarray_info(napi_env e,
+                                     napi_value typedarray,
+                                     napi_typedarray_type* type,
+                                     size_t* length,
+                                     void** data,
+                                     napi_value* arraybuffer,
+                                     size_t* byte_offset) {
+  NAPI_PREAMBLE(e);
+
+  v8::Local<v8::Value> value = v8impl::V8LocalValueFromJsValue(typedarray);
+  RETURN_STATUS_IF_FALSE(value->IsTypedArray(), napi_invalid_arg);
+
+  v8::Local<v8::TypedArray> array = value.As<v8::TypedArray>();
+
+  if (type != nullptr) {
+    if (value->IsInt8Array()) {
+      *type = napi_int8;
+    }
+    else if (value->IsUint8Array()) {
+      *type = napi_uint8;
+    }
+    else if (value->IsUint8ClampedArray()) {
+      *type = napi_uint8_clamped;
+    }
+    else if (value->IsInt16Array()) {
+      *type = napi_int16;
+    }
+    else if (value->IsUint16Array()) {
+      *type = napi_uint16;
+    }
+    else if (value->IsInt32Array()) {
+      *type = napi_int32;
+    }
+    else if (value->IsUint32Array()) {
+      *type = napi_uint32;
+    }
+    else if (value->IsFloat32Array()) {
+      *type = napi_float32;
+    }
+    else if (value->IsFloat64Array()) {
+      *type = napi_float64;
+    }
+  }
+
+  if (length != nullptr) {
+    *length = array->Length();
+  }
+
+  v8::Local<v8::ArrayBuffer> buffer = array->Buffer();
+  if (data != nullptr) {
+    *data = static_cast<uint8_t*>(buffer->GetContents().Data()) + array->ByteOffset();
+  }
+
+  if (arraybuffer != nullptr) {
+    *arraybuffer = v8impl::JsValueFromV8LocalValue(buffer);
+  }
+
+  if (byte_offset != nullptr) {
+    *byte_offset = array->ByteOffset();
+  }
+
   return GET_RETURN_STATUS();
 }
