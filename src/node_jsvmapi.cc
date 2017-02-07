@@ -1900,20 +1900,27 @@ napi_status napi_create_arraybuffer(napi_env e,
   CHECK_ARG(result);
 
   v8::Isolate *isolate = v8impl::V8IsolateFromJsEnv(e);
-  v8::Local<v8::ArrayBuffer> buffer;
-  if (data == nullptr || *data == nullptr) {
-    // Internal data, allocated and owned by the ArrayBuffer.
-    buffer = v8::ArrayBuffer::New(isolate, byte_length);
+  v8::Local<v8::ArrayBuffer> buffer = v8::ArrayBuffer::New(isolate, byte_length);
 
-    // The newly-allocated buffer is optionally returned.
-    if (data != nullptr) {
-      *data = buffer->GetContents().Data();
-    }
+  // Optionally return a pointer to the buffer's data, to avoid another call to retreive it.
+  if (data != nullptr) {
+    *data = buffer->GetContents().Data();
   }
-  else {
-    // External data, not owned by the ArrayBuffer.
-    buffer = v8::ArrayBuffer::New(isolate, *data, byte_length);
-  }
+
+  *result = v8impl::JsValueFromV8LocalValue(buffer);
+  return GET_RETURN_STATUS();
+}
+
+napi_status napi_create_external_arraybuffer(napi_env e,
+                                             void* external_data,
+                                             size_t byte_length,
+                                             napi_value* result) {
+  NAPI_PREAMBLE(e);
+  CHECK_ARG(result);
+
+  v8::Isolate *isolate = v8impl::V8IsolateFromJsEnv(e);
+  v8::Local<v8::ArrayBuffer> buffer =
+    v8::ArrayBuffer::New(isolate, external_data, byte_length);
 
   *result = v8impl::JsValueFromV8LocalValue(buffer);
   return GET_RETURN_STATUS();
