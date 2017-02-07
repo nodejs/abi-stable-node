@@ -1153,3 +1153,220 @@ napi_status napi_get_and_clear_last_exception(napi_env e, napi_value* result) {
   }
   return napi_ok;
 }
+
+napi_status napi_is_arraybuffer(napi_env e, napi_value value, bool* result) {
+  CHECK_ARG(result);
+
+  JsValueRef jsValue = reinterpret_cast<JsValueRef>(value);
+  JsValueType valueType;
+  CHECK_JSRT(JsGetValueType(jsValue, &valueType));
+
+  *result = (valueType == JsArrayBuffer);
+  return napi_ok;
+}
+
+napi_status napi_create_arraybuffer(napi_env e,
+                                    size_t byte_length,
+                                    void** data,
+                                    napi_value* result) {
+  CHECK_ARG(result);
+
+  JsValueRef arrayBuffer;
+  CHECK_JSRT(JsCreateArrayBuffer(static_cast<unsigned int>(byte_length), &arrayBuffer));
+
+  if (data != nullptr) {
+    CHECK_JSRT(JsGetArrayBufferStorage(
+      arrayBuffer,
+      reinterpret_cast<ChakraBytePtr*>(data),
+      reinterpret_cast<unsigned int*>(&byte_length)));
+  }
+
+  *result = reinterpret_cast<napi_value>(arrayBuffer);
+  return napi_ok;
+}
+
+napi_status napi_create_external_arraybuffer(napi_env e,
+                                             void* external_data,
+                                             size_t byte_length,
+                                             napi_value* result) {
+  CHECK_ARG(result);
+
+  JsValueRef arrayBuffer;
+  CHECK_JSRT(JsCreateExternalArrayBuffer(
+    external_data,
+    static_cast<unsigned int>(byte_length),
+    nullptr,
+    nullptr,
+    &arrayBuffer));
+
+  *result = reinterpret_cast<napi_value>(arrayBuffer);
+  return napi_ok;
+}
+
+napi_status napi_get_arraybuffer_info(napi_env e,
+                                      napi_value arraybuffer,
+                                      void** data,
+                                      size_t* byte_length) {
+  ChakraBytePtr storageData;
+  unsigned int storageLength;
+  CHECK_JSRT(JsGetArrayBufferStorage(
+    reinterpret_cast<JsValueRef>(arraybuffer),
+    &storageData,
+    &storageLength));
+
+  if (data != nullptr) {
+    *data = reinterpret_cast<void*>(storageData);
+  }
+
+  if (byte_length != nullptr) {
+    *byte_length = static_cast<size_t>(storageLength);
+  }
+
+  return napi_ok;
+}
+
+napi_status napi_is_typedarray(napi_env e, napi_value value, bool* result) {
+  CHECK_ARG(result);
+
+  JsValueRef jsValue = reinterpret_cast<JsValueRef>(value);
+  JsValueType valueType;
+  CHECK_JSRT(JsGetValueType(jsValue, &valueType));
+
+  *result = (valueType == JsTypedArray);
+  return napi_ok;
+}
+
+napi_status napi_create_typedarray(napi_env e,
+                                   napi_typedarray_type type,
+                                   size_t length,
+                                   napi_value arraybuffer,
+                                   size_t byte_offset,
+                                   napi_value* result) {
+  CHECK_ARG(result);
+
+  JsTypedArrayType jsType;
+  switch (type) {
+    case napi_int8:
+      jsType = JsArrayTypeInt8;
+      break;
+    case napi_uint8:
+      jsType = JsArrayTypeUint8;
+      break;
+    case napi_uint8_clamped:
+      jsType = JsArrayTypeUint8Clamped;
+      break;
+    case napi_int16:
+      jsType = JsArrayTypeInt16;
+      break;
+    case napi_uint16:
+      jsType = JsArrayTypeUint16;
+      break;
+    case napi_int32:
+      jsType = JsArrayTypeInt32;
+      break;
+    case napi_uint32:
+      jsType = JsArrayTypeUint32;
+      break;
+    case napi_float32:
+      jsType = JsArrayTypeFloat32;
+      break;
+    case napi_float64:
+      jsType = JsArrayTypeFloat64;
+      break;
+    default:
+      return napi_set_last_error(napi_invalid_arg);
+  }
+
+  JsValueRef jsArrayBuffer = reinterpret_cast<JsValueRef>(arraybuffer);
+
+  CHECK_JSRT(JsCreateTypedArray(
+    jsType,
+    jsArrayBuffer,
+    static_cast<unsigned int>(byte_offset),
+    static_cast<unsigned int>(length),
+    reinterpret_cast<JsValueRef*>(result)));
+
+  return napi_ok;
+}
+
+napi_status napi_get_typedarray_info(napi_env e,
+                                     napi_value typedarray,
+                                     napi_typedarray_type* type,
+                                     size_t* length,
+                                     void** data,
+                                     napi_value* arraybuffer,
+                                     size_t* byte_offset) {
+  JsTypedArrayType jsType;
+  JsValueRef jsArrayBuffer;
+  unsigned int byteOffset;
+  unsigned int byteLength;
+  ChakraBytePtr bufferData;
+  unsigned int bufferLength;
+  int elementSize;
+
+  CHECK_JSRT(JsGetTypedArrayInfo(
+    reinterpret_cast<JsValueRef>(typedarray),
+    &jsType,
+    &jsArrayBuffer,
+    &byteOffset,
+    &byteLength));
+
+  CHECK_JSRT(JsGetTypedArrayStorage(
+    reinterpret_cast<JsValueRef>(typedarray),
+    &bufferData,
+    &bufferLength,
+    &jsType,
+    &elementSize));
+
+  if (type != nullptr) {
+    switch (jsType) {
+      case JsArrayTypeInt8:
+        *type = napi_int8;
+        break;
+      case JsArrayTypeUint8:
+        *type = napi_uint8;
+        break;
+      case JsArrayTypeUint8Clamped:
+        *type = napi_uint8_clamped;
+        break;
+      case JsArrayTypeInt16:
+        *type = napi_int16;
+        break;
+      case JsArrayTypeUint16:
+        *type = napi_uint16;
+        break;
+      case JsArrayTypeInt32:
+        *type = napi_int32;
+        break;
+      case JsArrayTypeUint32:
+        *type = napi_uint32;
+        break;
+      case JsArrayTypeFloat32:
+        *type = napi_float32;
+        break;
+      case JsArrayTypeFloat64:
+        *type = napi_float64;
+        break;
+      default:
+        return napi_set_last_error(napi_generic_failure);
+    }
+  }
+
+  if (length != nullptr) {
+    *length = static_cast<size_t>(byteLength / elementSize);
+  }
+
+  if (data != nullptr) {
+    *data = static_cast<uint8_t*>(bufferData) + byteOffset;
+  }
+
+  if (arraybuffer != nullptr) {
+    *arraybuffer = reinterpret_cast<napi_value>(jsArrayBuffer);
+  }
+
+  if (byte_offset != nullptr) {
+    *byte_offset = static_cast<size_t>(byteOffset);
+  }
+
+  return napi_ok;
+}
