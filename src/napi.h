@@ -29,6 +29,18 @@ namespace Napi {
   class PropertyDescriptor;
   class CallbackInfo;
 
+  class TypedArray;
+  template <typename T, napi_typedarray_type A> class _TypedArray;
+  typedef _TypedArray<int8_t, napi_int8> Int8Array;
+  typedef _TypedArray<uint8_t, napi_uint8> Uint8Array;
+  typedef _TypedArray<uint8_t, napi_uint8_clamped> Uint8ClampedArray;
+  typedef _TypedArray<int16_t, napi_int16> Int16Array;
+  typedef _TypedArray<uint16_t, napi_uint16> Uint16Array;
+  typedef _TypedArray<int32_t, napi_int32> Int32Array;
+  typedef _TypedArray<uint32_t, napi_uint32> Uint32Array;
+  typedef _TypedArray<float, napi_float32> Float32Array;
+  typedef _TypedArray<double, napi_float64> Float64Array;
+
   // Functions exposed to JavaScript must conform to one these callback signatures.
   // (See ObjectWrap<T> for callbacks used when wrapping entire classes.)
   typedef void (*VoidFunctionCallback)(const CallbackInfo& info);
@@ -49,43 +61,10 @@ namespace Napi {
     Value Undefined() const;
     Value Null() const;
 
-    Error NewError();
-    Error NewError(const char* message);
-    Error NewTypeError(const char* message);
-    Buffer NewBuffer(char* data, size_t size);
-    Buffer CopyBuffer(const char* data, size_t size);
-    Number NewNumber(double val);
-    Boolean NewBoolean(bool val);
-    String NewStringUtf8(const char* val, int length = -1);
-    String NewStringUtf16(const char16_t* val, int length = -1);
-    Array NewArray();
-    Array NewArray(int length);
-    Object NewObject();
-    Function NewFunction(VoidFunctionCallback cb,
-                         const char* utf8name = nullptr,
-                         void* data = nullptr);
-    Function NewFunction(FunctionCallback cb,
-                         const char* utf8name = nullptr,
-                         void* data = nullptr);
-
     bool IsExceptionPending() const;
-    void Throw(Value error);
-    void ThrowError(const char* message);
-    void ThrowTypeError(const char* message);
 
   private:
     napi_env _env;
-
-    static void VoidFunctionCallbackWrapper(napi_env env, napi_callback_info info);
-    static void FunctionCallbackWrapper(napi_env env, napi_callback_info info);
-
-    typedef struct {
-      union {
-        VoidFunctionCallback voidFunctionCallback;
-        FunctionCallback functionCallback;
-      };
-      void* data;
-    } CallbackData;
   };
 
   class PropertyName {
@@ -129,6 +108,8 @@ namespace Napi {
     bool IsString() const;
     bool IsSymbol() const;
     bool IsArray() const;
+    bool IsArrayBuffer() const;
+    bool IsTypedArray() const;
     bool IsObject() const;
     bool IsFunction() const;
     bool IsBuffer() const;
@@ -138,6 +119,7 @@ namespace Napi {
     String AsString() const;
     Object AsObject() const;
     Array AsArray() const;
+    TypedArray AsTypedArray() const;
     Function AsFunction() const;
     Buffer AsBuffer() const;
 
@@ -153,21 +135,29 @@ namespace Napi {
 
   class Boolean : public Value {
   public:
+    static Boolean New(Napi::Env env, bool val);
+
     Boolean();
     Boolean(napi_env env, napi_value value);
+
     operator bool() const;
+
     bool Value() const;
   };
 
   class Number : public Value {
   public:
+    static Number New(Napi::Env env, double val);
+
     Number();
     Number(napi_env env, napi_value value);
+
     operator int32_t() const;
     operator uint32_t() const;
     operator int64_t() const;
     operator float() const;
     operator double() const;
+
     int32_t Int32Value() const;
     uint32_t Uint32Value() const;
     int64_t Int64Value() const;
@@ -177,8 +167,14 @@ namespace Napi {
 
   class String : public Value {
   public:
+    static String New(Napi::Env env, const std::string& value);
+    static String New(Napi::Env env, const std::u16string& value);
+    static String New(Napi::Env env, const char* val, int length = -1);
+    static String New(Napi::Env env, const char16_t* val, int length = -1);
+
     String();
     String(napi_env env, napi_value value);
+
     operator std::string() const;
     operator std::u16string() const;
     std::string Utf8Value() const;
@@ -187,9 +183,13 @@ namespace Napi {
 
   class Object : public Value {
   public:
+    static Object New(Napi::Env env);
+
     Object();
     Object(napi_env env, napi_value value);
+
     Value operator [](const char* name) const;
+
     bool Has(const PropertyName& name) const;
     bool Has(const char* utf8name) const;
     Value Get(const PropertyName& name) const;
@@ -199,17 +199,23 @@ namespace Napi {
     void Set(const char* utf8name, const char* utf8value);
     void Set(const char* utf8name, bool boolValue);
     void Set(const char* utf8name, double numberValue);
+
     void DefineProperty(const PropertyDescriptor& property);
     void DefineProperties(const std::vector<PropertyDescriptor>& properties);
-    bool InstanceOf(const Value& constructor) const;
+    bool InstanceOf(const Function& constructor) const;
     template<typename T> T* Unwrap() const;
   };
 
   class Array : public Value {
   public:
+    static Array New(Napi::Env env);
+    static Array New(Napi::Env env, int length);
+
     Array();
     Array(napi_env env, napi_value value);
+
     Value operator [](uint32_t index) const;
+
     uint32_t Length() const;
     bool Has(uint32_t index) const;
     Value Get(uint32_t index) const;
@@ -219,10 +225,92 @@ namespace Napi {
     void Set(uint32_t index, double numberValue);
   };
 
+  class ArrayBuffer : public Value {
+  public:
+    static ArrayBuffer New(Napi::Env env, size_t byteLength);
+    static ArrayBuffer New(Napi::Env env, void* externalData, size_t byteLength);
+
+    ArrayBuffer();
+    ArrayBuffer(napi_env env, napi_value value);
+
+    void* Data();
+    size_t ByteLength();
+
+  private:
+    void* _data;
+    size_t _length;
+  };
+
+  class TypedArray : public Value {
+  public:
+    TypedArray();
+    TypedArray(napi_env env, napi_value value);
+
+    napi_typedarray_type TypedArrayType() const;
+    uint8_t ElementSize() const;
+    size_t ElementLength() const;
+    size_t ByteOffset() const;
+    size_t ByteLength() const;
+    ArrayBuffer ArrayBuffer() const;
+
+    Int8Array AsInt8Array() const;
+    Uint8Array AsUint8Array() const;
+    Uint8ClampedArray AsUint8ClampedArray() const;
+    Int16Array AsInt16Array() const;
+    Uint16Array AsUint16Array() const;
+    Int32Array AsInt32Array() const;
+    Uint32Array AsUint32Array() const;
+    Float32Array AsFloat32Array() const;
+    Float64Array AsFloat64Array() const;
+
+  protected:
+    napi_typedarray_type _type;
+    size_t _length;
+
+    TypedArray(napi_env env, napi_value value, napi_typedarray_type type, size_t length);
+
+  private:
+    const napi_typedarray_type unknown_type = static_cast<napi_typedarray_type>(-1);
+  };
+
+  template <typename T, napi_typedarray_type A>
+  class _TypedArray : public TypedArray {
+  public:
+    static _TypedArray New(Napi::Env env, size_t elementLength);
+    static _TypedArray New(Napi::Env env,
+                           size_t elementLength,
+                           Napi::ArrayBuffer arrayBuffer,
+                           size_t bufferOffset);
+
+    _TypedArray();
+    _TypedArray(napi_env env, napi_value value);
+
+    T& operator [](size_t index);
+    const T& operator [](size_t index) const;
+
+    T* Data();
+    const T* Data() const;
+
+  private:
+    T* _data;
+
+    _TypedArray(napi_env env, napi_value value, size_t length, T* data);
+  };
+
   class Function : public Value {
   public:
+    static Function New(Napi::Env env,
+                        VoidFunctionCallback cb,
+                        const char* utf8name = nullptr,
+                        void* data = nullptr);
+    static Function New(Napi::Env env,
+                        FunctionCallback cb,
+                        const char* utf8name = nullptr,
+                        void* data = nullptr);
+
     Function();
     Function(napi_env env, napi_value value);
+
     Value operator ()(const std::vector<Value>& args) const;
     Value operator ()(Object& recv, const std::vector<Value>& args) const;
     Value Call(const std::vector<Value>& args) const;
@@ -230,10 +318,25 @@ namespace Napi {
     Value MakeCallback(const std::vector<Value>& args) const;
     Value MakeCallback(Value& recv, const std::vector<Value>& args) const;
     Object New(const std::vector<Napi::Value>& args);
+
+  private:
+    static void VoidFunctionCallbackWrapper(napi_env env, napi_callback_info info);
+    static void FunctionCallbackWrapper(napi_env env, napi_callback_info info);
+
+    typedef struct {
+      union {
+        VoidFunctionCallback voidFunctionCallback;
+        FunctionCallback functionCallback;
+      };
+      void* data;
+    } CallbackData;
   };
 
   class Buffer : public Value {
   public:
+    static Buffer New(Napi::Env env, char* data, size_t size);
+    static Buffer Copy(Napi::Env env, const char* data, size_t size);
+
     Buffer();
     Buffer(napi_env env, napi_value value);
     size_t Length() const;
@@ -290,6 +393,11 @@ namespace Napi {
    */
   class Error : public Value, public std::exception {
   public:
+    static Error New(Napi::Env env);
+    static Error New(Napi::Env env, const char* message);
+    static Error NewTypeError(Napi::Env env, const char* message);
+    static Error NewRangeError(Napi::Env env, const char* message);
+
     Error();
     Error(napi_env env, napi_value value);
 
