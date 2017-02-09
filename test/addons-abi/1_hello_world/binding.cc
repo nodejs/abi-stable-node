@@ -12,7 +12,7 @@ void Method(napi_env env, napi_callback_info info) {
 void Init(napi_env env, napi_value exports, napi_value module) {
   napi_status status;
   napi_property_descriptor desc = { "hello", Method };
-  status = napi_define_property(env, exports, &desc);
+  status = napi_define_properties(env, exports, 1, &desc);
   if (status != napi_ok) return;
 }
 

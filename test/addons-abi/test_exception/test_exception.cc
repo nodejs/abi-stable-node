@@ -65,10 +65,9 @@ NAPI_MODULE_INIT(Init) {
     { "wasPending", wasPending },
   };
 
-  for (int i = 0; i < sizeof(descriptors) / sizeof(*descriptors); i++) {
-    status = napi_define_property(env, exports, &descriptors[i]);
-    if (status != napi_ok) return;
-  }
+  status = napi_define_properties(
+    env, exports, sizeof(descriptors) / sizeof(*descriptors), descriptors);
+  if (status != napi_ok) return;
 }
 
 NODE_MODULE_ABI(addon, Init)
