@@ -217,7 +217,7 @@ namespace v8impl {
       }
 
       virtual void* Data() override {
-        return _cbdata->GetInternalField(kDataIndex).As<v8::External>()->Value();
+        return v8::Local<v8::External>::Cast(_cbdata->GetInternalField(kDataIndex))->Value();
       }
 
     protected:
@@ -225,7 +225,7 @@ namespace v8impl {
         napi_callback_info cbinfo_wrapper = reinterpret_cast<napi_callback_info>(
           static_cast<CallbackWrapper*>(this));
         napi_callback cb = reinterpret_cast<napi_callback>(
-          _cbdata->GetInternalField(I).As<v8::External>()->Value());
+          v8::Local<v8::External>::Cast(_cbdata->GetInternalField(I))->Value());
         v8::Isolate* isolate = _cbinfo.GetIsolate();
         cb(v8impl::JsEnvFromV8Isolate(isolate), cbinfo_wrapper);
 
