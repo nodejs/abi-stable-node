@@ -185,8 +185,10 @@ NODE_EXTERN napi_status napi_has_element(napi_env e, napi_value object,
                                   uint32_t i, bool* result);
 NODE_EXTERN napi_status napi_get_element(napi_env e, napi_value object,
                                   uint32_t i, napi_value* result);
-NODE_EXTERN napi_status napi_define_property(napi_env e, napi_value object,
-                                  napi_property_descriptor* property);
+NODE_EXTERN napi_status napi_define_properties(napi_env e,
+                                               napi_value object,
+                                               int property_count,
+                                               const napi_property_descriptor* properties);
 
 // Methods to work with Arrays
 NODE_EXTERN napi_status napi_is_array(napi_env e, napi_value v, bool* result);
@@ -262,13 +264,13 @@ NODE_EXTERN napi_status napi_wrap(napi_env e, napi_value jsObject, void* nativeO
                                   napi_weakref* handle);
 NODE_EXTERN napi_status napi_unwrap(napi_env e, napi_value jsObject, void** result);
 
-NODE_EXTERN napi_status napi_create_constructor(napi_env e,
-                                                const char* utf8name,
-                                                napi_callback cb,
-                                                void* data,
-                                                int property_count,
-                                                napi_property_descriptor* properties,
-                                                napi_value* result);
+NODE_EXTERN napi_status napi_define_class(napi_env e,
+                                          const char* utf8name,
+                                          napi_callback constructor,
+                                          void* data,
+                                          int property_count,
+                                          const napi_property_descriptor* properties,
+                                          napi_value* result);
 
 // Methods to control object lifespan
 NODE_EXTERN napi_status napi_create_persistent(napi_env e, napi_value v,

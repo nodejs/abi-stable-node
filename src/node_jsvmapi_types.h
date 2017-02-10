@@ -21,7 +21,11 @@ enum napi_property_attributes {
   napi_default = 0,
   napi_read_only = 1 << 0,
   napi_dont_enum = 1 << 1,
-  napi_dont_delete = 1 << 2
+  napi_dont_delete = 1 << 2,
+
+  // Used with napi_define_class to distinguish static properties
+  // from instance properties. Ignored by napi_define_properties.
+  napi_static_property = 1 << 10,
 };
 
 struct napi_property_descriptor {

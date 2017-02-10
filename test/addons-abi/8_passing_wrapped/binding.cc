@@ -42,12 +42,11 @@ void Init(napi_env env, napi_value exports, napi_value module) {
 
   MyObject::Init(env);
 
-  napi_property_descriptor desc = { "createObject", CreateObject };
-  status = napi_define_property(env, exports, &desc);
-  if (status != napi_ok) return;
-
-  napi_property_descriptor desc2 = { "add", Add };
-  status = napi_define_property(env, exports, &desc2);
+  napi_property_descriptor desc[] = {
+    { "createObject", CreateObject },
+    { "add", Add },
+  };
+  status = napi_define_properties(env, exports, sizeof(desc) / sizeof(*desc), desc);
   if (status != napi_ok) return;
 }
 
