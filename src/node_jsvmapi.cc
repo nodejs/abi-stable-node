@@ -1093,6 +1093,17 @@ napi_status napi_create_type_error(napi_env e, napi_value msg, napi_value* resul
   return GET_RETURN_STATUS();
 }
 
+napi_status napi_create_range_error(napi_env e, napi_value msg, napi_value* result) {
+  NAPI_PREAMBLE(e);
+  CHECK_ARG(result);
+
+  *result = v8impl::JsValueFromV8LocalValue(
+    v8::Exception::RangeError(
+      v8impl::V8LocalValueFromJsValue(msg).As<v8::String>()));
+
+  return GET_RETURN_STATUS();
+}
+
 napi_status napi_get_type_of_value(napi_env e, napi_value vv, napi_valuetype* result) {
   NAPI_PREAMBLE(e);
   CHECK_ARG(result);
@@ -1319,6 +1330,19 @@ napi_status napi_throw_type_error(napi_env e, const char* msg) {
   CHECK_NEW_FROM_UTF8(isolate, str, msg);
 
   isolate->ThrowException(v8::Exception::TypeError(str));
+  // any VM calls after this point and before returning
+  // to the javascript invoker will fail
+  return napi_ok;
+}
+
+napi_status napi_throw_range_error(napi_env e, const char* msg) {
+  NAPI_PREAMBLE(e);
+
+  v8::Isolate *isolate = v8impl::V8IsolateFromJsEnv(e);
+  v8::Local<v8::String> str;
+  CHECK_NEW_FROM_UTF8(isolate, str, msg);
+
+  isolate->ThrowException(v8::Exception::RangeError(str));
   // any VM calls after this point and before returning
   // to the javascript invoker will fail
   return napi_ok;
