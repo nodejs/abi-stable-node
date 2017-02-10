@@ -21,7 +21,7 @@ void MyObject::Init(napi_env env, napi_value exports) {
   };
 
   napi_value cons;
-  status = napi_create_constructor(env, "MyObject", New, nullptr, 3, properties, &cons);
+  status = napi_define_class(env, "MyObject", New, nullptr, 3, properties, &cons);
   if (status != napi_ok) return;
 
   status = napi_create_persistent(env, cons, &constructor);
