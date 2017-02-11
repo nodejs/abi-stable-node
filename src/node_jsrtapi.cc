@@ -294,8 +294,13 @@ napi_status napi_create_function(napi_env e, napi_callback cb, void* data, napi_
   return napi_ok;
 }
 
-napi_status napi_create_constructor(napi_env e, const char* utf8name, napi_callback cb,
-  void* data, int property_count, napi_property_descriptor* properties, napi_value* result) {
+napi_status napi_define_class(napi_env e,
+                              const char* utf8name,
+                              napi_callback cb,
+                              void* data,
+                              int property_count,
+                              const napi_property_descriptor* properties,
+                              napi_value* result) {
   CHECK_ARG(result);
 
   napi_value namestring;
@@ -315,8 +320,42 @@ napi_status napi_create_constructor(napi_env e, const char* utf8name, napi_callb
   CHECK_JSRT(JsCreatePropertyIdUtf8("constructor", 12, &pid));
   CHECK_JSRT(JsSetProperty(prototype, pid, constructor, false));
 
+  int instancePropertyCount = 0;
+  int staticPropertyCount = 0;
   for (int i = 0; i < property_count; i++) {
-    CHECK_NAPI(napi_define_property(e, reinterpret_cast<napi_value>(prototype), &properties[i]));
+    if ((properties[i].attributes & napi_static_property) != 0) {
+      staticPropertyCount++;
+    }
+    else {
+      instancePropertyCount++;
+    }
+  }
+
+  std::vector<napi_property_descriptor> descriptors;
+  descriptors.reserve(instancePropertyCount > staticPropertyCount ?
+    instancePropertyCount : staticPropertyCount);
+
+  if (instancePropertyCount > 0) {
+    for (int i = 0; i < property_count; i++) {
+      if ((properties[i].attributes & napi_static_property) == 0) {
+        descriptors.push_back(properties[i]);
+      }
+    }
+
+    CHECK_NAPI(napi_define_properties(
+      e, reinterpret_cast<napi_value>(prototype), descriptors.size(), descriptors.data()));
+  }
+
+  if (staticPropertyCount > 0) {
+    descriptors.clear();
+    for (int i = 0; i < property_count; i++) {
+      if (!(properties[i].attributes & napi_static_property) != 0) {
+        descriptors.push_back(properties[i]);
+      }
+    }
+
+    CHECK_NAPI(napi_define_properties(
+      e, reinterpret_cast<napi_value>(constructor), descriptors.size(), descriptors.data()));
   }
 
   *result = reinterpret_cast<napi_value>(constructor);
@@ -364,69 +403,78 @@ napi_status napi_set_property(napi_env e, napi_value o,
   return napi_ok;
 }
 
-napi_status napi_define_property(napi_env e, napi_value o,
-    napi_property_descriptor* p) {
-  napi_value descriptor;
-  CHECK_NAPI(napi_create_object(e, &descriptor));
-
+napi_status napi_define_properties(napi_env e,
+                                   napi_value o,
+                                   int property_count,
+                                   const napi_property_descriptor* properties) {
   napi_propertyname configurableProperty;
   CHECK_NAPI(napi_property_name(e, "configurable", &configurableProperty));
-  napi_value configurable;
-  CHECK_NAPI(napi_create_boolean(e, !(p->attributes & napi_dont_delete), &configurable));
-  CHECK_NAPI(napi_set_property(e, descriptor, configurableProperty, configurable));
 
   napi_propertyname enumerableProperty;
   CHECK_NAPI(napi_property_name(e, "enumerable", &enumerableProperty));
-  napi_value enumerable;
-  CHECK_NAPI(napi_create_boolean(e, !(p->attributes & napi_dont_enum), &enumerable));
-  CHECK_NAPI(napi_set_property(e, descriptor, enumerableProperty, enumerable));
 
-  if (p->method) {
-    napi_propertyname valueProperty;
-    CHECK_NAPI(napi_property_name(e, "value", &valueProperty));
-    napi_value method;
-    CHECK_NAPI(napi_create_function(e, p->method, p->data, &method));
-    CHECK_NAPI(napi_set_property(e, descriptor, valueProperty, method));
-  }
-  else if (p->getter || p->setter) {
-    if (p->getter) {
-      napi_propertyname getProperty;
-      CHECK_NAPI(napi_property_name(e, "get", &getProperty));
-      napi_value getter;
-      CHECK_NAPI(napi_create_function(e, p->getter, p->data, &getter));
-      CHECK_NAPI(napi_set_property(e, descriptor, getProperty, getter));
+  for (int i = 0; i < property_count; i++) {
+    const napi_property_descriptor* p = properties + i;
+
+    napi_value descriptor;
+    CHECK_NAPI(napi_create_object(e, &descriptor));
+
+    napi_value configurable;
+    CHECK_NAPI(napi_create_boolean(e, !(p->attributes & napi_dont_delete), &configurable));
+    CHECK_NAPI(napi_set_property(e, descriptor, configurableProperty, configurable));
+
+    napi_value enumerable;
+    CHECK_NAPI(napi_create_boolean(e, !(p->attributes & napi_dont_enum), &enumerable));
+    CHECK_NAPI(napi_set_property(e, descriptor, enumerableProperty, enumerable));
+
+    if (p->method) {
+      napi_propertyname valueProperty;
+      CHECK_NAPI(napi_property_name(e, "value", &valueProperty));
+      napi_value method;
+      CHECK_NAPI(napi_create_function(e, p->method, p->data, &method));
+      CHECK_NAPI(napi_set_property(e, descriptor, valueProperty, method));
+    }
+    else if (p->getter || p->setter) {
+      if (p->getter) {
+        napi_propertyname getProperty;
+        CHECK_NAPI(napi_property_name(e, "get", &getProperty));
+        napi_value getter;
+        CHECK_NAPI(napi_create_function(e, p->getter, p->data, &getter));
+        CHECK_NAPI(napi_set_property(e, descriptor, getProperty, getter));
+      }
+
+      if (p->setter) {
+        napi_propertyname setProperty;
+        CHECK_NAPI(napi_property_name(e, "set", &setProperty));
+        napi_value setter;
+        CHECK_NAPI(napi_create_function(e, p->setter, p->data, &setter));
+        CHECK_NAPI(napi_set_property(e, descriptor, setProperty, setter));
+      }
+    }
+    else {
+      RETURN_STATUS_IF_FALSE(p->value != nullptr, napi_invalid_arg);
+
+      napi_propertyname writableProperty;
+      CHECK_NAPI(napi_property_name(e, "writable", &writableProperty));
+      napi_value writable;
+      CHECK_NAPI(napi_create_boolean(e, !(p->attributes & napi_read_only), &writable));
+      CHECK_NAPI(napi_set_property(e, descriptor, writableProperty, writable));
+
+      napi_propertyname valueProperty;
+      CHECK_NAPI(napi_property_name(e, "value", &valueProperty));
+      CHECK_NAPI(napi_set_property(e, descriptor, valueProperty, p->value));
     }
 
-    if (p->setter) {
-      napi_propertyname setProperty;
-      CHECK_NAPI(napi_property_name(e, "set", &setProperty));
-      napi_value setter;
-      CHECK_NAPI(napi_create_function(e, p->setter, p->data, &setter));
-      CHECK_NAPI(napi_set_property(e, descriptor, setProperty, setter));
-    }
-  }
-  else {
-    RETURN_STATUS_IF_FALSE(p->value != nullptr, napi_invalid_arg);
-
-    napi_propertyname writableProperty;
-    CHECK_NAPI(napi_property_name(e, "writable", &writableProperty));
-    napi_value writable;
-    CHECK_NAPI(napi_create_boolean(e, !(p->attributes & napi_read_only), &writable));
-    CHECK_NAPI(napi_set_property(e, descriptor, writableProperty, writable));
-
-    napi_propertyname valueProperty;
-    CHECK_NAPI(napi_property_name(e, "value", &valueProperty));
-    CHECK_NAPI(napi_set_property(e, descriptor, valueProperty, p->value));
+    napi_propertyname nameProperty;
+    CHECK_NAPI(napi_property_name(e, p->utf8name, &nameProperty));
+    bool result;
+    CHECK_JSRT(JsDefineProperty(
+      reinterpret_cast<JsValueRef>(o),
+      reinterpret_cast<JsPropertyIdRef>(nameProperty),
+      reinterpret_cast<JsValueRef>(descriptor),
+      &result));
   }
 
-  napi_propertyname nameProperty;
-  CHECK_NAPI(napi_property_name(e, p->utf8name, &nameProperty));
-  bool result;
-  CHECK_JSRT(JsDefineProperty(
-    reinterpret_cast<JsValueRef>(o),
-    reinterpret_cast<JsPropertyIdRef>(nameProperty),
-    reinterpret_cast<JsValueRef>(descriptor),
-    &result));
   return napi_ok;
 }
 

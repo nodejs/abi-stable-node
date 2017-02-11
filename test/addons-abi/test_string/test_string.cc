@@ -122,10 +122,9 @@ void Init(napi_env env, napi_value exports, napi_value module) {
     { "Utf8Length", Utf8Length },
   };
 
-  for (int i = 0; i < sizeof(properties) / sizeof(*properties); i++) {
-    status = napi_define_property(env, exports, &properties[i]);
-    if (status != napi_ok) return;
-  }
+  status = napi_define_properties(
+    env, exports, sizeof(properties) / sizeof(*properties), properties);
+  if (status != napi_ok) return;
 }
 
 NODE_MODULE_ABI(addon, Init)
