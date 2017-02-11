@@ -1,6 +1,7 @@
 ﻿#ifndef SRC_NODE_JSVMAPI_TYPES_H_
 #define SRC_NODE_JSVMAPI_TYPES_H_
 
+#include <stddef.h>
 #include <stdint.h>
 
 // JSVM API types are all opaque pointers for ABI stability
