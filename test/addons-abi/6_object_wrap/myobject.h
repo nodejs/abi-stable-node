@@ -17,8 +17,10 @@ class MyObject {
   static void SetValue(napi_env env, napi_callback_info info);
   static void PlusOne(napi_env env, napi_callback_info info);
   static void Multiply(napi_env env, napi_callback_info info);
-  static napi_persistent constructor;
+  static napi_ref constructor;
   double value_;
+  napi_env env_;
+  napi_ref wrapper_;
 };
 
 #endif  // TEST_ADDONS_ABI_6_OBJECT_WRAP_MYOBJECT_H_
