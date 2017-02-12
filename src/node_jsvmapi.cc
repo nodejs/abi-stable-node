@@ -153,6 +153,12 @@ namespace v8impl {
     }
 
     ~Reference() {
+      // The V8 Persistent class currently does not reset in its destructor:
+      // see NonCopyablePersistentTraits::kResetInDestructor = false.
+      // (Comments there claim that might change in the future.)
+      // To avoid memory leaks, it is better to reset at this time, however
+      // care must be taken to avoid attempting this after the Isolate has
+      // shut down, for example via a static (atexit) destructor.
       _persistent.Reset();
     }
 
@@ -187,11 +193,14 @@ namespace v8impl {
       Reference* reference = data.GetParameter();
       reference->_persistent.Reset();
 
+      // Check before calling the finalize callback, because the callback might delete it.
+      bool deleteSelf = reference->_deleteSelf;
+
       if (reference->_finalizeCallback != nullptr) {
         reference->_finalizeCallback(reference->_finalizeData);
       }
 
-      if (reference->_deleteSelf) {
+      if (deleteSelf) {
         delete reference;
       }
     }
@@ -1132,8 +1141,8 @@ napi_status napi_create_type_error(napi_env e, napi_value msg, napi_value* resul
   CHECK_ARG(result);
 
   *result = v8impl::JsValueFromV8LocalValue(
-      v8::Exception::TypeError(
-          v8impl::V8LocalValueFromJsValue(msg).As<v8::String>()));
+    v8::Exception::TypeError(
+      v8impl::V8LocalValueFromJsValue(msg).As<v8::String>()));
 
   return GET_RETURN_STATUS();
 }
