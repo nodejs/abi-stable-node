@@ -13,6 +13,7 @@
 #include "node_asyncapi.h"
 #include <string>
 #include <vector>
+#include <functional>
 
 namespace Napi {
 
@@ -25,9 +26,9 @@ namespace Napi {
   class Function;
   class Buffer;
   class Error;
-  class Persistent;
   class PropertyDescriptor;
   class CallbackInfo;
+  template <typename T> class Reference;
 
   class TypedArray;
   template <typename T, napi_typedarray_type A> class _TypedArray;
@@ -42,9 +43,10 @@ namespace Napi {
   typedef _TypedArray<double, napi_float64> Float64Array;
 
   // Functions exposed to JavaScript must conform to one these callback signatures.
+  // These are std::function<> typedefs instead of function pointers to enable lambdas.
   // (See ObjectWrap<T> for callbacks used when wrapping entire classes.)
-  typedef void (*VoidFunctionCallback)(const CallbackInfo& info);
-  typedef Value (*FunctionCallback)(const CallbackInfo& info);
+  typedef std::function<void(const CallbackInfo& info)> VoidFunctionCallback;
+  typedef std::function<Value(const CallbackInfo& info)> FunctionCallback;
 
   /*
    * Environment for NAPI operations. (In V8 this corresponds to an Isolate.)
@@ -54,8 +56,6 @@ namespace Napi {
     explicit Env(napi_env env);
 
     operator napi_env() const;
-
-    static Env Current();
 
     Object Global() const;
     Value Undefined() const;
@@ -71,6 +71,7 @@ namespace Napi {
   public:
     PropertyName(napi_env env, napi_propertyname name);
     PropertyName(napi_env env, const char* utf8name);
+    PropertyName(napi_env env, const std::string& utf8name);
 
     operator napi_propertyname() const;
 
@@ -96,7 +97,6 @@ namespace Napi {
     bool operator ==(const Value& other) const;
     bool operator !=(const Value& other) const;
     bool StrictEquals(const Value& other) const;
-    Persistent MakePersistent() const;
 
     Env Env() const;
 
@@ -114,14 +114,10 @@ namespace Napi {
     bool IsFunction() const;
     bool IsBuffer() const;
 
-    Boolean AsBoolean() const;
-    Number AsNumber() const;
-    String AsString() const;
-    Object AsObject() const;
-    Array AsArray() const;
-    TypedArray AsTypedArray() const;
-    Function AsFunction() const;
-    Buffer AsBuffer() const;
+    // Use As<T> to convert to another type of Napi::Value, when the actual type is
+    // known or assumed. This conversion does NOT very the type. But calling any methods
+    // inappropriate for the actual value type will cause Napi::Errors to be thrown.
+    template <typename T> T As() const;
 
     Boolean ToBoolean() const;
     Number ToNumber() const;
@@ -189,24 +185,40 @@ namespace Napi {
     Object(napi_env env, napi_value value);
 
     Value operator [](const char* name) const;
+    Value operator [](const std::string& name) const;
 
     bool Has(const PropertyName& name) const;
     bool Has(const char* utf8name) const;
+    bool Has(const std::string& utf8name) const;
     Value Get(const PropertyName& name) const;
     Value Get(const char* utf8name) const;
+    Value Get(const std::string& utf8name) const;
     void Set(const PropertyName& name, const Value& value);
     void Set(const char* utf8name, const Value& value);
     void Set(const char* utf8name, const char* utf8value);
     void Set(const char* utf8name, bool boolValue);
     void Set(const char* utf8name, double numberValue);
+    void Set(const std::string& utf8name, const Value& value);
+    void Set(const std::string& utf8name, std::string& utf8value);
+    void Set(const std::string& utf8name, bool boolValue);
+    void Set(const std::string& utf8name, double numberValue);
 
     void DefineProperty(const PropertyDescriptor& property);
     void DefineProperties(const std::vector<PropertyDescriptor>& properties);
     bool InstanceOf(const Function& constructor) const;
-    template<typename T> T* Unwrap() const;
   };
 
-  class Array : public Value {
+  class External : public Value {
+  public:
+    static External New(Napi::Env env, void* data, napi_finalize finalizeCallback = nullptr);
+
+    External();
+    External(napi_env env, napi_value value);
+
+    void* Data() const;
+  };
+
+  class Array : public Object {
   public:
     static Array New(Napi::Env env);
     static Array New(Napi::Env env, int length);
@@ -221,11 +233,12 @@ namespace Napi {
     Value Get(uint32_t index) const;
     void Set(uint32_t index, const Value& value);
     void Set(uint32_t index, const char* utf8value);
+    void Set(uint32_t index, const std::string& utf8value);
     void Set(uint32_t index, bool boolValue);
     void Set(uint32_t index, double numberValue);
   };
 
-  class ArrayBuffer : public Value {
+  class ArrayBuffer : public Object {
   public:
     static ArrayBuffer New(Napi::Env env, size_t byteLength);
     static ArrayBuffer New(Napi::Env env, void* externalData, size_t byteLength);
@@ -241,7 +254,7 @@ namespace Napi {
     size_t _length;
   };
 
-  class TypedArray : public Value {
+  class TypedArray : public Object {
   public:
     TypedArray();
     TypedArray(napi_env env, napi_value value);
@@ -270,7 +283,7 @@ namespace Napi {
     TypedArray(napi_env env, napi_value value, napi_typedarray_type type, size_t length);
 
   private:
-    const napi_typedarray_type unknown_type = static_cast<napi_typedarray_type>(-1);
+    static const napi_typedarray_type unknown_type = static_cast<napi_typedarray_type>(-1);
   };
 
   template <typename T, napi_typedarray_type A>
@@ -297,7 +310,7 @@ namespace Napi {
     _TypedArray(napi_env env, napi_value value, size_t length, T* data);
   };
 
-  class Function : public Value {
+  class Function : public Object {
   public:
     static Function New(Napi::Env env,
                         VoidFunctionCallback cb,
@@ -306,6 +319,14 @@ namespace Napi {
     static Function New(Napi::Env env,
                         FunctionCallback cb,
                         const char* utf8name = nullptr,
+                        void* data = nullptr);
+    static Function New(Napi::Env env,
+                        VoidFunctionCallback cb,
+                        const std::string& utf8name,
+                        void* data = nullptr);
+    static Function New(Napi::Env env,
+                        FunctionCallback cb,
+                        const std::string& utf8name,
                         void* data = nullptr);
 
     Function();
@@ -323,16 +344,18 @@ namespace Napi {
     static void VoidFunctionCallbackWrapper(napi_env env, napi_callback_info info);
     static void FunctionCallbackWrapper(napi_env env, napi_callback_info info);
 
-    typedef struct {
+    struct CallbackData {
+      CallbackData(VoidFunctionCallback cb, void* data);
+      CallbackData(FunctionCallback cb, void* data);
       union {
         VoidFunctionCallback voidFunctionCallback;
         FunctionCallback functionCallback;
       };
       void* data;
-    } CallbackData;
+    };
   };
 
-  class Buffer : public Value {
+  class Buffer : public Object {
   public:
     static Buffer New(Napi::Env env, char* data, size_t size);
     static Buffer Copy(Napi::Env env, const char* data, size_t size);
@@ -391,12 +414,11 @@ namespace Napi {
    *     // a JavaScript exception.
    *   }
    */
-  class Error : public Value, public std::exception {
+  class Error : public Object, public std::exception {
   public:
     static Error New(Napi::Env env);
     static Error New(Napi::Env env, const char* message);
-    static Error NewTypeError(Napi::Env env, const char* message);
-    static Error NewRangeError(Napi::Env env, const char* message);
+    static Error New(Napi::Env env, const std::string& message);
 
     Error();
     Error(napi_env env, napi_value value);
@@ -410,42 +432,95 @@ namespace Napi {
     std::string _message;
   };
 
-  class Persistent {
+  class TypeError : public Error {
   public:
-    Persistent();
-    Persistent(napi_env env, napi_persistent persistent);
-    ~Persistent();
+    static TypeError New(Napi::Env env, const char* message);
+    static TypeError New(Napi::Env env, const std::string& message);
 
-    // A persistent instance can be moved but cannot be copied.
-    Persistent(Persistent&& other);
-    Persistent& operator =(Persistent&& other);
-    Persistent& operator =(Persistent&) = delete;
-    Persistent(const Persistent&) = delete;
+    TypeError();
+    TypeError(napi_env env, napi_value value);
+  };
 
-    operator napi_persistent() const;
+  class RangeError : public Error {
+  public:
+    static RangeError New(Napi::Env env, const char* message);
+    static RangeError New(Napi::Env env, const std::string& message);
+
+    RangeError();
+    RangeError(napi_env env, napi_value value);
+  };
+
+  /*
+   * Holds a counted reference to a value; initially a weak reference unless otherwise specified.
+   * May be changed to/from a strong reference by adjusting the refcount. The referenced value
+   * is not immediately destroyed when the reference count is zero; it merely then eligible for
+   * GC if there are no other references to the value.
+   */
+  template <typename T>
+  class Reference {
+  public:
+    static Reference<T> New(const T& value, int initialRefcount = 0);
+
+    Reference();
+    Reference(napi_env env, napi_ref ref);
+    ~Reference();
+
+    // A reference can be moved but cannot be copied.
+    Reference(Reference<T>&& other);
+    Reference<T>& operator =(Reference<T>&& other);
+    Reference(const Reference<T>&) = delete;
+    Reference<T>& operator =(Reference<T>&) = delete;
+
+    operator napi_ref() const;
+    bool operator ==(const Reference<T> &other) const;
+    bool operator !=(const Reference<T> &other) const;
 
     Env Env() const;
-    Value Value() const;
+    bool IsEmpty() const;
+    T Value() const;
+
+    int AddRef();
+    int Release();
+    void Reset();
+    void Reset(const T& value, int refcount = 0);
+
+    // Call this on a reference that is declared as static data, to prevent its destructor
+    // from running at program shutdown time, which would attempt to reset the reference when
+    // the environment is no longer valid.
+    void SuppressDestruct();
 
   private:
     napi_env _env;
-    napi_persistent _persistent;
+    napi_ref _ref;
+    bool _suppressDestruct;
   };
+
+  // Shortcut to creating a new reference with inferred type and refcount = 0.
+  template <typename T> Reference<T> Weak(T value);
+
+  // Shortcut to creating a new reference with inferred type and refcount = 1.
+  template <typename T> Reference<T> Persistent(T value);
 
   class CallbackInfo {
   public:
     CallbackInfo(napi_env env, napi_callback_info info);
+    ~CallbackInfo();
 
     Env Env() const;
     int Length() const;
     const Value operator [](int index) const;
     Object This() const;
     void* Data() const;
+    void SetData(void* data);
 
   private:
+    const int _staticArgCount = 6;
     napi_env _env;
     napi_value _this;
-    std::vector<napi_value> _args;
+    int _argc;
+    napi_value* _argv;
+    napi_value _staticArgs[6];
+    napi_value* _dynamicArgs;
     void* _data;
   };
 
@@ -509,28 +584,26 @@ namespace Napi {
    *   }
    */
   template <typename T>
-  class ObjectWrap {
+  class ObjectWrap : public Reference<Object> {
   public:
     ObjectWrap();
 
-    Object Wrapper() const;
+    static T* Unwrap(Object wrapper);
 
     // Methods exposed to JavaScript must conform to one of these callback signatures.
-    typedef T* (*ConstructorCallback)(const CallbackInfo& info);
     typedef void (*StaticVoidMethodCallback)(const CallbackInfo& info);
-    typedef Value (*StaticMethodCallback)(const CallbackInfo& info);
-    typedef Value (*StaticGetterCallback)(const CallbackInfo& info);
-    typedef void (*StaticSetterCallback)(const CallbackInfo& info, const Value& value);
+    typedef Napi::Value (*StaticMethodCallback)(const CallbackInfo& info);
+    typedef Napi::Value (*StaticGetterCallback)(const CallbackInfo& info);
+    typedef void (*StaticSetterCallback)(const CallbackInfo& info, const Napi::Value& value);
     typedef void (T::*InstanceVoidMethodCallback)(const CallbackInfo& info);
-    typedef Value (T::*InstanceMethodCallback)(const CallbackInfo& info);
-    typedef Value (T::*InstanceGetterCallback)(const CallbackInfo& info);
-    typedef void (T::*InstanceSetterCallback)(const CallbackInfo& info, const Value& value);
+    typedef Napi::Value (T::*InstanceMethodCallback)(const CallbackInfo& info);
+    typedef Napi::Value (T::*InstanceGetterCallback)(const CallbackInfo& info);
+    typedef void (T::*InstanceSetterCallback)(const CallbackInfo& info, const Napi::Value& value);
 
     typedef ClassPropertyDescriptor<T> PropertyDescriptor;
 
-    static Function DefineClass(Env env,
+    static Function DefineClass(Napi::Env env,
                                 const char* utf8name,
-                                ConstructorCallback constructor,
                                 const std::vector<PropertyDescriptor>& properties,
                                 void* data = nullptr);
     static PropertyDescriptor StaticMethod(const char* utf8name,
@@ -560,15 +633,13 @@ namespace Napi {
                                                napi_property_attributes attributes = napi_default,
                                                void* data = nullptr);
     static PropertyDescriptor StaticValue(const char* utf8name,
-                                          Value value,
+                                          Napi::Value value,
                                           napi_property_attributes attributes = napi_default);
     static PropertyDescriptor InstanceValue(const char* utf8name,
-                                            Value value,
+                                            Napi::Value value,
                                             napi_property_attributes attributes = napi_default);
 
   private:
-    Persistent _wrapper;
-
     static void ConstructorCallbackWrapper(napi_env env, napi_callback_info info);
     static void StaticVoidMethodCallbackWrapper(napi_env env, napi_callback_info info);
     static void StaticMethodCallbackWrapper(napi_env env, napi_callback_info info);
@@ -578,10 +649,10 @@ namespace Napi {
     static void InstanceMethodCallbackWrapper(napi_env env, napi_callback_info info);
     static void InstanceGetterCallbackWrapper(napi_env env, napi_callback_info info);
     static void InstanceSetterCallbackWrapper(napi_env env, napi_callback_info info);
+    static void FinalizeCallback(void* data);
 
     typedef struct {
       union {
-        ConstructorCallback constructorCallback;
         StaticVoidMethodCallback staticVoidMethodCallback;
         StaticMethodCallback staticMethodCallback;
         struct {
@@ -628,34 +699,6 @@ namespace Napi {
   private:
     napi_env _env;
     napi_escapable_handle_scope _scope;
-  };
-
-  class Callback {
-  public:
-    Callback();
-    Callback(napi_env env, napi_value fn);
-    explicit Callback(Function fn);
-    ~Callback();
-
-    bool operator ==(const Callback &other) const;
-    bool operator !=(const Callback &other) const;
-
-    Value operator *() const;
-    Value operator ()(Object& recv, const std::vector<Value>& args) const;
-    Value operator ()(const std::vector<Value>& args) const;
-
-    Env Env() const;
-    bool IsEmpty() const;
-    Value GetFunction() const;
-    void SetFunction(const Value& fn);
-
-    Value Call(const std::vector<Value>& args) const;
-    Value Call(Object& recv, const std::vector<Value>& args) const;
-
-  private:
-    napi_env _env;
-    napi_persistent _handle;
-    static const uint32_t _kCallbackIndex = 0;
   };
 
 } // namespace Napi
