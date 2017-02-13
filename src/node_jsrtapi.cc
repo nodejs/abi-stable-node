@@ -39,6 +39,7 @@ void napi_module_register(void* mod) {
 //Callback Info struct as per JSRT native function.
 struct CallbackInfo {
   bool isConstructCall;
+  napi_value thisArg;
   unsigned short argc;
   napi_value* argv;
   void* data;
@@ -126,51 +127,100 @@ namespace v8impl {
   }
 }  // end of namespace v8impl
 
-void CHAKRA_CALLBACK JsObjectWrapWrapperBeforeCollectCallback(JsRef ref, void* callbackState);
+namespace jsrtimpl {
 
-class ObjectWrapWrapper : public node::ObjectWrap {
-public:
-  ObjectWrapWrapper(napi_value jsObject, void* nativeObj, napi_destruct destructor) {
-    _destructor = destructor;
-    _nativeObj = nativeObj;
-
-    ObjectWrapWrapper::Wrap(jsObject, this);
-
-    JsSetObjectBeforeCollectCallback(reinterpret_cast<JsRef>(jsObject), this, JsObjectWrapWrapperBeforeCollectCallback);
-  }
-
-  void* getValue() {
-    return _nativeObj;
-  }
-
-  static void Wrap(napi_value jsObject, void* externalData) {
-    JsSetExternalData(jsObject, externalData);
-  }
-
-  static void* Unwrap(napi_value jsObject) {
-    ObjectWrapWrapper* wrapper = nullptr;
-
-    JsGetExternalData(reinterpret_cast<JsValueRef>(jsObject), reinterpret_cast<void**>(&wrapper));
-
-    return wrapper->getValue();
-  }
-
-  virtual ~ObjectWrapWrapper() {
-    if (_destructor != nullptr) {
-      _destructor(_nativeObj);
+  // Adapter for JSRT external data + finalize callback.
+  class ExternalData {
+  public:
+    ExternalData(void* data, napi_finalize finalize_cb) : _data(data), _cb(finalize_cb) {
     }
-  }
 
-private:
-  napi_destruct _destructor;
-  void* _nativeObj;
-};
+    void* Data() {
+      return _data;
+    }
 
-void CHAKRA_CALLBACK JsObjectWrapWrapperBeforeCollectCallback(JsRef ref, void* callbackState)
-{
-  ObjectWrapWrapper* wrapper = reinterpret_cast<ObjectWrapWrapper*>(callbackState);
-  delete wrapper;
-}
+    // JsFinalizeCallback
+    static void CALLBACK Finalize(void* callbackState) {
+      ExternalData* externalData = reinterpret_cast<ExternalData*>(callbackState);
+      if (externalData != nullptr) {
+        if (externalData->_cb != nullptr) {
+          externalData->_cb(externalData->_data);
+        }
+
+        delete externalData;
+      }
+    }
+
+  private:
+    void* _data;
+    napi_finalize _cb;
+  };
+
+  // Adapter for JSRT external callback + callback data.
+  class ExternalCallback {
+  public:
+    ExternalCallback(napi_callback cb, void* data) : _cb(cb), _data(data) {
+    }
+
+    // JsNativeFunction
+    static JsValueRef CALLBACK Callback(JsValueRef callee,
+                                        bool isConstructCall,
+                                        JsValueRef *arguments,
+                                        unsigned short argumentCount,
+                                        void *callbackState) {
+      jsrtimpl::ExternalCallback* externalCallback =
+        reinterpret_cast<jsrtimpl::ExternalCallback*>(callbackState);
+
+      JsErrorCode error = JsNoError;
+      JsValueRef undefinedValue;
+      error = JsGetUndefinedValue(&undefinedValue);
+
+      CallbackInfo cbInfo;
+      cbInfo.thisArg = reinterpret_cast<napi_value>(arguments[0]);
+      cbInfo.isConstructCall = isConstructCall;
+
+      if (isConstructCall) {
+        // For constructor callbacks, replace the the 'this' arg with a new external object,
+        // to support wrapping a native object in the external object.
+        JsValueRef externalThis;
+        if (JsNoError == JsCreateExternalObject(
+          nullptr, jsrtimpl::ExternalData::Finalize, &externalThis)) {
+
+          // Copy the prototype from the default 'this' arg to the new 'external' this arg.
+          if (arguments[0] != nullptr) {
+            JsValueRef thisPrototype;
+            if (JsNoError == JsGetPrototype(arguments[0], &thisPrototype)) {
+              JsSetPrototype(externalThis, thisPrototype);
+            }
+          }
+
+          cbInfo.thisArg = reinterpret_cast<napi_value>(externalThis);
+        }
+      }
+
+      cbInfo.argc = argumentCount - 1;
+      cbInfo.argv = reinterpret_cast<napi_value*>(arguments + 1);
+      cbInfo.data = externalCallback->_data;
+      cbInfo.returnValue = reinterpret_cast<napi_value>(undefinedValue);
+
+      // TODO(tawoll): get environment pointer instead of nullptr?
+      externalCallback->_cb(nullptr, reinterpret_cast<napi_callback_info>(&cbInfo));
+      return reinterpret_cast<JsValueRef>(cbInfo.returnValue);
+    }
+
+    // JsObjectBeforeCollectCallback
+    static void CALLBACK Finalize(JsRef ref, void* callbackState) {
+      jsrtimpl::ExternalCallback* externalCallback =
+        reinterpret_cast<jsrtimpl::ExternalCallback*>(callbackState);
+      delete externalCallback;
+    }
+
+  private:
+    napi_callback _cb;
+    void* _data;
+  };
+
+}  // end of namespace jsrtimpl
 
 #define RETURN_STATUS_IF_FALSE(condition, status)                       \
   do {                                                                  \
@@ -265,31 +315,16 @@ napi_env napi_get_current_env() {
   return nullptr;
 }
 
-_Ret_maybenull_ JsValueRef CALLBACK CallbackWrapper(JsValueRef callee, bool isConstructCall, JsValueRef *arguments, unsigned short argumentCount, void *callbackState) {
-  JsErrorCode error = JsNoError;
-  JsValueRef undefinedValue;
-  error = JsGetUndefinedValue(&undefinedValue);
-  CallbackInfo cbInfo;
-  cbInfo.isConstructCall = isConstructCall;
-  cbInfo.argc = argumentCount;
-  cbInfo.argv = reinterpret_cast<napi_value*>(arguments);
-  error = JsGetExternalData(callee, &cbInfo.data);
-  cbInfo.returnValue = reinterpret_cast<napi_value>(undefinedValue);
-  napi_callback cb = reinterpret_cast<napi_callback>(callbackState);
-  // TODO(tawoll): get environment pointer instead of nullptr?
-  cb(nullptr, reinterpret_cast<napi_callback_info>(&cbInfo));
-  return reinterpret_cast<JsValueRef>(cbInfo.returnValue);
-}
-
 napi_status napi_create_function(napi_env e, napi_callback cb, void* data, napi_value* result) {
   CHECK_ARG(result);
 
-  JsValueRef function;
-  CHECK_JSRT(JsCreateFunction(CallbackWrapper, (void*)cb, &function));
+  jsrtimpl::ExternalCallback* externalCallback = new jsrtimpl::ExternalCallback(cb, data);
 
-  if (data) {
-    CHECK_JSRT(JsSetExternalData(function, data));
-  }
+  JsValueRef function;
+  CHECK_JSRT(JsCreateFunction(jsrtimpl::ExternalCallback::Callback, externalCallback, &function));
+
+  CHECK_JSRT(JsSetObjectBeforeCollectCallback(
+    function, externalCallback, jsrtimpl::ExternalCallback::Finalize));
 
   *result = reinterpret_cast<napi_value>(function);
   return napi_ok;
@@ -306,12 +341,15 @@ napi_status napi_define_class(napi_env e,
 
   napi_value namestring;
   CHECK_NAPI(napi_create_string_utf8(e, utf8name, -1, &namestring));
-  JsValueRef constructor;
-  CHECK_JSRT(JsCreateNamedFunction(namestring, CallbackWrapper, (void*)cb, &constructor));
 
-  if (data) {
-    CHECK_JSRT(JsSetExternalData(constructor, data));
-  }
+  jsrtimpl::ExternalCallback* externalCallback = new jsrtimpl::ExternalCallback(cb, data);
+
+  JsValueRef constructor;
+  CHECK_JSRT(JsCreateNamedFunction(
+    namestring, jsrtimpl::ExternalCallback::Callback, externalCallback, &constructor));
+
+  CHECK_JSRT(JsSetObjectBeforeCollectCallback(
+    constructor, externalCallback, jsrtimpl::ExternalCallback::Finalize));
 
   JsPropertyIdRef pid = nullptr;
   JsValueRef prototype = nullptr;
@@ -678,7 +716,12 @@ napi_status napi_get_type_of_value(napi_env e, napi_value vv, napi_valuetype* re
     case JsBoolean: *result = napi_boolean; break;
     case JsFunction: *result = napi_function; break;
     case JsSymbol: *result = napi_symbol; break;
-    default: *result = napi_object; break;
+
+    default:
+      bool hasExternalData;
+      CHECK_JSRT(JsHasExternalData(value, &hasExternalData));
+      *result = hasExternalData ? napi_external : napi_object;
+      break;
   }
   return napi_ok;
 }
@@ -711,7 +754,7 @@ napi_status napi_get_cb_args_length(napi_env e, napi_callback_info cbinfo, int* 
   CHECK_ARG(cbinfo);
   CHECK_ARG(result);
   const CallbackInfo *info = reinterpret_cast<CallbackInfo*>(cbinfo);
-  *result = (info->argc) - 1;
+  *result = info->argc;
   return napi_ok;
 }
 
@@ -731,10 +774,10 @@ napi_status napi_get_cb_args(napi_env e, napi_callback_info cbinfo,
   const CallbackInfo *info = reinterpret_cast<CallbackInfo*>(cbinfo);
 
   int i = 0;
-  int min = std::min(bufferlength, info->argc - 1);
+  int min = std::min(bufferlength, static_cast<int>(info->argc));
 
   for (; i < min; i++) {
-    buffer[i] = info->argv[i + 1];
+    buffer[i] = info->argv[i];
   }
 
   if (i < bufferlength) {
@@ -752,7 +795,7 @@ napi_status napi_get_cb_this(napi_env e, napi_callback_info cbinfo, napi_value* 
   CHECK_ARG(cbinfo);
   CHECK_ARG(result);
   const CallbackInfo *info = reinterpret_cast<CallbackInfo*>(cbinfo);
-  *result = info->argv[0];
+  *result = info->thisArg;
   return napi_ok;
 }
 
@@ -763,7 +806,7 @@ napi_status napi_get_cb_holder(napi_env e, napi_callback_info cbinfo, napi_value
   CHECK_ARG(cbinfo);
   CHECK_ARG(result);
   const CallbackInfo *info = reinterpret_cast<CallbackInfo*>(cbinfo);
-  *result = info->argv[0];
+  *result = info->thisArg;
   return napi_ok;
 }
 
@@ -1004,67 +1047,157 @@ napi_status napi_coerce_to_string(napi_env e, napi_value v, napi_value* result) 
 }
 
 napi_status napi_wrap(napi_env e, napi_value jsObject, void* nativeObj,
-  napi_destruct destructor, napi_weakref* handle) {
-  new ObjectWrapWrapper(jsObject, nativeObj, destructor);
+    napi_finalize finalize_cb, napi_ref* result) {
+  JsValueRef value = reinterpret_cast<JsValueRef>(jsObject);
 
-  if (handle != nullptr)
-  {
-    CHECK_NAPI(napi_create_weakref(e, jsObject, handle));
+  jsrtimpl::ExternalData* externalData = new jsrtimpl::ExternalData(nativeObj, finalize_cb);
+  CHECK_JSRT(JsSetExternalData(value, externalData));
+
+  if (result != nullptr) {
+    napi_create_reference(e, jsObject, 0, result);
   }
+
   return napi_ok;
 }
 
 napi_status napi_unwrap(napi_env e, napi_value jsObject, void** result) {
+  return napi_get_value_external(e, jsObject, result);
+}
+
+napi_status napi_create_external(napi_env e, void* data, napi_finalize finalize_cb,
+    napi_value* result) {
   CHECK_ARG(result);
-  *result = ObjectWrapWrapper::Unwrap(jsObject);
+
+  CHECK_JSRT(JsCreateExternalObject(
+    new jsrtimpl::ExternalData(data, finalize_cb),
+    jsrtimpl::ExternalData::Finalize,
+    reinterpret_cast<JsValueRef*>(result)));
+
   return napi_ok;
 }
 
-napi_status napi_create_persistent(napi_env e, napi_value v, napi_persistent* result) {
+napi_status napi_get_value_external(napi_env e, napi_value v, void** result) {
   CHECK_ARG(result);
-  JsValueRef value = reinterpret_cast<JsValueRef>(v);
-  if (value) {
-      CHECK_JSRT(JsAddRef(static_cast<JsRef>(value), nullptr));
-  }
-  *result = reinterpret_cast<napi_persistent>(value);
+
+  jsrtimpl::ExternalData* externalData;
+  CHECK_JSRT(JsGetExternalData(
+    reinterpret_cast<JsValueRef>(v),
+    reinterpret_cast<void**>(&externalData)));
+
+  *result = (externalData != nullptr ? externalData->Data() : nullptr);
+
   return napi_ok;
 }
 
-napi_status napi_release_persistent(napi_env e, napi_persistent p) {
-  JsValueRef thePersistent = reinterpret_cast<JsValueRef>(p);
-  CHECK_JSRT(JsRelease(static_cast<JsRef>(thePersistent), nullptr));
-  return napi_ok;
-}
-
-napi_status napi_get_persistent_value(napi_env e, napi_persistent p, napi_value* result) {
+// Set initial_refcount to 0 for a weak reference, >0 for a strong reference.
+napi_status napi_create_reference(napi_env e, napi_value v, int initial_refcount,
+    napi_ref* result) {
   CHECK_ARG(result);
-  JsValueRef value = reinterpret_cast<JsValueRef>(p);
-  *result = reinterpret_cast<napi_value>(value);
-  return napi_ok;
-}
 
-napi_status napi_create_weakref(napi_env e, napi_value v, napi_weakref* result)
-{
-  CHECK_ARG(result);
   JsValueRef strongRef = reinterpret_cast<JsValueRef>(v);
   JsWeakRef weakRef = nullptr;
   CHECK_JSRT(JsCreateWeakReference(strongRef, &weakRef));
+
+  // Prevent the reference itself from being collected until it is explicitly deleted.
   CHECK_JSRT(JsAddRef(weakRef, nullptr));
-  *result = reinterpret_cast<napi_weakref>(weakRef);
+
+  // Apply the initial refcount to the target value.
+  for (int i = 0; i < initial_refcount; i++) {
+    CHECK_JSRT(JsAddRef(strongRef, nullptr));
+
+    // Also increment the refcount of the reference by the same amount,
+    // to enable reverting the target's refcount when the reference is deleted.
+    CHECK_JSRT(JsAddRef(weakRef, nullptr));
+  }
+
+  *result = reinterpret_cast<napi_ref>(weakRef);
   return napi_ok;
 }
 
-napi_status napi_get_weakref_value(napi_env e, napi_weakref w, napi_value* result)
-{
+// Deletes a reference. The referenced value is released, and may be GC'd unless there
+// are other references to it.
+napi_status napi_delete_reference(napi_env e, napi_ref ref) {
+  JsRef weakRef = reinterpret_cast<JsRef>(ref);
+
+  unsigned int count;
+  CHECK_JSRT(JsRelease(weakRef, &count));
+
+  if (count > 0) {
+    // Revert this reference's contribution to the target's refcount.
+    JsValueRef target;
+    CHECK_JSRT(JsGetWeakReferenceValue(weakRef, &target));
+
+    do {
+      CHECK_JSRT(JsRelease(weakRef, &count));
+      CHECK_JSRT(JsRelease(target, nullptr));
+    } while (count > 0);
+  }
+
+  return napi_ok;
+}
+
+// Increments the reference count, optionally returning the resulting count. After this call the
+// reference will be a strong reference because its refcount is >0, and the referenced object is
+// effectively "pinned". Calling this when the refcount is 0 and the target is unavailable
+// results in an error.
+napi_status napi_reference_addref(napi_env e, napi_ref ref, int* result) {
+  JsRef weakRef = reinterpret_cast<JsRef>(ref);
+
+  JsValueRef target;
+  CHECK_JSRT(JsGetWeakReferenceValue(weakRef, &target));
+
+  if (target == nullptr) {
+    // Called napi_reference_addref when the target is unavailable!
+    return napi_set_last_error(napi_generic_failure);
+  }
+
+  CHECK_JSRT(JsAddRef(target, nullptr));
+
+  unsigned int count;
+  CHECK_JSRT(JsAddRef(weakRef, &count));
+
+  if (result != nullptr) {
+    *result = static_cast<int>(count - 1);
+  }
+
+  return napi_ok;
+}
+
+// Decrements the reference count, optionally returning the resulting count. If the result is
+// 0 the reference is now weak and the object may be GC'd at any time if there are no other
+// references. Calling this when the refcount is already 0 results in an error.
+napi_status napi_reference_release(napi_env e, napi_ref ref, int* result) {
+  JsRef weakRef = reinterpret_cast<JsRef>(ref);
+
+  JsValueRef target;
+  CHECK_JSRT(JsGetWeakReferenceValue(weakRef, &target));
+
+  if (target == nullptr) {
+    return napi_set_last_error(napi_generic_failure);
+  }
+
+  unsigned int count;
+  CHECK_JSRT(JsRelease(weakRef, &count));
+  if (count == 0) {
+    // Called napi_release_reference too many times on a reference!
+    return napi_set_last_error(napi_generic_failure);
+  }
+
+  CHECK_JSRT(JsRelease(target, nullptr));
+
+  if (result != nullptr) {
+    *result = static_cast<int>(count - 1);
+  }
+
+  return napi_ok;
+}
+
+// Attempts to get a referenced value. If the reference is weak, the value might no longer be
+// available, in that case the call is still successful but the result is NULL.
+napi_status napi_get_reference_value(napi_env e, napi_ref ref, napi_value* result) {
   CHECK_ARG(result);
-  JsWeakRef weakRef = reinterpret_cast<JsWeakRef>(w);
+  JsWeakRef weakRef = reinterpret_cast<JsWeakRef>(ref);
   CHECK_JSRT(JsGetWeakReferenceValue(weakRef, reinterpret_cast<JsValueRef*>(result)));
-  return napi_ok;
-}
-
-napi_status napi_release_weakref(napi_env e, napi_weakref w) {
-  JsRef weakRef = reinterpret_cast<JsRef>(w);
-  CHECK_JSRT(JsRelease(weakRef, nullptr));
   return napi_ok;
 }
 
@@ -1258,6 +1391,7 @@ napi_status napi_create_arraybuffer(napi_env e,
 napi_status napi_create_external_arraybuffer(napi_env e,
                                              void* external_data,
                                              size_t byte_length,
+                                             napi_finalize finalize_cb,
                                              napi_value* result) {
   CHECK_ARG(result);
 
@@ -1265,8 +1399,8 @@ napi_status napi_create_external_arraybuffer(napi_env e,
   CHECK_JSRT(JsCreateExternalArrayBuffer(
     external_data,
     static_cast<unsigned int>(byte_length),
-    nullptr,
-    nullptr,
+    jsrtimpl::ExternalData::Finalize,
+    new jsrtimpl::ExternalData(external_data, finalize_cb),
     &arrayBuffer));
 
   *result = reinterpret_cast<napi_value>(arrayBuffer);

@@ -1,11 +1,12 @@
 #include "myobject.h"
 
-napi_persistent MyObject::constructor;
+napi_ref MyObject::constructor;
 
-MyObject::MyObject(double value) : value_(value) {
+MyObject::MyObject(double value) : value_(value), env_(nullptr), wrapper_(nullptr) {
 }
 
 MyObject::~MyObject() {
+  napi_delete_reference(env_, wrapper_);
 }
 
 void MyObject::Destructor(void* nativeObject) {
@@ -24,7 +25,7 @@ void MyObject::Init(napi_env env, napi_value exports) {
   status = napi_define_class(env, "MyObject", New, nullptr, 3, properties, &cons);
   if (status != napi_ok) return;
 
-  status = napi_create_persistent(env, cons, &constructor);
+  status = napi_create_reference(env, cons, 1, &constructor);
   if (status != napi_ok) return;
 
   napi_propertyname name;
@@ -65,8 +66,9 @@ void MyObject::New(napi_env env, napi_callback_info info) {
     status = napi_get_cb_this(env, info, &jsthis);
     if (status != napi_ok) return;
 
+    obj->env_ = env;
     status = napi_wrap(env, jsthis, reinterpret_cast<void*>(obj),
-                       MyObject::Destructor, nullptr);
+                       MyObject::Destructor, &obj->wrapper_);
     if (status != napi_ok) return;
 
     status = napi_set_return_value(env, info, jsthis);
@@ -81,7 +83,7 @@ void MyObject::New(napi_env env, napi_callback_info info) {
     napi_value argv[argc] = { args[0] };
 
     napi_value cons;
-    status = napi_get_persistent_value(env, constructor, &cons);
+    status = napi_get_reference_value(env, constructor, &cons);
     if (status != napi_ok) return;
 
     napi_value instance;
@@ -178,7 +180,7 @@ void MyObject::Multiply(napi_env env, napi_callback_info info) {
   if (status != napi_ok) return;
 
   napi_value cons;
-  status = napi_get_persistent_value(env, constructor, &cons);
+  status = napi_get_reference_value(env, constructor, &cons);
   if (status != napi_ok) return;
 
   const int argc = 1;

@@ -138,7 +138,7 @@ namespace Napi {
       HandleScope scope(env);
       napi_value obj;
       napi_create_object(env, &obj);
-      napi_create_persistent(env, obj, &handle);
+      napi_create_reference(env, obj, 1, &handle);
     }
 
     explicit Callback(napi_value fn) {
@@ -147,7 +147,7 @@ namespace Napi {
       HandleScope scope(env);
       napi_value obj;
       napi_create_object(env, &obj);
-      napi_create_persistent(env, obj, &handle);
+      napi_create_reference(env, obj, 1, &handle);
       SetFunction(fn);
     }
 
@@ -158,7 +158,7 @@ namespace Napi {
 
       napi_env env;
       napi_get_current_env(&env);
-      napi_release_persistent(env, handle);
+      napi_delete_reference(env, handle);
     }
 
     bool operator==(const Callback &other) const {
@@ -167,9 +167,9 @@ namespace Napi {
       napi_get_current_env(&env);
 
       napi_value ha;
-      napi_get_persistent_value(env, handle, &ha);
+      napi_get_reference_value(env, handle, &ha);
       napi_value hb;
-      napi_get_persistent_value(env, other.handle, &hb);
+      napi_get_reference_value(env, other.handle, &hb);
 
       napi_value a;
       napi_get_element(env, ha, kCallbackIndex, &a);
@@ -206,7 +206,7 @@ namespace Napi {
       napi_env env;
       napi_get_current_env(&env);
       napi_value h;
-      napi_get_persistent_value(env, handle, &h);
+      napi_get_reference_value(env, handle, &h);
       napi_set_element(env, h, kCallbackIndex, fn);
     }
 
@@ -215,7 +215,7 @@ namespace Napi {
       napi_env env;
       napi_get_current_env(&env);
       napi_value h;
-      napi_get_persistent_value(env, handle, &h);
+      napi_get_reference_value(env, handle, &h);
       napi_value fn;
       napi_get_element(env, h, kCallbackIndex, &fn);
       return scope.Escape(fn);
@@ -226,7 +226,7 @@ namespace Napi {
       napi_env env;
       napi_get_current_env(&env);
       napi_value h;
-      napi_get_persistent_value(env, handle, &h);
+      napi_get_reference_value(env, handle, &h);
       napi_value fn;
       napi_get_element(env, h, kCallbackIndex, &fn);
       napi_valuetype valuetype;
@@ -252,7 +252,7 @@ namespace Napi {
 
    private:
     NAPI_DISALLOW_ASSIGN_COPY_MOVE(Callback)
-    napi_persistent handle;
+    napi_ref handle;
     static const uint32_t kCallbackIndex = 0;
 
     napi_value Call_(napi_value target,
@@ -263,7 +263,7 @@ namespace Napi {
       napi_get_current_env(&env);
 
       napi_value h;
-      napi_get_persistent_value(env, handle, &h);
+      napi_get_reference_value(env, handle, &h);
       napi_value fn;
       napi_get_element(env, h, kCallbackIndex, &fn);
 
@@ -293,7 +293,7 @@ namespace Napi {
       HandleScope scope;
       napi_value obj;
       napi_create_object(env, &obj);
-      napi_create_persistent(env, obj, &persistentHandle);
+      napi_create_reference(env, obj, 1, &persistentHandle);
     }
 
     virtual ~AsyncWorker() {
@@ -302,7 +302,7 @@ namespace Napi {
       if (persistentHandle != NULL) {
         napi_env env;
         napi_get_current_env(&env);
-        napi_release_persistent(env, persistentHandle);
+        napi_delete_reference(env, persistentHandle);
         persistentHandle = NULL;
       }
       delete callback;
@@ -330,7 +330,7 @@ namespace Napi {
       napi_propertyname pnKey;
       napi_property_name(env, key, &pnKey);
       napi_value h;
-      napi_get_persistent_value(env, persistentHandle, &h);
+      napi_get_reference_value(env, persistentHandle, &h);
       napi_set_property(env, h, pnKey, value);
     }
 
@@ -340,7 +340,7 @@ namespace Napi {
       napi_env env;
       napi_get_current_env(&env);
       napi_value h;
-      napi_get_persistent_value(env, persistentHandle, &h);
+      napi_get_reference_value(env, persistentHandle, &h);
       napi_set_property(env, h, key, value);
     }
 
@@ -350,7 +350,7 @@ namespace Napi {
       napi_env env;
       napi_get_current_env(&env);
       napi_value h;
-      napi_get_persistent_value(env, persistentHandle, &h);
+      napi_get_reference_value(env, persistentHandle, &h);
       napi_set_element(env, h, index, value);
     }
 
@@ -361,7 +361,7 @@ namespace Napi {
       napi_propertyname pnKey;
       napi_property_name(env, key, &pnKey);
       napi_value h;
-      napi_get_persistent_value(env, persistentHandle, &h);
+      napi_get_reference_value(env, persistentHandle, &h);
       napi_value v;
       napi_get_property(env, h, pnKey, &v);
       return scope.Escape(v);
@@ -373,7 +373,7 @@ namespace Napi {
       napi_env env;
       napi_get_current_env(&env);
       napi_value h;
-      napi_get_persistent_value(env, persistentHandle, &h);
+      napi_get_reference_value(env, persistentHandle, &h);
       napi_value v;
       napi_get_property(env, h, key, &v);
       return scope.Escape(v);
@@ -384,7 +384,7 @@ namespace Napi {
       napi_env env;
       napi_get_current_env(&env);
       napi_value h;
-      napi_get_persistent_value(env, persistentHandle, &h);
+      napi_get_reference_value(env, persistentHandle, &h);
       napi_value v;
       napi_get_element(env, h, index, &v);
       return scope.Escape(v);
@@ -414,7 +414,7 @@ namespace Napi {
     }
 
    protected:
-    napi_persistent persistentHandle;
+    napi_ref persistentHandle;
     Callback *callback;
 
     virtual void HandleOKCallback() {
