@@ -604,6 +604,13 @@ napi_status napi_create_type_error(napi_env, napi_value msg, napi_value* result)
   return napi_ok;
 }
 
+napi_status napi_create_range_error(napi_env, napi_value msg, napi_value* result) {
+  CHECK_ARG(result);
+  JsValueRef message = reinterpret_cast<JsValueRef>(msg);
+  CHECK_JSRT(JsCreateRangeError(message, reinterpret_cast<JsValueRef*>(result)));
+  return napi_ok;
+}
+
 napi_status napi_get_type_of_value(napi_env e, napi_value vv, napi_valuetype* result) {
   CHECK_ARG(result);
   JsValueRef value = reinterpret_cast<JsValueRef>(vv);
@@ -757,6 +764,16 @@ napi_status napi_throw_type_error(napi_env e, const char* msg) {
   size_t length = strlen(msg);
   CHECK_JSRT(JsCreateStringUtf8((uint8_t*)msg, length, &strRef));
   CHECK_JSRT(JsCreateTypeError(strRef, &exception));
+  CHECK_JSRT(JsSetException(exception));
+  return napi_ok;
+}
+
+napi_status napi_throw_range_error(napi_env e, const char* msg) {
+  JsValueRef strRef;
+  JsValueRef exception;
+  size_t length = strlen(msg);
+  CHECK_JSRT(JsCreateStringUtf8((uint8_t*)msg, length, &strRef));
+  CHECK_JSRT(JsCreateRangeError(strRef, &exception));
   CHECK_JSRT(JsSetException(exception));
   return napi_ok;
 }

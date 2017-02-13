@@ -130,6 +130,7 @@ NODE_EXTERN napi_status napi_create_function(napi_env e, napi_callback cb,
                                                  void* data, napi_value* result);
 NODE_EXTERN napi_status napi_create_error(napi_env e, napi_value msg, napi_value* result);
 NODE_EXTERN napi_status napi_create_type_error(napi_env e, napi_value msg, napi_value* result);
+NODE_EXTERN napi_status napi_create_range_error(napi_env e, napi_value msg, napi_value* result);
 
 // Methods to get the the native napi_value from Primitive type
 NODE_EXTERN napi_status napi_get_type_of_value(napi_env e, napi_value vv, napi_valuetype* result);
@@ -297,6 +298,7 @@ NODE_EXTERN napi_status napi_escape_handle(napi_env e,
 NODE_EXTERN napi_status napi_throw(napi_env e, napi_value error);
 NODE_EXTERN napi_status napi_throw_error(napi_env e, const char* msg);
 NODE_EXTERN napi_status napi_throw_type_error(napi_env e, const char* msg);
+NODE_EXTERN napi_status napi_throw_range_error(napi_env e, const char* msg);
 
 // Methods to support catching exceptions
 NODE_EXTERN napi_status napi_is_exception_pending(napi_env e, bool* result);
