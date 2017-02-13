@@ -1607,17 +1607,29 @@ napi_status napi_wrap(napi_env e,
                       napi_ref* result) {
   NAPI_PREAMBLE(e);
   CHECK_ARG(jsObject);
-  CHECK_ARG(result);
 
   v8::Isolate *isolate = v8impl::V8IsolateFromJsEnv(e);
-
   v8::Local<v8::Object> obj = v8impl::V8LocalValueFromJsValue(jsObject).As<v8::Object>();
-  assert(obj->InternalFieldCount() > 0);
+
+  // Only objects that were created from a NAPI constructor's prototype
+  // via napi_define_class() can be (un)wrapped.
+  RETURN_STATUS_IF_FALSE(obj->InternalFieldCount() > 0, napi_invalid_arg);
+
   obj->SetAlignedPointerInInternalField(0, nativeObj);
 
-  v8impl::Reference* reference = new v8impl::Reference(
-    isolate, obj, 0, false, finalize_cb, nativeObj);
-  *result = reinterpret_cast<napi_ref>(reference);
+  if (finalize_cb != nullptr) {
+    // Create a separate self-deleting reference for the finalizer callback.
+    // This ensures the finalizer is not dependent on the lifetime of the returned reference.
+    new v8impl::Reference(isolate, obj, 0, true, finalize_cb, nativeObj);
+  }
+
+  if (result != nullptr) {
+    // If a reference result was requested, create one that is separate from the reference
+    // that holds the finalizer callback. The returned reference should be deleted via
+    // napi_delete_reference() when it is no longer needed.
+    v8impl::Reference* reference = new v8impl::Reference(isolate, obj, 0, false, nullptr, nullptr);
+    *result = reinterpret_cast<napi_ref>(reference);
+  }
 
   return GET_RETURN_STATUS();
 }
@@ -1629,7 +1641,10 @@ napi_status napi_unwrap(napi_env e, napi_value jsObject, void** result) {
 
   v8::Local<v8::Object> obj = v8impl::V8LocalValueFromJsValue(jsObject).As<v8::Object>();
 
-  assert(obj->InternalFieldCount() > 0);
+  // Only objects that were created from a NAPI constructor's prototype
+  // via napi_define_class() can be (un)wrapped.
+  RETURN_STATUS_IF_FALSE(obj->InternalFieldCount() > 0, napi_invalid_arg);
+
   *result = obj->GetAlignedPointerFromInternalField(0);
 
   return GET_RETURN_STATUS();
@@ -1656,9 +1671,13 @@ napi_status napi_create_external(napi_env e,
 
 napi_status napi_get_value_external(napi_env e, napi_value v, void** result) {
   NAPI_PREAMBLE(e);
+  CHECK_ARG(v);
   CHECK_ARG(result);
 
   v8::Isolate *isolate = v8impl::V8IsolateFromJsEnv(e);
+
+  v8::Local<v8::Value> value = v8impl::V8LocalValueFromJsValue(v);
+  RETURN_STATUS_IF_FALSE(value->IsExternal(), napi_invalid_arg);
 
   v8::Local<v8::External> externalValue = v8impl::V8LocalValueFromJsValue(v).As<v8::External>();
   *result = externalValue->Value();
@@ -1666,9 +1685,7 @@ napi_status napi_get_value_external(napi_env e, napi_value v, void** result) {
   return GET_RETURN_STATUS();
 }
 
-
 // Set initial_refcount to 0 for a weak reference, >0 for a strong reference.
-// The finalizer callback and callback data parameters optional.
 napi_status napi_create_reference(napi_env e,
                                   napi_value value,
                                   int initial_refcount,
