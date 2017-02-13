@@ -1,15 +1,7 @@
 #ifndef SRC_NODE_H_
 #define SRC_NODE_H_
 
-#ifdef _WIN32
-# ifndef BUILDING_NODE_EXTENSION
-#   define NODE_EXTERN __declspec(dllexport)
-# else
-#   define NODE_EXTERN __declspec(dllimport)
-# endif
-#else
-# define NODE_EXTERN /* nothing */
-#endif
+#include "node_macros.h"
 
 #ifdef BUILDING_NODE_EXTENSION
 # undef BUILDING_V8_SHARED
@@ -407,12 +399,6 @@ node_module* get_builtin_module(const char *name);
 node_module* get_linked_module(const char *name);
 
 extern "C" NODE_EXTERN void node_module_register(void* mod);
-
-#ifdef _WIN32
-# define NODE_MODULE_EXPORT __declspec(dllexport)
-#else
-# define NODE_MODULE_EXPORT __attribute__((visibility("default")))
-#endif
 
 #ifdef NODE_SHARED_MODE
 # define NODE_CTOR_PREFIX

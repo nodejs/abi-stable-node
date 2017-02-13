@@ -9,7 +9,7 @@ FLAKY_TESTS ?= run
 TEST_CI_ARGS ?=
 STAGINGSERVER ?= node-www
 LOGLEVEL ?= silent
-NAPI ?= False
+NAPI ?= True
 OSTYPE := $(shell uname -s | tr '[A-Z]' '[a-z]')
 
 ifdef JOBS

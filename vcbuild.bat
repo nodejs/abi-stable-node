@@ -36,7 +36,7 @@ set i18n_arg=
 set download_arg=
 set build_release=
 set enable_vtune_arg=
-set enable_napi_arg=
+set without_napi_arg=
 set configure_flags=
 set build_addons=
 set dll=
@@ -85,7 +85,7 @@ if /i "%1"=="without-intl"     set i18n_arg=%1&goto arg-ok
 if /i "%1"=="download-all"  set download_arg="--download=all"&goto arg-ok
 if /i "%1"=="ignore-flaky"  set test_args=%test_args% --flaky-tests=dontcare&goto arg-ok
 if /i "%1"=="enable-vtune"  set enable_vtune_arg=1&goto arg-ok
-if /i "%1"=="enable-napi"   set enable_napi=1&goto arg-ok
+if /i "%1"=="without-napi"  set without_napi=1&goto arg-ok
 if /i "%1"=="dll"           set dll=1&goto arg-ok
 
 echo Error: invalid command line option `%1`.
@@ -117,7 +117,7 @@ if defined noperfctr set configure_flags=%configure_flags% --without-perfctr& se
 if defined release_urlbase set configure_flags=%configure_flags% --release-urlbase=%release_urlbase%
 if defined download_arg set configure_flags=%configure_flags% %download_arg%
 if defined enable_vtune_arg set configure_flags=%configure_flags% --enable-vtune-profiling
-if defined enable_napi_arg set configure_flags=%configure_flags% --enable-napi
+if defined without_napi_arg set configure_flags=%configure_flags% --without-napi
 if defined dll set configure_flags=%configure_flags% --shared
 
 if "%i18n_arg%"=="full-icu" set configure_flags=%configure_flags% --with-intl=full-icu

@@ -148,6 +148,7 @@ def headers(action, conf):
     'common.gypi',
     'config.gypi',
     'src/node.h',
+    'src/node_macros.h',
     'src/node_buffer.h',
     'src/node_object_wrap.h',
     'src/node_version.h'
