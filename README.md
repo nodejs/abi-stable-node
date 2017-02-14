@@ -33,10 +33,16 @@ Node-ChakraCore version 7.0, with addition of ABI stable Node APIs. The branches
 are named according to the node versions that have been enabled with NAPI support. 
 
 **NAPI enabled modules**
-* [leveldown](https://github.com/boingoing/leveldown/)
-* [nanomsg](https://github.com/sampsongao/node-nanomsg)
-* [sqllite3](https://github.com/mhdawson/node-sqlite3) - in progress
-* [iotivity](https://github.com/gabrielschulhof/iotivity-node/tree/abi-stable) - in progress
+
+|Module|Converted By|Location|Performance Assesment|
+|------|------------|--------|-----------|
+|leveldown|[boingoing](https://github.com/boingoing) / [ianwjhalliday](https://github.com/ianwjhalliday)|  https://github.com/boingoing/leveldown/| [#55](https://github.com/nodejs/abi-stable-node/issues/55)|
+|nanomsg|[sampsongao](https://github.com/sampsongao) | https://github.com/sampsongao/node-nanomsg | [#57](https://github.com/nodejs/abi-stable-node/issues/57)|
+|canvas|[jasongin](https://github.com/jasongin) | https://github.com/jasongin/node-canvas | [#77](https://github.com/nodejs/abi-stable-node/issues/77)|
+|node-sass|[boingoing](https://github.com/boingoing) | https://github.com/boingoing/node-sass | In progress|
+|sqllite3|[sampsongao](https://github.com/sampsongao) / [mhdawson](https://github.com/mhdawson) | https://github.com/mhdawson/node-sqlite3 | In progress|
+|iotivity|[gabrielschulhof](https://github.com/gabrielschulhof) | https://github.com/gabrielschulhof/iotivity-node/tree/abi-stable| In progress|
+
 
 **Testing**
 
