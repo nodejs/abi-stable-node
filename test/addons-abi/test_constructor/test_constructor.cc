@@ -1,7 +1,7 @@
 #include <node_jsvmapi.h>
 
 static double value_ = 1;
-napi_persistent constructor_;
+napi_ref constructor_;
 
 void GetValue(napi_env env, napi_callback_info info) {
   napi_status status;
@@ -102,7 +102,7 @@ void Init(napi_env env, napi_value exports, napi_value module) {
   status = napi_set_property(env, module, name, cons);
   if (status != napi_ok) return;
 
-  status = napi_create_persistent(env, cons, &constructor_);
+  status = napi_create_reference(env, cons, 1, &constructor_);
   if (status != napi_ok) return;
 }
 

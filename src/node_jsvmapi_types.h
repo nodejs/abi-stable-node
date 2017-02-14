@@ -8,15 +8,14 @@
 // typedef undefined structs instead of void* for compile time type safety
 typedef struct napi_env__ *napi_env;
 typedef struct napi_value__ *napi_value;
-typedef struct napi_persistent__ *napi_persistent;
-typedef struct napi_weakref__ *napi_weakref;
+typedef struct napi_ref__ *napi_ref;
 typedef struct napi_handle_scope__ *napi_handle_scope;
 typedef struct napi_escapable_handle_scope__ *napi_escapable_handle_scope;
 typedef struct napi_propertyname__ *napi_propertyname;
 typedef struct napi_callback_info__ *napi_callback_info;
 
 typedef void (*napi_callback)(napi_env, napi_callback_info);
-typedef void (*napi_destruct)(void* v);
+typedef void (*napi_finalize)(void* v);
 
 enum napi_property_attributes {
   napi_default = 0,
@@ -51,6 +50,7 @@ enum napi_valuetype {
   napi_symbol,
   napi_object,
   napi_function,
+  napi_external,
 };
 
 enum napi_typedarray_type {
