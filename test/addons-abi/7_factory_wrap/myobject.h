@@ -13,10 +13,12 @@ class MyObject {
   MyObject();
   ~MyObject();
 
-  static napi_persistent constructor;
+  static napi_ref constructor;
   static void New(napi_env env, napi_callback_info info);
   static void PlusOne(napi_env env, napi_callback_info info);
   double counter_;
+  napi_env env_;
+  napi_ref wrapper_;
 };
 
 #endif  // TEST_ADDONS_ABI_7_FACTORY_WRAP_MYOBJECT_H_

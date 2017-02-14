@@ -131,28 +131,87 @@ namespace v8impl {
     return u.f;
   }
 
-  static napi_persistent JsPersistentFromV8PersistentValue(
-                                             v8::Persistent<v8::Value> *per) {
-    return (napi_persistent) per;
-  }
+  // Wrapper around v8::Persistent that implements reference counting.
+  class Reference {
+  public:
+    Reference(v8::Isolate* isolate,
+              v8::Local<v8::Value> value,
+              int initialRefcount,
+              bool deleteSelf,
+              napi_finalize finalizeCallback = nullptr,
+              void* finalizeData = nullptr)
+      : _isolate(isolate),
+        _persistent(isolate, value),
+        _refcount(initialRefcount),
+        _deleteSelf(deleteSelf),
+        _finalizeCallback(finalizeCallback),
+        _finalizeData(finalizeData) {
+      if (initialRefcount == 0) {
+        _persistent.SetWeak(this, FinalizeCallback, v8::WeakCallbackType::kParameter);
+        _persistent.MarkIndependent();
+      }
+    }
 
-  static v8::Persistent<v8::Value>* V8PersistentValueFromJsPersistentValue(
-                                                        napi_persistent per) {
-    return (v8::Persistent<v8::Value>*) per;
-  }
+    ~Reference() {
+      // The V8 Persistent class currently does not reset in its destructor:
+      // see NonCopyablePersistentTraits::kResetInDestructor = false.
+      // (Comments there claim that might change in the future.)
+      // To avoid memory leaks, it is better to reset at this time, however
+      // care must be taken to avoid attempting this after the Isolate has
+      // shut down, for example via a static (atexit) destructor.
+      _persistent.Reset();
+    }
 
-  static napi_weakref JsWeakRefFromV8PersistentValue(
-                                             v8::Persistent<v8::Value> *per) {
-    return (napi_weakref) per;
-  }
+    int AddRef() {
+      if (++_refcount == 1) {
+        _persistent.ClearWeak();
+      }
 
-  static v8::Persistent<v8::Value>* V8PersistentValueFromJsWeakRefValue(
-                                                           napi_weakref per) {
-    return (v8::Persistent<v8::Value>*) per;
-  }
+      return _refcount;
+    }
 
-  static void WeakRefCallback(const v8::WeakCallbackInfo<int>& data) {
-  }
+    int Release() {
+      if (--_refcount == 0) {
+        _persistent.SetWeak(this, FinalizeCallback, v8::WeakCallbackType::kParameter);
+        _persistent.MarkIndependent();
+      }
+
+      return _refcount;
+    }
+
+    v8::Local<v8::Value> Get() {
+      if (_persistent.IsEmpty()) {
+        return v8::Local<v8::Value>();
+      }
+      else {
+        return _persistent.Get(_isolate);
+      }
+    }
+
+  private:
+    static void FinalizeCallback(const v8::WeakCallbackInfo<Reference>& data) {
+      Reference* reference = data.GetParameter();
+      reference->_persistent.Reset();
+
+      // Check before calling the finalize callback, because the callback might delete it.
+      bool deleteSelf = reference->_deleteSelf;
+
+      if (reference->_finalizeCallback != nullptr) {
+        reference->_finalizeCallback(reference->_finalizeData);
+      }
+
+      if (deleteSelf) {
+        delete reference;
+      }
+    }
+
+    v8::Isolate* _isolate;
+    v8::Persistent<v8::Value> _persistent;
+    int _refcount;
+    bool _deleteSelf;
+    napi_finalize _finalizeCallback;
+    void* _finalizeData;
+  };
 
   class TryCatch: public v8::TryCatch {
     public:
@@ -361,36 +420,6 @@ namespace v8impl {
 
     private:
       const v8::Local<v8::Value>& _value;
-  };
-
-  class ObjectWrapWrapper: public node::ObjectWrap {
-    public:
-      ObjectWrapWrapper(v8::Local<v8::Object> jsObject, void* nativeObj,
-                        napi_destruct destructor) {
-        _destructor = destructor;
-        _nativeObj = nativeObj;
-        Wrap(jsObject);
-      }
-
-      void* getValue() {
-        return _nativeObj;
-      }
-
-      static void* Unwrap(v8::Local<v8::Object> jsObject) {
-        ObjectWrapWrapper* wrapper =
-            ObjectWrap::Unwrap<ObjectWrapWrapper>(jsObject);
-        return wrapper->getValue();
-      }
-
-      virtual ~ObjectWrapWrapper() {
-        if (_destructor != nullptr) {
-          _destructor(_nativeObj);
-        }
-      }
-
-    private:
-      napi_destruct _destructor;
-      void* _nativeObj;
   };
 
   // Creates an object to be made available to the static function callback
@@ -1112,8 +1141,8 @@ napi_status napi_create_type_error(napi_env e, napi_value msg, napi_value* resul
   CHECK_ARG(result);
 
   *result = v8impl::JsValueFromV8LocalValue(
-      v8::Exception::TypeError(
-          v8impl::V8LocalValueFromJsValue(msg).As<v8::String>()));
+    v8::Exception::TypeError(
+      v8impl::V8LocalValueFromJsValue(msg).As<v8::String>()));
 
   return GET_RETURN_STATUS();
 }
@@ -1153,6 +1182,8 @@ napi_status napi_get_type_of_value(napi_env e, napi_value vv, napi_valuetype* re
     *result = napi_symbol;
   } else if (v->IsNull()) {
     *result = napi_null;
+  } else if (v->IsExternal()) {
+    *result = napi_external;
   } else {
     *result = napi_object;   // Is this correct?
   }
@@ -1569,122 +1600,170 @@ napi_status napi_coerce_to_string(napi_env e, napi_value v, napi_value* result) 
   return GET_RETURN_STATUS();
 }
 
-napi_status napi_wrap(napi_env e, napi_value jsObject, void* nativeObj,
-                      napi_destruct destructor, napi_weakref* handle) {
+napi_status napi_wrap(napi_env e,
+                      napi_value jsObject,
+                      void* nativeObj,
+                      napi_finalize finalize_cb,
+                      napi_ref* result) {
   NAPI_PREAMBLE(e);
+  CHECK_ARG(jsObject);
 
   v8::Isolate *isolate = v8impl::V8IsolateFromJsEnv(e);
-  v8::Local<v8::Context> context = isolate->GetCurrentContext();
-  v8::Local<v8::Object> obj;
-  CHECK_TO_OBJECT(context, obj, jsObject);
+  v8::Local<v8::Object> obj = v8impl::V8LocalValueFromJsValue(jsObject).As<v8::Object>();
 
-  v8impl::ObjectWrapWrapper* wrap =
-      new v8impl::ObjectWrapWrapper(obj, nativeObj, destructor);
+  // Only objects that were created from a NAPI constructor's prototype
+  // via napi_define_class() can be (un)wrapped.
+  RETURN_STATUS_IF_FALSE(obj->InternalFieldCount() > 0, napi_invalid_arg);
 
-  if (handle)
-  {
-    return napi_create_weakref(
-      e,
-      v8impl::JsValueFromV8LocalValue(wrap->handle()),
-      handle);
+  obj->SetAlignedPointerInInternalField(0, nativeObj);
+
+  if (finalize_cb != nullptr) {
+    // Create a separate self-deleting reference for the finalizer callback.
+    // This ensures the finalizer is not dependent on the lifetime of the returned reference.
+    new v8impl::Reference(isolate, obj, 0, true, finalize_cb, nativeObj);
   }
 
-  // TODO: Is the handle parameter really optional?
-  //       Why would anyone want to construct an object wrap and immediately lose it?
+  if (result != nullptr) {
+    // If a reference result was requested, create one that is separate from the reference
+    // that holds the finalizer callback. The returned reference should be deleted via
+    // napi_delete_reference() when it is no longer needed.
+    v8impl::Reference* reference = new v8impl::Reference(isolate, obj, 0, false, nullptr, nullptr);
+    *result = reinterpret_cast<napi_ref>(reference);
+  }
+
   return GET_RETURN_STATUS();
 }
 
 napi_status napi_unwrap(napi_env e, napi_value jsObject, void** result) {
   NAPI_PREAMBLE(e);
+  CHECK_ARG(jsObject);
   CHECK_ARG(result);
 
-  v8::Isolate *isolate = v8impl::V8IsolateFromJsEnv(e);
-  v8::Local<v8::Context> context = isolate->GetCurrentContext();
-  v8::Local<v8::Object> obj;
-  CHECK_TO_OBJECT(context, obj, jsObject);
+  v8::Local<v8::Object> obj = v8impl::V8LocalValueFromJsValue(jsObject).As<v8::Object>();
 
-  *result = v8impl::ObjectWrapWrapper::Unwrap(obj);
-  return GET_RETURN_STATUS();
-}
+  // Only objects that were created from a NAPI constructor's prototype
+  // via napi_define_class() can be (un)wrapped.
+  RETURN_STATUS_IF_FALSE(obj->InternalFieldCount() > 0, napi_invalid_arg);
 
-napi_status napi_create_persistent(napi_env e, napi_value v, napi_persistent* result) {
-  NAPI_PREAMBLE(e);
-  CHECK_ARG(result);
-
-  v8::Isolate *isolate = v8impl::V8IsolateFromJsEnv(e);
-  v8::Persistent<v8::Value> *thePersistent =
-      new v8::Persistent<v8::Value>(
-          isolate, v8impl::V8LocalValueFromJsValue(v));
-
-  *result = v8impl::JsPersistentFromV8PersistentValue(thePersistent);
-  return GET_RETURN_STATUS();
-}
-
-napi_status napi_release_persistent(napi_env e, napi_persistent p) {
-  NAPI_PREAMBLE(e);
-
-  v8::Persistent<v8::Value> *thePersistent =
-      v8impl::V8PersistentValueFromJsPersistentValue(p);
-  thePersistent->Reset();
-  delete thePersistent;
+  *result = obj->GetAlignedPointerFromInternalField(0);
 
   return GET_RETURN_STATUS();
 }
 
-napi_status napi_get_persistent_value(napi_env e, napi_persistent p, napi_value* result) {
+napi_status napi_create_external(napi_env e,
+                                 void* data,
+                                 napi_finalize finalize_cb,
+                                 napi_value* result) {
   NAPI_PREAMBLE(e);
   CHECK_ARG(result);
 
   v8::Isolate *isolate = v8impl::V8IsolateFromJsEnv(e);
-  v8::Persistent<v8::Value> *thePersistent =
-      v8impl::V8PersistentValueFromJsPersistentValue(p);
-  v8::Local<v8::Value> napi_value =
-      v8::Local<v8::Value>::New(isolate, *thePersistent);
 
-  *result = v8impl::JsValueFromV8LocalValue(napi_value);
+  v8::Local<v8::Value> externalValue = v8::External::New(isolate, data);
+
+  // The Reference object will delete itself after invoking the finalizer callback.
+  new v8impl::Reference(isolate, externalValue, 0, true, finalize_cb, data);
+
+  *result = v8impl::JsValueFromV8LocalValue(externalValue);
+
   return GET_RETURN_STATUS();
 }
 
-napi_status napi_create_weakref(napi_env e, napi_value v, napi_weakref* result) {
+napi_status napi_get_value_external(napi_env e, napi_value v, void** result) {
   NAPI_PREAMBLE(e);
+  CHECK_ARG(v);
   CHECK_ARG(result);
 
   v8::Isolate *isolate = v8impl::V8IsolateFromJsEnv(e);
-  v8::Persistent<v8::Value> *thePersistent =
-      new v8::Persistent<v8::Value>(
-          isolate, v8impl::V8LocalValueFromJsValue(v));
-  thePersistent->SetWeak(static_cast<int*>(nullptr), v8impl::WeakRefCallback,
-                         v8::WeakCallbackType::kParameter);
-  // need to mark independent?
-  *result = v8impl::JsWeakRefFromV8PersistentValue(thePersistent);
+
+  v8::Local<v8::Value> value = v8impl::V8LocalValueFromJsValue(v);
+  RETURN_STATUS_IF_FALSE(value->IsExternal(), napi_invalid_arg);
+
+  v8::Local<v8::External> externalValue = v8impl::V8LocalValueFromJsValue(v).As<v8::External>();
+  *result = externalValue->Value();
+
   return GET_RETURN_STATUS();
 }
 
-napi_status napi_get_weakref_value(napi_env e, napi_weakref w, napi_value* result) {
+// Set initial_refcount to 0 for a weak reference, >0 for a strong reference.
+napi_status napi_create_reference(napi_env e,
+                                  napi_value value,
+                                  int initial_refcount,
+                                  napi_ref* result) {
   NAPI_PREAMBLE(e);
   CHECK_ARG(result);
+  RETURN_STATUS_IF_FALSE(initial_refcount >= 0, napi_invalid_arg);
 
   v8::Isolate *isolate = v8impl::V8IsolateFromJsEnv(e);
-  v8::Persistent<v8::Value> *thePersistent =
-      v8impl::V8PersistentValueFromJsWeakRefValue(w);
-  v8::Local<v8::Value> v =
-      v8::Local<v8::Value>::New(isolate, *thePersistent);
-  if (v.IsEmpty()) {
-    *result = nullptr;
-    return GET_RETURN_STATUS();
+
+  v8impl::Reference* reference = new v8impl::Reference(
+    isolate, v8impl::V8LocalValueFromJsValue(value), initial_refcount, false);
+
+  *result = reinterpret_cast<napi_ref>(reference);
+  return GET_RETURN_STATUS();
+}
+
+// Deletes a reference. The referenced value is released, and may be GC'd unless there
+// are other references to it.
+napi_status napi_delete_reference(napi_env e, napi_ref ref) {
+  NAPI_PREAMBLE(e);
+  CHECK_ARG(ref);
+
+  v8impl::Reference* reference = reinterpret_cast<v8impl::Reference*>(ref);
+  delete reference;
+
+  return GET_RETURN_STATUS();
+}
+
+// Increments the reference count, optionally returning the resulting count. After this call the
+// reference will be a strong reference because its refcount is >0, and the referenced object is
+// effectively "pinned". Calling this when the refcount is 0 and the object is unavailable
+// results in an error.
+napi_status napi_reference_addref(napi_env e, napi_ref ref, int* result) {
+  NAPI_PREAMBLE(e);
+  CHECK_ARG(ref);
+
+  v8impl::Reference* reference = reinterpret_cast<v8impl::Reference*>(ref);
+  int count = reference->AddRef();
+
+  if (result != nullptr) {
+    *result = count;
   }
-  *result = v8impl::JsValueFromV8LocalValue(v);
+
   return GET_RETURN_STATUS();
 }
 
-napi_status napi_release_weakref(napi_env e, napi_weakref w) {
+// Decrements the reference count, optionally returning the resulting count. If the result is
+// 0 the reference is now weak and the object may be GC'd at any time if there are no other
+// references. Calling this when the refcount is already 0 results in an error.
+napi_status napi_reference_release(napi_env e, napi_ref ref, int* result) {
   NAPI_PREAMBLE(e);
+  CHECK_ARG(ref);
 
-  v8::Persistent<v8::Value> *thePersistent =
-      v8impl::V8PersistentValueFromJsWeakRefValue(w);
+  v8impl::Reference* reference = reinterpret_cast<v8impl::Reference*>(ref);
+  int count = reference->Release();
+  if (count < 0) {
+    return napi_set_last_error(napi_generic_failure);
+  }
 
-  thePersistent->Reset();
-  delete thePersistent;
+  if (result != nullptr) {
+    *result = count;
+  }
+
+  return GET_RETURN_STATUS();
+}
+
+// Attempts to get a referenced value. If the reference is weak, the value might no longer be
+// available, in that case the call is still successful but the result is NULL.
+napi_status napi_get_reference_value(napi_env e, napi_ref ref, napi_value* result) {
+  NAPI_PREAMBLE(e);
+  CHECK_ARG(ref);
+  CHECK_ARG(result);
+
+  v8::Isolate *isolate = v8impl::V8IsolateFromJsEnv(e);
+
+  v8impl::Reference* reference = reinterpret_cast<v8impl::Reference*>(ref);
+  *result = v8impl::JsValueFromV8LocalValue(reference->Get());
 
   return GET_RETURN_STATUS();
 }
@@ -1816,15 +1895,6 @@ napi_status napi_instanceof(napi_env e, napi_value obj, napi_value cons, bool* r
     }
   }
 
-  return GET_RETURN_STATUS();
-}
-
-napi_status napi_make_external(napi_env e, napi_value v, napi_value* result) {
-  NAPI_PREAMBLE(e);
-  CHECK_ARG(result);
-  // v8impl::TryCatch doesn't make sense here since we're not calling into the
-  // engine at all.
-  *result = v;
   return GET_RETURN_STATUS();
 }
 
