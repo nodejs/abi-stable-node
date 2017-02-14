@@ -17,6 +17,7 @@
 *
 ******************************************************************************/
 
+#include <stddef.h>
 #include "node_jsvmapi_internal.h"
 #include <node_buffer.h>
 #include <node_object_wrap.h>
