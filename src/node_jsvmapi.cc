@@ -1319,8 +1319,7 @@ napi_status napi_call_function(napi_env e,
   v8::Isolate *isolate = v8impl::V8IsolateFromJsEnv(e);
   v8::Local<v8::Context> context = isolate->GetCurrentContext();
 
-  v8::Handle<v8::Object> v8recv;
-  CHECK_TO_OBJECT(context, v8recv, recv);
+  v8::Handle<v8::Value> v8recv = v8impl::V8LocalValueFromJsValue(recv);
 
   for (int i = 0; i < argc; i++) {
     args[i] = v8impl::V8LocalValueFromJsValue(argv[i]);
