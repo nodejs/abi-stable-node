@@ -18,6 +18,7 @@
 #ifndef SRC_NODE_JSVMAPI_H_
 #define SRC_NODE_JSVMAPI_H_
 
+#include <stddef.h>
 #include "node_jsvmapi_types.h"
 
 #ifndef NODE_EXTERN
