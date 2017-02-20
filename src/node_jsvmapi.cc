@@ -1951,11 +1951,21 @@ napi_status napi_get_and_clear_last_exception(napi_env e, napi_value* result) {
   return napi_ok;
 }
 
-napi_status napi_buffer_new(napi_env e, char* data, size_t size, napi_value* result) {
+napi_status napi_create_buffer(napi_env e,
+                               char* data,
+                               size_t size,
+                               napi_finalize finalize_cb,
+                               napi_value* result) {
   NAPI_PREAMBLE(e);
   CHECK_ARG(result);
 
-  auto maybe = node::Buffer::New(v8impl::V8IsolateFromJsEnv(e), data, size);
+  v8::MaybeLocal<v8::Object> maybe;
+  if (finalize_cb) {
+    maybe = node::Buffer::New(v8impl::V8IsolateFromJsEnv(e), data, size,
+      (node::Buffer::FreeCallback)finalize_cb, nullptr);
+  } else {
+    maybe = node::Buffer::New(v8impl::V8IsolateFromJsEnv(e), data, size);
+  }
 
   CHECK_MAYBE_EMPTY(maybe, napi_generic_failure);
 
@@ -1963,8 +1973,8 @@ napi_status napi_buffer_new(napi_env e, char* data, size_t size, napi_value* res
   return GET_RETURN_STATUS();
 }
 
-napi_status napi_buffer_copy(napi_env e, const char* data,
-                             size_t size, napi_value* result) {
+napi_status napi_create_buffer_copy(napi_env e, const char* data,
+                                    size_t size, napi_value* result) {
   NAPI_PREAMBLE(e);
   CHECK_ARG(result);
 
@@ -1976,7 +1986,7 @@ napi_status napi_buffer_copy(napi_env e, const char* data,
   return GET_RETURN_STATUS();
 }
 
-napi_status napi_buffer_has_instance(napi_env e, napi_value v, bool* result) {
+napi_status napi_is_buffer(napi_env e, napi_value v, bool* result) {
   NAPI_PREAMBLE(e);
   CHECK_ARG(result);
 
@@ -1984,7 +1994,7 @@ napi_status napi_buffer_has_instance(napi_env e, napi_value v, bool* result) {
   return GET_RETURN_STATUS();
 }
 
-napi_status napi_buffer_data(napi_env e, napi_value v, char** result) {
+napi_status napi_get_buffer_data(napi_env e, napi_value v, char** result) {
   NAPI_PREAMBLE(e);
   CHECK_ARG(result);
 
@@ -1992,7 +2002,7 @@ napi_status napi_buffer_data(napi_env e, napi_value v, char** result) {
   return GET_RETURN_STATUS();
 }
 
-napi_status napi_buffer_length(napi_env e, napi_value v, size_t* result) {
+napi_status napi_get_buffer_length(napi_env e, napi_value v, size_t* result) {
   NAPI_PREAMBLE(e);
   CHECK_ARG(result);
 

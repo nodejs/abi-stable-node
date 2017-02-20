@@ -1,7 +1,7 @@
 'use strict';
-require('../../common');
+var common = require('../../common');
 var assert = require('assert');
-var addon = require('./build/Release/binding');
+var addon = require(`./build/${common.buildType}/binding`);
 
 addon.RunCallback(function(msg) {
   assert.equal(msg, 'hello world');
