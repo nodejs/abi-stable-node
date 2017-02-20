@@ -1,7 +1,7 @@
 'use strict';
-require('../../common');
+var common = require('../../common');
 var assert = require('assert');
-var createObject = require('./build/Release/binding');
+var createObject = require(`./build/${common.buildType}/binding`);
 
 var obj = createObject(10);
 assert.equal(obj.plusOne(), 11);

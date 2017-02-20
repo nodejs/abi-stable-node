@@ -1,9 +1,9 @@
 'use strict';
-require('../../common');
+var common = require('../../common');
 var assert = require('assert');
 
 // testing api calls for function
-var test_function = require('./build/Release/test_function');
+var test_function = require(`./build/${common.buildType}/test_function`);
 
 
 function func1() {

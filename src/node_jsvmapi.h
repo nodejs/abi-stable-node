@@ -315,17 +315,21 @@ NODE_EXTERN napi_status napi_is_exception_pending(napi_env e, bool* result);
 NODE_EXTERN napi_status napi_get_and_clear_last_exception(napi_env e, napi_value* result);
 
 // Methods to provide node::Buffer functionality with napi types
-NODE_EXTERN napi_status napi_buffer_new(napi_env e,
-                                        char* data,
-                                        size_t size,
-                                        napi_value* result);
-NODE_EXTERN napi_status napi_buffer_copy(napi_env e,
-                                         const char* data,
-                                         size_t size,
-                                         napi_value* result);
-NODE_EXTERN napi_status napi_buffer_has_instance(napi_env e, napi_value v, bool* result);
-NODE_EXTERN napi_status napi_buffer_data(napi_env e, napi_value v, char** result);
-NODE_EXTERN napi_status napi_buffer_length(napi_env e, napi_value v, size_t* result);
+NODE_EXTERN napi_status napi_create_buffer(napi_env e,
+                                           size_t size,
+                                           char** data,
+                                           napi_value* result);
+NODE_EXTERN napi_status napi_create_external_buffer(napi_env e,
+                                                    size_t size,
+                                                    char* data,
+                                                    napi_finalize finalize_cb,
+                                                    napi_value* result);
+NODE_EXTERN napi_status napi_create_buffer_copy(napi_env e,
+                                                const char* data,
+                                                size_t size,
+                                                napi_value* result);
+NODE_EXTERN napi_status napi_is_buffer(napi_env e, napi_value v, bool* result);
+NODE_EXTERN napi_status napi_get_buffer_info(napi_env e, napi_value v, char** data, size_t* length);
 
 // Methods to work with array buffers and typed arrays
 NODE_EXTERN napi_status napi_is_arraybuffer(napi_env env, napi_value value, bool* result);
