@@ -1,9 +1,9 @@
 'use strict';
-require('../../common');
+var common = require('../../common');
 var assert = require('assert');
 
 // testing api calls for string
-var test_string = require('./build/Release/test_string');
+var test_string = require(`./build/${common.buildType}/test_string`);
 
 var str1 = 'hello world';
 assert.equal(test_string.Copy(str1), str1);

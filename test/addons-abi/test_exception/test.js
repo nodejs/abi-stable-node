@@ -1,6 +1,7 @@
 'use strict';
 
-var test_exception = require( "./build/Release/test_exception" );
+var common = require('../../common');
+var test_exception = require(`./build/${common.buildType}/test_exception`);
 var assert = require( "assert" );
 var theError = new Error( "Some error" );
 var throwTheError = function() {
