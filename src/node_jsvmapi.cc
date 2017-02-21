@@ -2032,6 +2032,7 @@ napi_status napi_create_arraybuffer(napi_env e,
 napi_status napi_create_external_arraybuffer(napi_env e,
                                              void* external_data,
                                              size_t byte_length,
+                                             napi_finalize finalize_cb,
                                              napi_value* result) {
   NAPI_PREAMBLE(e);
   CHECK_ARG(result);
@@ -2039,6 +2040,11 @@ napi_status napi_create_external_arraybuffer(napi_env e,
   v8::Isolate *isolate = v8impl::V8IsolateFromJsEnv(e);
   v8::Local<v8::ArrayBuffer> buffer =
     v8::ArrayBuffer::New(isolate, external_data, byte_length);
+
+  if (finalize_cb != nullptr) {
+    // Create a self-deleting weak reference that invokes the finalizer callback.
+    new v8impl::Reference(isolate, buffer, 0, true, finalize_cb, external_data);
+  }
 
   *result = v8impl::JsValueFromV8LocalValue(buffer);
   return GET_RETURN_STATUS();
