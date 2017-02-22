@@ -7,6 +7,8 @@ var assert = require( "assert" );
 
 assert( binding.newBuffer().toString() === binding.theText,
   "buffer returned by newBuffer() has wrong contents" );
+assert( binding.newExternalBuffer().toString() === binding.theText,
+  "buffer returned by newExternalBuffer() has wrong contents" );
 console.log( "gc1" );
 global.gc();
 assert( binding.getDeleterCallCount(), 1, "deleter was not called" );
@@ -15,9 +17,7 @@ assert( binding.copyBuffer().toString() === binding.theText,
 
 var buffer = binding.staticBuffer();
 assert( binding.bufferHasInstance( buffer ), true, "buffer type checking fails" );
-assert( binding.bufferData( buffer ), true, "buffer data is accurate" );
-assert( binding.bufferLength( buffer ), binding.theText.length + 1,
-  "buffer length retrieval failed" );
+assert( binding.bufferInfo( buffer ), true, "buffer data is accurate" );
 buffer = null;
 global.gc();
 console.log( "gc2" );
