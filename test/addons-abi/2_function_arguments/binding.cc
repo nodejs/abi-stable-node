@@ -49,7 +49,7 @@ void Add(napi_env env, napi_callback_info info) {
 void Init(napi_env env, napi_value exports, napi_value module) {
   napi_status status;
   napi_property_descriptor addDescriptor = { "add", Add };
-  status = napi_define_property(env, exports, &addDescriptor);
+  status = napi_define_properties(env, exports, 1, &addDescriptor);
   if (status != napi_ok) return;
 }
 

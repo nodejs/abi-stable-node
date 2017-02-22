@@ -22,7 +22,7 @@ void Init(napi_env env, napi_value exports, napi_value module) {
   if (status != napi_ok) return;
 
   napi_property_descriptor desc = { "exports", CreateObject };
-  status = napi_define_property(env, module, &desc);
+  status = napi_define_properties(env, module, 1, &desc);
   if (status != napi_ok) return;
 }
 

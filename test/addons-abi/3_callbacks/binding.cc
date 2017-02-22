@@ -41,10 +41,9 @@ void Init(napi_env env, napi_value exports, napi_value module) {
     { "RunCallback", RunCallback },
     { "RunCallbackWithRecv", RunCallbackWithRecv }
   };
-  for (int index = 0; index < 2; index++) {
-    status = napi_define_property(env, exports, &desc[index]);
-    if (status != napi_ok) return;
-  }
+  status = napi_define_properties(
+    env, exports, sizeof(desc) / sizeof(napi_property_descriptor), desc);
+  if (status != napi_ok) return;
 }
 
 NODE_MODULE_ABI(addon, Init)

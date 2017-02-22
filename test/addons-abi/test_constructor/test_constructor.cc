@@ -91,7 +91,7 @@ void Init(napi_env env, napi_value exports, napi_value module) {
   };
 
   napi_value cons;
-  status = napi_create_constructor(env, "MyObject", New,
+  status = napi_define_class(env, "MyObject", New,
     nullptr, sizeof(properties)/sizeof(*properties), properties, &cons);
   if (status != napi_ok) return;
 
