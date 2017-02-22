@@ -23,6 +23,7 @@
 #include <node_object_wrap.h>
 #include <env.h>
 #include <vector>
+#include <algorithm>
 #include "ChakraCore.h"
 
 #include "src/jsrtutils.h"
@@ -332,8 +333,7 @@ napi_status napi_define_class(napi_env e,
   }
 
   std::vector<napi_property_descriptor> descriptors;
-  descriptors.reserve(instancePropertyCount > staticPropertyCount ?
-    instancePropertyCount : staticPropertyCount);
+  descriptors.reserve(std::max(instancePropertyCount, staticPropertyCount));
 
   if (instancePropertyCount > 0) {
     for (int i = 0; i < property_count; i++) {
@@ -407,66 +407,70 @@ napi_status napi_define_properties(napi_env e,
                                    napi_value o,
                                    int property_count,
                                    const napi_property_descriptor* properties) {
-  napi_propertyname configurableProperty;
-  CHECK_NAPI(napi_property_name(e, "configurable", &configurableProperty));
+  JsPropertyIdRef configurableProperty;
+  CHECK_JSRT(JsCreatePropertyIdUtf8("configurable", 12, &configurableProperty));
 
-  napi_propertyname enumerableProperty;
-  CHECK_NAPI(napi_property_name(e, "enumerable", &enumerableProperty));
+  JsPropertyIdRef enumerableProperty;
+  CHECK_JSRT(JsCreatePropertyIdUtf8("enumerable", 10, &enumerableProperty));
 
   for (int i = 0; i < property_count; i++) {
     const napi_property_descriptor* p = properties + i;
 
-    napi_value descriptor;
-    CHECK_NAPI(napi_create_object(e, &descriptor));
+    JsValueRef descriptor;
+    CHECK_JSRT(JsCreateObject(&descriptor));
 
-    napi_value configurable;
-    CHECK_NAPI(napi_create_boolean(e, !(p->attributes & napi_dont_delete), &configurable));
-    CHECK_NAPI(napi_set_property(e, descriptor, configurableProperty, configurable));
+    JsValueRef configurable;
+    CHECK_JSRT(JsBoolToBoolean(!(p->attributes & napi_dont_delete), &configurable));
+    CHECK_JSRT(JsSetProperty(descriptor, configurableProperty, configurable, true));
 
-    napi_value enumerable;
-    CHECK_NAPI(napi_create_boolean(e, !(p->attributes & napi_dont_enum), &enumerable));
-    CHECK_NAPI(napi_set_property(e, descriptor, enumerableProperty, enumerable));
+    JsValueRef enumerable;
+    CHECK_JSRT(JsBoolToBoolean(!(p->attributes & napi_dont_enum), &enumerable));
+    CHECK_JSRT(JsSetProperty(descriptor, enumerableProperty, enumerable, true));
 
     if (p->method) {
-      napi_propertyname valueProperty;
-      CHECK_NAPI(napi_property_name(e, "value", &valueProperty));
-      napi_value method;
-      CHECK_NAPI(napi_create_function(e, p->method, p->data, &method));
-      CHECK_NAPI(napi_set_property(e, descriptor, valueProperty, method));
+      JsPropertyIdRef valueProperty;
+      CHECK_JSRT(JsCreatePropertyIdUtf8("value", 5, &valueProperty));
+      JsValueRef method;
+      CHECK_NAPI(napi_create_function(e, p->method, p->data,
+        reinterpret_cast<napi_value*>(&method)));
+      CHECK_JSRT(JsSetProperty(descriptor, valueProperty, method, true));
     }
     else if (p->getter || p->setter) {
       if (p->getter) {
-        napi_propertyname getProperty;
-        CHECK_NAPI(napi_property_name(e, "get", &getProperty));
-        napi_value getter;
-        CHECK_NAPI(napi_create_function(e, p->getter, p->data, &getter));
-        CHECK_NAPI(napi_set_property(e, descriptor, getProperty, getter));
+        JsPropertyIdRef getProperty;
+        CHECK_JSRT(JsCreatePropertyIdUtf8("get", 3, &getProperty));
+        JsValueRef getter;
+        CHECK_NAPI(napi_create_function(e, p->getter, p->data,
+          reinterpret_cast<napi_value*>(&getter)));
+        CHECK_JSRT(JsSetProperty(descriptor, getProperty, getter, true));
       }
 
       if (p->setter) {
-        napi_propertyname setProperty;
-        CHECK_NAPI(napi_property_name(e, "set", &setProperty));
-        napi_value setter;
-        CHECK_NAPI(napi_create_function(e, p->setter, p->data, &setter));
-        CHECK_NAPI(napi_set_property(e, descriptor, setProperty, setter));
+        JsPropertyIdRef setProperty;
+        CHECK_JSRT(JsCreatePropertyIdUtf8("set", 5, &setProperty));
+        JsValueRef setter;
+        CHECK_NAPI(napi_create_function(e, p->setter, p->data,
+          reinterpret_cast<napi_value*>(&setter)));
+        CHECK_JSRT(JsSetProperty(descriptor, setProperty, setter, true));
       }
     }
     else {
       RETURN_STATUS_IF_FALSE(p->value != nullptr, napi_invalid_arg);
 
-      napi_propertyname writableProperty;
-      CHECK_NAPI(napi_property_name(e, "writable", &writableProperty));
-      napi_value writable;
-      CHECK_NAPI(napi_create_boolean(e, !(p->attributes & napi_read_only), &writable));
-      CHECK_NAPI(napi_set_property(e, descriptor, writableProperty, writable));
+      JsPropertyIdRef writableProperty;
+      CHECK_JSRT(JsCreatePropertyIdUtf8("writable", 8, &writableProperty));
+      JsValueRef writable;
+      CHECK_JSRT(JsBoolToBoolean(!(p->attributes & napi_read_only), &writable));
+      CHECK_JSRT(JsSetProperty(descriptor, writableProperty, writable, true));
 
-      napi_propertyname valueProperty;
-      CHECK_NAPI(napi_property_name(e, "value", &valueProperty));
-      CHECK_NAPI(napi_set_property(e, descriptor, valueProperty, p->value));
+      JsPropertyIdRef valueProperty;
+      CHECK_JSRT(JsCreatePropertyIdUtf8("value", 5, &valueProperty));
+      CHECK_JSRT(JsSetProperty(descriptor, valueProperty,
+        reinterpret_cast<JsValueRef>(p->value), true));
     }
 
-    napi_propertyname nameProperty;
-    CHECK_NAPI(napi_property_name(e, p->utf8name, &nameProperty));
+    JsPropertyIdRef nameProperty;
+    CHECK_JSRT(JsCreatePropertyIdUtf8(p->utf8name, strlen(p->utf8name), &nameProperty));
     bool result;
     CHECK_JSRT(JsDefineProperty(
       reinterpret_cast<JsValueRef>(o),
@@ -727,7 +731,7 @@ napi_status napi_get_cb_args(napi_env e, napi_callback_info cbinfo,
   const CallbackInfo *info = reinterpret_cast<CallbackInfo*>(cbinfo);
 
   int i = 0;
-  int min = bufferlength < (info->argc) - 1 ? bufferlength : (info->argc) - 1;
+  int min = std::min(bufferlength, info->argc - 1);
 
   for (; i < min; i++) {
     buffer[i] = info->argv[i + 1];
