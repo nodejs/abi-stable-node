@@ -163,6 +163,9 @@ static const char* trace_enabled_categories = nullptr;
 static const char* icu_data_dir = nullptr;
 #endif
 
+// By default we accept N-API addons
+bool no_napi_modules = false;
+
 // used by C++ modules as well
 bool no_deprecation = false;
 
@@ -2426,7 +2429,7 @@ void DLOpen(const FunctionCallbackInfo<Value>& args) {
   }
 
 #ifdef ENABLE_NAPI
-  bool isNapiModule = mp->nm_version == -1;
+  bool isNapiModule = (!no_napi_modules && mp->nm_version == -1);
 
   if (mp->nm_version != NODE_MODULE_VERSION && !isNapiModule) {
 #else /* !defined ENABLE_NAPI */
@@ -3707,6 +3710,8 @@ static void ParseArgs(int* argc,
       force_repl = true;
     } else if (strcmp(arg, "--no-deprecation") == 0) {
       no_deprecation = true;
+    } else if (strcmp(arg, "--no-napi-modules") == 0) {
+      no_napi_modules = true;
     } else if (strcmp(arg, "--no-warnings") == 0) {
       no_process_warnings = true;
     } else if (strcmp(arg, "--trace-warnings") == 0) {
