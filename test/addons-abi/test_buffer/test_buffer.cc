@@ -5,15 +5,15 @@
 #define JS_ASSERT(env, assertion, message) \
   if (!(assertion)) { \
     napi_throw_error((env), (std::string("assertion (" #assertion ") failed: ") + message).c_str()); \
-	return; \
+    return; \
   }
 
 #define NAPI_CALL(env, theCall) \
   if (theCall != napi_ok) { \
     const char *errorMessage = napi_get_last_error_info()->error_message; \
-	errorMessage = errorMessage ? errorMessage: "empty error message"; \
+    errorMessage = errorMessage ? errorMessage: "empty error message"; \
     napi_throw_error((env), errorMessage); \
-	return; \
+    return; \
   }
 
 static const char theText[] =
@@ -69,6 +69,10 @@ NAPI_METHOD(bufferHasInstance) {
   napi_value theBuffer;
   NAPI_CALL(env, napi_get_cb_args(env, info, &theBuffer, 1));
   bool hasInstance;
+  napi_valuetype theType;
+  NAPI_CALL(env, napi_get_type_of_value(env, theBuffer, &theType));
+  JS_ASSERT(env, theType == napi_object,
+    "bufferHasInstance: instance is not an object");
   NAPI_CALL(env, napi_is_buffer(env, theBuffer, &hasInstance));
   JS_ASSERT(env, hasInstance, "bufferHasInstance: instance is not a buffer");
   napi_value returnValue;
@@ -88,7 +92,7 @@ NAPI_METHOD(bufferInfo) {
     &bufferLength));
   NAPI_CALL(env, napi_create_boolean(env,
     !strcmp(bufferData, theText) && bufferLength == sizeof(theText),
-	&returnValue));
+    &returnValue));
   NAPI_CALL(env, napi_set_return_value(env, info, returnValue));
 }
 
@@ -109,12 +113,12 @@ void Init(napi_env env, napi_value exports, napi_value module) {
 
   napi_property_descriptor methods[] = {
     { "newBuffer", newBuffer },
-	{ "newExternalBuffer", newExternalBuffer },
-	{ "getDeleterCallCount", getDeleterCallCount },
-	{ "copyBuffer", copyBuffer },
-	{ "bufferHasInstance", bufferHasInstance },
-	{ "bufferInfo", bufferInfo },
-	{ "staticBuffer", staticBuffer }
+    { "newExternalBuffer", newExternalBuffer },
+    { "getDeleterCallCount", getDeleterCallCount },
+    { "copyBuffer", copyBuffer },
+    { "bufferHasInstance", bufferHasInstance },
+    { "bufferInfo", bufferInfo },
+    { "staticBuffer", staticBuffer }
   };
 
   NAPI_CALL(env, napi_define_properties(env, exports,
