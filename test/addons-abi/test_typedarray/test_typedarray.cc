@@ -98,11 +98,29 @@ void Multiply(napi_env env, napi_callback_info info) {
   if (status != napi_ok) return;
 }
 
+void External(napi_env env, napi_callback_info info) {
+  static int8_t externalData[] = { 0, 1, 2 };
+
+  napi_value output_buffer;
+  napi_status status = napi_create_external_arraybuffer(
+    env, externalData, sizeof(externalData), nullptr, &output_buffer);
+  if (status != napi_ok) return;
+
+  napi_value output_array;
+  status = napi_create_typedarray(
+    env, napi_int8, sizeof(externalData) / sizeof(uint8_t), output_buffer, 0, &output_array);
+  if (status != napi_ok) return;
+
+  status = napi_set_return_value(env, info, output_array);
+  if (status != napi_ok) return;
+}
+
 void Init(napi_env env, napi_value exports, napi_value module) {
   napi_status status;
 
   napi_property_descriptor descriptors[] = {
     { "Multiply", Multiply },
+    { "External", External },
   };
 
   status = napi_define_properties(
