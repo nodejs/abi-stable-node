@@ -1,7 +1,7 @@
 'use strict';
-require('../../common');
+var common = require('../../common');
 var assert = require('assert');
-var addon = require('./build/Release/binding');
+var addon = require(`./build/${common.buildType}/binding`);
 
 var obj = new addon.MyObject(9);
 assert.ok(obj instanceof addon.MyObject);

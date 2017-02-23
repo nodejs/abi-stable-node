@@ -1,9 +1,9 @@
 'use strict';
-require('../../common');
+var common = require('../../common');
 var assert = require('assert');
 
 // testing api calls for symbol
-var test_symbol = require('./build/Release/test_symbol');
+var test_symbol = require(`./build/${common.buildType}/test_symbol`);
 
 var fooSym = test_symbol.New('foo');
 var myObj = {};
