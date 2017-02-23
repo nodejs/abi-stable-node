@@ -3391,7 +3391,7 @@ CHAKRA_API JsGetWeakReferenceValue(
     _In_ JsWeakRef weakRef,
     _Out_ JsValueRef* value)
 {
-    return GlobalAPIWrapper_NoRecord([&]()->JsErrorCode {
+    return GlobalAPIWrapper_NoRecord([&]() -> JsErrorCode {
         VALIDATE_JSREF(weakRef);
         PARAM_NOT_NULL(value);
         *value = nullptr;
