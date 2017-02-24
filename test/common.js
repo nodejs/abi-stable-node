@@ -26,6 +26,8 @@ exports.isFreeBSD = process.platform === 'freebsd';
 
 exports.enoughTestMem = os.totalmem() > 0x20000000; /* 512MB */
 
+exports.buildType = process.config.target_defaults.default_configuration;
+
 function rimrafSync(p) {
   try {
     var st = fs.lstatSync(p);
