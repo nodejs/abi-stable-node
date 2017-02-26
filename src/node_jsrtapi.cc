@@ -180,7 +180,7 @@ namespace jsrtimpl {
       cbInfo.isConstructCall = isConstructCall;
 
       if (isConstructCall) {
-        // For constructor callbacks, replace the the 'this' arg with a new external object,
+        // For constructor callbacks, replace the 'this' arg with a new external object,
         // to support wrapping a native object in the external object.
         JsValueRef externalThis;
         if (JsNoError == JsCreateExternalObject(
@@ -319,6 +319,7 @@ napi_status napi_create_function(napi_env e, napi_callback cb, void* data, napi_
   CHECK_ARG(result);
 
   jsrtimpl::ExternalCallback* externalCallback = new jsrtimpl::ExternalCallback(cb, data);
+  if (externalCallback == nullptr) return napi_set_last_error(napi_generic_failure);
 
   JsValueRef function;
   CHECK_JSRT(JsCreateFunction(jsrtimpl::ExternalCallback::Callback, externalCallback, &function));
@@ -343,6 +344,7 @@ napi_status napi_define_class(napi_env e,
   CHECK_NAPI(napi_create_string_utf8(e, utf8name, -1, &namestring));
 
   jsrtimpl::ExternalCallback* externalCallback = new jsrtimpl::ExternalCallback(cb, data);
+  if (externalCallback == nullptr) return napi_set_last_error(napi_generic_failure);
 
   JsValueRef constructor;
   CHECK_JSRT(JsCreateNamedFunction(
@@ -1051,6 +1053,8 @@ napi_status napi_wrap(napi_env e, napi_value jsObject, void* nativeObj,
   JsValueRef value = reinterpret_cast<JsValueRef>(jsObject);
 
   jsrtimpl::ExternalData* externalData = new jsrtimpl::ExternalData(nativeObj, finalize_cb);
+  if (externalData == nullptr) return napi_set_last_error(napi_generic_failure);
+
   CHECK_JSRT(JsSetExternalData(value, externalData));
 
   if (result != nullptr) {
@@ -1068,8 +1072,11 @@ napi_status napi_create_external(napi_env e, void* data, napi_finalize finalize_
     napi_value* result) {
   CHECK_ARG(result);
 
+  jsrtimpl::ExternalData* externalData = new jsrtimpl::ExternalData(data, finalize_cb);
+  if (externalData == nullptr) return napi_set_last_error(napi_generic_failure);
+
   CHECK_JSRT(JsCreateExternalObject(
-    new jsrtimpl::ExternalData(data, finalize_cb),
+    externalData,
     jsrtimpl::ExternalData::Finalize,
     reinterpret_cast<JsValueRef*>(result)));
 
@@ -1395,12 +1402,15 @@ napi_status napi_create_external_arraybuffer(napi_env e,
                                              napi_value* result) {
   CHECK_ARG(result);
 
+  jsrtimpl::ExternalData* externalData = new jsrtimpl::ExternalData(external_data, finalize_cb);
+  if (externalData == nullptr) return napi_set_last_error(napi_generic_failure);
+
   JsValueRef arrayBuffer;
   CHECK_JSRT(JsCreateExternalArrayBuffer(
     external_data,
     static_cast<unsigned int>(byte_length),
     jsrtimpl::ExternalData::Finalize,
-    new jsrtimpl::ExternalData(external_data, finalize_cb),
+    externalData,
     &arrayBuffer));
 
   *result = reinterpret_cast<napi_value>(arrayBuffer);
