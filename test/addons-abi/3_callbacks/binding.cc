@@ -41,8 +41,7 @@ void Init(napi_env env, napi_value exports, napi_value module) {
     { "RunCallback", RunCallback },
     { "RunCallbackWithRecv", RunCallbackWithRecv }
   };
-  status = napi_define_properties(
-    env, exports, sizeof(desc) / sizeof(napi_property_descriptor), desc);
+  status = napi_define_properties(env, exports, 2, desc);
   if (status != napi_ok) return;
 }
 

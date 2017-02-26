@@ -4,6 +4,7 @@ var assert = require('assert');
 var addon = require('./build/Release/binding');
 
 var obj = new addon.MyObject(9);
+assert.ok(obj instanceof addon.MyObject);
 assert.equal(obj.value, 9);
 obj.value = 10;
 assert.equal(obj.value, 10);

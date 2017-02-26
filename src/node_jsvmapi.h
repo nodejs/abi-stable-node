@@ -219,12 +219,6 @@ NODE_EXTERN napi_status napi_new_instance(napi_env e,
 NODE_EXTERN napi_status napi_instanceof(napi_env e, napi_value obj,
                                         napi_value cons, bool* result);
 
-// Temporary method needed to support wrapping JavascriptObject in an external
-// object wrapper capable of storing external data. This workaround is only
-// required by ChakraCore and should be removed when we have a method of
-// constructing external objects from the constructor function itself.
-NODE_EXTERN napi_status napi_make_external(napi_env e, napi_value v, napi_value* result);
-
 // Napi version of node::MakeCallback(...)
 NODE_EXTERN napi_status napi_make_callback(napi_env e,
                                            napi_value recv,
@@ -250,21 +244,6 @@ NODE_EXTERN napi_status napi_is_construct_call(napi_env e,
 NODE_EXTERN napi_status napi_set_return_value(napi_env e,
                                   napi_callback_info cbinfo, napi_value v);
 
-// Methods to support ObjectWrap
-// Consider: current implementation for supporting ObjectWrap pattern is
-// difficult to implement for other VMs because of the dependence on node
-// core's node::ObjectWrap type which depends on v8 types and specifically
-// requires the given v8 object to have an internal field count of >= 1.
-// It is proving difficult in the chakracore version of these APIs to
-// implement this natively in JSRT which means that maybe this isn't the
-// best way to attach external data to a javascript object.  Perhaps
-// instead NAPI should do an external data concept like JsSetExternalData
-// and use that for "wrapping a native object".
-NODE_EXTERN napi_status napi_wrap(napi_env e, napi_value jsObject, void* nativeObj,
-                                  napi_destruct napi_destructor,
-                                  napi_weakref* handle);
-NODE_EXTERN napi_status napi_unwrap(napi_env e, napi_value jsObject, void** result);
-
 NODE_EXTERN napi_status napi_define_class(napi_env e,
                                           const char* utf8name,
                                           napi_callback constructor,
@@ -273,18 +252,46 @@ NODE_EXTERN napi_status napi_define_class(napi_env e,
                                           const napi_property_descriptor* properties,
                                           napi_value* result);
 
-// Methods to control object lifespan
-NODE_EXTERN napi_status napi_create_persistent(napi_env e, napi_value v,
-                                               napi_persistent* result);
-NODE_EXTERN napi_status napi_release_persistent(napi_env e, napi_persistent p);
-NODE_EXTERN napi_status napi_get_persistent_value(napi_env e, napi_persistent p,
-                                                  napi_value* result);
+// Methods to work with external data objects
+NODE_EXTERN napi_status napi_wrap(napi_env e,
+                                  napi_value jsObject,
+                                  void* nativeObj,
+                                  napi_finalize finalize_cb,
+                                  napi_ref* result);
+NODE_EXTERN napi_status napi_unwrap(napi_env e, napi_value jsObject, void** result);
 
-NODE_EXTERN napi_status napi_create_weakref(napi_env e, napi_value v,
-                                            napi_weakref* result);
-NODE_EXTERN napi_status napi_get_weakref_value(napi_env e, napi_weakref w,
-                                               napi_value* result);
-NODE_EXTERN napi_status napi_release_weakref(napi_env e, napi_weakref w);
+NODE_EXTERN napi_status napi_create_external(napi_env e,
+                                             void* data,
+                                             napi_finalize finalize_cb,
+                                             napi_value* result);
+NODE_EXTERN napi_status napi_get_value_external(napi_env e, napi_value v, void** result);
+
+// Methods to control object lifespan
+
+// Set initial_refcount to 0 for a weak reference, >0 for a strong reference.
+NODE_EXTERN napi_status napi_create_reference(napi_env e,
+                                              napi_value value,
+                                              int initial_refcount,
+                                              napi_ref* result);
+
+// Deletes a reference. The referenced value is released, and may be GC'd unless there
+// are other references to it.
+NODE_EXTERN napi_status napi_delete_reference(napi_env e, napi_ref ref);
+
+// Increments the reference count, optionally returning the resulting count. After this call the
+// reference will be a strong reference because its refcount is >0, and the referenced object is
+// effectively "pinned". Calling this when the refcount is 0 and the object is unavailable
+// results in an error.
+NODE_EXTERN napi_status napi_reference_addref(napi_env e, napi_ref ref, int* result);
+
+// Decrements the reference count, optionally returning the resulting count. If the result is
+// 0 the reference is now weak and the object may be GC'd at any time if there are no other
+// references. Calling this when the refcount is already 0 results in an error.
+NODE_EXTERN napi_status napi_reference_release(napi_env e, napi_ref ref, int* result);
+
+// Attempts to get a referenced value. If the reference is weak, the value might no longer be
+// available, in that case the call is still successful but the result is NULL.
+NODE_EXTERN napi_status napi_get_reference_value(napi_env e, napi_ref ref, napi_value* result);
 
 NODE_EXTERN napi_status napi_open_handle_scope(napi_env e, napi_handle_scope* result);
 NODE_EXTERN napi_status napi_close_handle_scope(napi_env e, napi_handle_scope s);
@@ -325,7 +332,9 @@ NODE_EXTERN napi_status napi_is_arraybuffer(napi_env env, napi_value value, bool
 NODE_EXTERN napi_status napi_create_arraybuffer(napi_env env, size_t byte_length, void** data,
                                                 napi_value* result);
 NODE_EXTERN napi_status napi_create_external_arraybuffer(napi_env env, void* external_data,
-                                                         size_t byte_length, napi_value* result);
+                                                         size_t byte_length,
+                                                         napi_finalize finalize_cb,
+                                                         napi_value* result);
 NODE_EXTERN napi_status napi_get_arraybuffer_info(napi_env env, napi_value arraybuffer,
                                                   void** data, size_t* byte_length);
 NODE_EXTERN napi_status napi_is_typedarray(napi_env env, napi_value value, bool* result);
