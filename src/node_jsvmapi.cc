@@ -147,7 +147,12 @@ namespace v8impl {
         _finalizeCallback(finalizeCallback),
         _finalizeData(finalizeData) {
       if (initialRefcount == 0) {
-        _persistent.SetWeak(this, FinalizeCallback, v8::WeakCallbackType::kParameter);
+        if (_finalizeCallback != nullptr || _deleteSelf) {
+          _persistent.SetWeak(this, FinalizeCallback, v8::WeakCallbackType::kParameter);
+        }
+        else {
+          _persistent.SetWeak();
+        }
         _persistent.MarkIndependent();
       }
     }
@@ -172,7 +177,12 @@ namespace v8impl {
 
     int Release() {
       if (--_refcount == 0) {
-        _persistent.SetWeak(this, FinalizeCallback, v8::WeakCallbackType::kParameter);
+        if (_finalizeCallback != nullptr || _deleteSelf) {
+          _persistent.SetWeak(this, FinalizeCallback, v8::WeakCallbackType::kParameter);
+        }
+        else {
+          _persistent.SetWeak();
+        }
         _persistent.MarkIndependent();
       }
 
@@ -721,7 +731,7 @@ napi_status napi_define_class(
     }
 
     napi_status status = napi_define_properties(
-      e, *result, staticDescriptors.size(), staticDescriptors.data());
+      e, *result, static_cast<int>(staticDescriptors.size()), staticDescriptors.data());
     if (status != napi_ok) return status;
   }
 
