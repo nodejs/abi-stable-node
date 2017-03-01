@@ -316,8 +316,9 @@ napi_status napi_set_last_error(JsErrorCode jsError, void* engine_reserved = nul
 }
 
 //Stub for now
-napi_env napi_get_current_env() {
-  return nullptr;
+napi_status napi_get_current_env(napi_env* e) {
+  *e = nullptr;
+  return napi_ok;
 }
 
 napi_status napi_create_function(napi_env e, napi_callback cb, void* data, napi_value* result) {
