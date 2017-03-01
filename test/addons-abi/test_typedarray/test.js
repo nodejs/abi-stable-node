@@ -1,9 +1,9 @@
 'use strict';
-require('../../common');
+var common = require('../../common');
 var assert = require('assert');
 
 // Testing api calls for arrays
-var test_typedarray = require('./build/Release/test_typedarray');
+var test_typedarray = require(`./build/${common.buildType}/test_typedarray`);
 
 var byteArray = new Uint8Array(3);
 byteArray[0] = 0;
@@ -18,13 +18,22 @@ doubleArray[2] = 2.2;
 assert.equal(doubleArray.length, 3);
 
 var byteResult = test_typedarray.Multiply(byteArray, 3);
+assert.ok(byteResult instanceof Uint8Array);
 assert.equal(byteResult.length, 3);
 assert.equal(byteResult[0], 0);
 assert.equal(byteResult[1], 3);
 assert.equal(byteResult[2], 6);
 
 var doubleResult = test_typedarray.Multiply(doubleArray, -3);
+assert.ok(doubleResult instanceof Float64Array);
 assert.equal(doubleResult.length, 3);
 assert.equal(doubleResult[0], 0);
 assert.equal(Math.round(10 * doubleResult[1]) / 10, -3.3);
 assert.equal(Math.round(10 * doubleResult[2]) / 10, -6.6);
+
+var externalResult = test_typedarray.External();
+assert.ok(externalResult instanceof Int8Array);
+assert.equal(externalResult.length, 3);
+assert.equal(externalResult[0], 0);
+assert.equal(externalResult[1], 1);
+assert.equal(externalResult[2], 2);

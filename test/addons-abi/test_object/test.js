@@ -1,9 +1,9 @@
 'use strict';
-require('../../common');
+var common = require('../../common');
 var assert = require('assert');
 
 // Testing api calls for objects
-var test_object = require('./build/Release/test_object');
+var test_object = require(`./build/${common.buildType}/test_object`);
 
 
 var object = {

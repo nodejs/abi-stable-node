@@ -151,6 +151,11 @@ namespace jsrtimpl {
       }
     }
 
+    // node::Buffer::FreeCallback
+    static void Finalize(char* data, void* callbackState) {
+      Finalize(callbackState);
+    }
+
   private:
     void* _data;
     napi_finalize _cb;
@@ -1291,20 +1296,52 @@ void CALLBACK ExternalArrayBufferFinalizeCallback(void *data)
 	static_cast<ArrayBufferFinalizeInfo*>(data)->Free();
 }
 
-napi_status napi_buffer_new(napi_env e, char* data, size_t size, napi_value* result) {
+napi_status napi_create_buffer(napi_env e, size_t size, char** data, napi_value* result) {
   CHECK_ARG(result);
   // TODO(tawoll): Replace v8impl with jsrt-based version.
 
-  v8::MaybeLocal<v8::Object> maybe = node::Buffer::New(
-    v8impl::V8IsolateFromJsEnv(e), data, size);
+  v8::MaybeLocal<v8::Object> maybe = node::Buffer::New(v8impl::V8IsolateFromJsEnv(e), size);
   if (maybe.IsEmpty()) {
     return napi_generic_failure;
   }
+
+  v8::Local<v8::Object> buffer = maybe.ToLocalChecked();
+  if (data != nullptr) {
+    *data = node::Buffer::Data(buffer);
+  }
+
+  *result = v8impl::JsValueFromV8LocalValue(buffer);
+  return napi_ok;
+}
+
+napi_status napi_create_external_buffer(napi_env e,
+                                        size_t size,
+                                        char* data,
+                                        napi_finalize finalize_cb,
+                                        napi_value* result) {
+  CHECK_ARG(result);
+  // TODO(tawoll): Replace v8impl with jsrt-based version.
+
+  jsrtimpl::ExternalData* externalData = new jsrtimpl::ExternalData(data, finalize_cb);
+  v8::MaybeLocal<v8::Object> maybe = node::Buffer::New(
+    v8impl::V8IsolateFromJsEnv(e),
+    data,
+    size,
+    jsrtimpl::ExternalData::Finalize,
+    externalData);
+
+  if (maybe.IsEmpty()) {
+    return napi_generic_failure;
+  }
+
   *result = v8impl::JsValueFromV8LocalValue(maybe.ToLocalChecked());
   return napi_ok;
 }
 
-napi_status napi_buffer_copy(napi_env e, const char* data, size_t size, napi_value* result) {
+napi_status napi_create_buffer_copy(napi_env e,
+                                    const char* data,
+                                    size_t size,
+                                    napi_value* result) {
   CHECK_ARG(result);
   // TODO(tawoll): Implement node::Buffer in terms of napi to avoid using chakra shim here.
 
@@ -1317,7 +1354,7 @@ napi_status napi_buffer_copy(napi_env e, const char* data, size_t size, napi_val
   return napi_ok;
 }
 
-napi_status napi_buffer_has_instance(napi_env e, napi_value v, bool* result) {
+napi_status napi_is_buffer(napi_env e, napi_value v, bool* result) {
   CHECK_ARG(result);
   JsValueRef typedArray = reinterpret_cast<JsValueRef>(v);
   JsTypedArrayType arrayType;
@@ -1326,8 +1363,7 @@ napi_status napi_buffer_has_instance(napi_env e, napi_value v, bool* result) {
   return napi_ok;
 }
 
-napi_status napi_buffer_data(napi_env e, napi_value v, char** result) {
-  CHECK_ARG(result);
+napi_status napi_get_buffer_info(napi_env e, napi_value v, char** data, size_t* length) {
   JsValueRef typedArray = reinterpret_cast<JsValueRef>(v);
   JsValueRef arrayBuffer;
   unsigned int byteOffset;
@@ -1335,16 +1371,15 @@ napi_status napi_buffer_data(napi_env e, napi_value v, char** result) {
   unsigned int bufferLength;
   CHECK_JSRT(JsGetTypedArrayInfo(typedArray, nullptr, &arrayBuffer, &byteOffset, nullptr));
   CHECK_JSRT(JsGetArrayBufferStorage(arrayBuffer, &buffer, &bufferLength));
-  *result = reinterpret_cast<char*>(buffer + byteOffset);
-  return napi_ok;
-}
 
-napi_status napi_buffer_length(napi_env e, napi_value v, size_t* result) {
-  CHECK_ARG(result);
-  JsValueRef typedArray = reinterpret_cast<JsValueRef>(v);
-  unsigned int len;
-  CHECK_JSRT(JsGetTypedArrayInfo(typedArray, nullptr, nullptr, nullptr, &len));
-  *result = static_cast<size_t>(len);
+  if (data != nullptr) {
+    *data = reinterpret_cast<char*>(buffer + byteOffset);
+  }
+
+  if (length != nullptr) {
+    *length = static_cast<size_t>(bufferLength);
+  }
+
   return napi_ok;
 }
 

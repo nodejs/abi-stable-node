@@ -1,8 +1,8 @@
 var fs = require( 'fs' );
 
-require('../../common');
+var common = require('../../common');
 var assert = require('assert');
-var addon = require('./build/Release/test_instanceof');
+var addon = require(`./build/${common.buildType}/test_instanceof`);
 var path = require( 'path' );
 
 function assertTrue(assertion) {
