@@ -1365,7 +1365,7 @@ napi_status napi_is_buffer(napi_env e, napi_value v, bool* result) {
     return napi_ok;
   }
   JsTypedArrayType arrayType;
-  JsErrorCode code = JsGetTypedArrayInfo(typedArray, &arrayType, nullptr, nullptr, nullptr);
+  CHECK_JSRT(JsGetTypedArrayInfo(typedArray, &arrayType, nullptr, nullptr, nullptr));
   *result = (arrayType == JsArrayTypeUint8);
   return napi_ok;
 }
