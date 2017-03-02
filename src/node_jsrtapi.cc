@@ -183,6 +183,10 @@ namespace jsrtimpl {
       CallbackInfo cbInfo;
       cbInfo.thisArg = reinterpret_cast<napi_value>(arguments[0]);
       cbInfo.isConstructCall = isConstructCall;
+      cbInfo.argc = argumentCount - 1;
+      cbInfo.argv = reinterpret_cast<napi_value*>(arguments + 1);
+      cbInfo.data = externalCallback->_data;
+      cbInfo.returnValue = reinterpret_cast<napi_value>(undefinedValue);
 
       if (isConstructCall) {
         // For constructor callbacks, replace the 'this' arg with a new external object,
@@ -200,13 +204,9 @@ namespace jsrtimpl {
           }
 
           cbInfo.thisArg = reinterpret_cast<napi_value>(externalThis);
+          cbInfo.returnValue = cbInfo.thisArg;
         }
       }
-
-      cbInfo.argc = argumentCount - 1;
-      cbInfo.argv = reinterpret_cast<napi_value*>(arguments + 1);
-      cbInfo.data = externalCallback->_data;
-      cbInfo.returnValue = reinterpret_cast<napi_value>(undefinedValue);
 
       // TODO(tawoll): get environment pointer instead of nullptr?
       externalCallback->_cb(nullptr, reinterpret_cast<napi_callback_info>(&cbInfo));
