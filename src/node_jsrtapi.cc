@@ -1358,8 +1358,14 @@ napi_status napi_create_buffer_copy(napi_env e,
 napi_status napi_is_buffer(napi_env e, napi_value v, bool* result) {
   CHECK_ARG(result);
   JsValueRef typedArray = reinterpret_cast<JsValueRef>(v);
+  JsValueType objectType;
+  CHECK_JSRT(JsGetValueType(typedArray, &objectType));
+  if (objectType != JsTypedArray) {
+    *result = false;
+    return napi_ok;
+  }
   JsTypedArrayType arrayType;
-  CHECK_JSRT(JsGetTypedArrayInfo(typedArray, &arrayType, nullptr, nullptr, nullptr));
+  JsErrorCode code = JsGetTypedArrayInfo(typedArray, &arrayType, nullptr, nullptr, nullptr);
   *result = (arrayType == JsArrayTypeUint8);
   return napi_ok;
 }
