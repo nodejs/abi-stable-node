@@ -2,18 +2,11 @@
  * Experimental prototype for demonstrating VM agnostic and ABI stable API
  * for native modules to use instead of using Nan and V8 APIs directly.
  *
- * This is an rough proof of concept not intended for real world usage.
- * It is currently far from a sufficiently completed work.
- *
- *  - The API is not complete nor agreed upon.
- *  - The API is not yet analyzed for performance.
- *  - Performance is expected to suffer with the usage of opaque types currently
- *    requiring all operations to go across the DLL boundary, i.e. no inlining
- *    even for operations such as asking for the type of a value or retrieving a
- *    function callback's arguments.
+ * The current status is "Experimental" and should not be used for
+ * production applications.  The API is still subject to change
+ * and as an experimental feature is NOT subject to semver. 
  *
  ******************************************************************************/
-
 #include "node_jsvmapi_internal.h"
 #include <node_buffer.h>
 #include <node_object_wrap.h>

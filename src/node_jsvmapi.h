@@ -2,17 +2,9 @@
  * Experimental prototype for demonstrating VM agnostic and ABI stable API
  * for native modules to use instead of using Nan and V8 APIs directly.
  *
- * This is a rough proof of concept not intended for real world usage.
- * It is currently far from a sufficiently completed work.
- *
- *  - The API is not complete nor agreed upon.
- *  - The API is not yet analyzed for performance.
- *  - Performance is expected to suffer with the usage of opaque types currently
- *    requiring all operations to go across the DLL boundary, i.e. no inlining
- *    even for operations such as asking for the type of a napi_value or retrieving a
- *    function napi_callback's arguments.
- *  - The V8 implementation of the API is roughly hacked together with only basic
- *    error handling or fault tolerance.
+ * The current status is "Experimental" and should not be used for
+ * production applications.  The API is still subject to change
+ * and as an experimental feature is NOT subject to semver. 
  *
  ******************************************************************************/
 #ifndef SRC_NODE_JSVMAPI_H_
