@@ -1,4 +1,4 @@
-/*******************************************************************************
+﻿/*******************************************************************************
  * Experimental prototype for demonstrating VM agnostic and ABI stable API
  * for native modules to use instead of using Nan and V8 APIs directly.
  *
@@ -31,19 +31,15 @@ NODE_EXTERN typedef void (*addon_abi_register_func)(
   void* priv);
 }  // namespace node
 
-struct napi_module_struct {
-  int nm_version;
+struct napi_module {
   unsigned int nm_flags;
-  void* nm_dso_handle;
   const char* nm_filename;
   node::addon_abi_register_func nm_register_func;
-  void* nm_context_register_func;
   const char* nm_modname;
   void* nm_priv;
-  void* nm_link;
 };
 
-NODE_EXTERN void napi_module_register(void* mod);
+NODE_EXTERN void napi_module_register(napi_module* mod);
 
 #if defined(_MSC_VER)
 #pragma section(".CRT$XCU", read)
@@ -60,17 +56,13 @@ NODE_EXTERN void napi_module_register(void* mod);
 
 #define NODE_MODULE_ABI_X(modname, regfunc, priv, flags)              \
   extern "C" {                                                        \
-    static napi_module_struct _module =                               \
+    static napi_module _module =                                      \
     {                                                                 \
-      -1,                                                             \
       flags,                                                          \
-      NULL,                                                           \
       __FILE__,                                                       \
       (node::addon_abi_register_func)regfunc,                         \
-      NULL,                                                           \
       #modname,                                                       \
       priv,                                                           \
-      NULL                                                            \
     };                                                                \
     NODE_ABI_CTOR(_register_ ## modname) {                            \
       napi_module_register(&_module);                                 \

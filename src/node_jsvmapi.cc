@@ -1,4 +1,4 @@
-/*******************************************************************************
+﻿/*******************************************************************************
  * Experimental prototype for demonstrating VM agnostic and ABI stable API
  * for native modules to use instead of using Nan and V8 APIs directly.
  *
@@ -19,10 +19,6 @@
 #include <node_object_wrap.h>
 #include <vector>
 #include <string.h>
-
-void napi_module_register(void* mod) {
-  node::node_module_register(mod);
-}
 
 namespace v8impl {
 
@@ -495,6 +491,48 @@ namespace v8impl {
   }
 
 }  // end of namespace v8impl
+
+// Intercepts the Node-V8 module registration callback. Converts parameters to NAPI equivalents
+// and then calls the registration callback specified by the NAPI module.
+void napi_module_register_cb(v8::Local<v8::Object> exports,
+                             v8::Local<v8::Value> module,
+                             v8::Local<v8::Context> context,
+                             void* priv) {
+  napi_module* mod = static_cast<napi_module*>(priv);
+  mod->nm_register_func(
+    v8impl::JsEnvFromV8Isolate(context->GetIsolate()),
+    v8impl::JsValueFromV8LocalValue(exports),
+    v8impl::JsValueFromV8LocalValue(module),
+    mod->nm_priv);
+}
+
+namespace node {
+  // Indicates whether NAPI was enabled/disabled via the node command-line.
+  extern bool no_napi_modules;
+}
+
+// Registers a NAPI module.
+void napi_module_register(napi_module* mod) {
+  // NAPI modules always work with the current node version.
+  int moduleVersion = NODE_MODULE_VERSION;
+  if (node::no_napi_modules) {
+    // NAPI is dsabled, so set the module version to -1 to cause the module to be unloaded.
+    moduleVersion = -1;
+  }
+
+  static node::node_module nm = {
+    moduleVersion,
+    mod->nm_flags,
+    nullptr,
+    mod->nm_filename,
+    nullptr,
+    napi_module_register_cb,
+    mod->nm_modname,
+    mod, // priv
+    nullptr,
+  };
+  node::node_module_register(&nm);
+}
 
 #define RETURN_STATUS_IF_FALSE(condition, status)                       \
   do {                                                                  \
