@@ -39,8 +39,6 @@ struct napi_module {
   void* nm_priv;
 };
 
-NODE_EXTERN void napi_module_register(napi_module* mod);
-
 #if defined(_MSC_VER)
 #pragma section(".CRT$XCU", read)
 #define NODE_ABI_CTOR(fn)                                             \
@@ -73,9 +71,9 @@ NODE_EXTERN void napi_module_register(napi_module* mod);
   NODE_MODULE_ABI_X(modname, regfunc, NULL, 0)
 
 
-// TODO(ianhall): We're using C linkage for the API but we're also using the
-// bool type in these exports.  Is that safe and stable?
 extern "C" {
+
+NODE_EXTERN void napi_module_register(napi_module* mod);
 
 NODE_EXTERN const napi_extended_error_info* napi_get_last_error_info();
 
