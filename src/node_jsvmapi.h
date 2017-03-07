@@ -210,6 +210,17 @@ NODE_EXTERN napi_status napi_make_callback(napi_env e,
                                            napi_value* result);
 
 // Methods to work with napi_callbacks
+
+// Gets all callback info in a single call. (Ugly, but faster.)
+NODE_EXTERN napi_status napi_get_cb_info(
+  napi_env e,                // [in] NAPI environment handle
+  napi_callback_info cbinfo, // [in] Opaque callback-info handle
+  int* argc,                 // [in-out] Specifies the size of the provided argv array
+                             // and receives the actual count of args.
+  napi_value* argv,          // [out] Array of values
+  napi_value* thisArg,       // [out] Receives the JS 'this' arg for the call
+  void** data);              // [out] Receives the data pointer for the callback.
+
 NODE_EXTERN napi_status napi_get_cb_args_length(napi_env e,
                                   napi_callback_info cbinfo, int* result);
 NODE_EXTERN napi_status napi_get_cb_args(napi_env e, napi_callback_info cbinfo,
