@@ -276,10 +276,9 @@ NODE_EXTERN napi_status napi_get_cb_args(napi_env e,
                                          napi_callback_info cbinfo,
                                          napi_value* buffer,
                                          int bufferlength);
-NODE_EXTERN napi_status napi_get_cb_this(
-                                napi_env e,
-                                napi_callback_info cbinfo,
-                                napi_value* result);
+NODE_EXTERN napi_status napi_get_cb_this(napi_env e,
+                                         napi_callback_info cbinfo,
+                                         napi_value* result);
 
 // V8 concept; see note in .cc file
 NODE_EXTERN napi_status napi_get_cb_holder(napi_env e,
