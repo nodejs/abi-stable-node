@@ -726,9 +726,19 @@ napi_status napi_get_type_of_value(napi_env e, napi_value vv, napi_valuetype* re
     case JsSymbol: *result = napi_symbol; break;
 
     default:
+      // An "external" value is represented in JSRT as an Object that has external data and
+      // DOES NOT allow extensions. (A wrapped object has external data and DOES allow extensions.)
       bool hasExternalData;
-      CHECK_JSRT(JsHasExternalData(value, &hasExternalData));
-      *result = hasExternalData ? napi_external : napi_object;
+      if (JsHasExternalData(value, &hasExternalData) != JsNoError) {
+        hasExternalData = false;
+      }
+
+      bool isExtensionAllowed;
+      if (JsGetExtensionAllowed(value, &isExtensionAllowed) != JsNoError) {
+        isExtensionAllowed = false;
+      }
+
+      *result = ((hasExternalData && !isExtensionAllowed) ? napi_external : napi_object);
       break;
   }
   return napi_ok;
@@ -1085,6 +1095,7 @@ napi_status napi_create_external(napi_env e, void* data, napi_finalize finalize_
     externalData,
     jsrtimpl::ExternalData::Finalize,
     reinterpret_cast<JsValueRef*>(result)));
+  CHECK_JSRT(JsPreventExtension(reinterpret_cast<JsValueRef*>(result)));
 
   return napi_ok;
 }
