@@ -1,4 +1,4 @@
-﻿/*******************************************************************************
+/*******************************************************************************
  * Experimental prototype for demonstrating VM agnostic and ABI stable API
  * for native modules to use instead of using Nan and V8 APIs directly.
  *
@@ -516,7 +516,7 @@ void napi_module_register(napi_module* mod) {
   // NAPI modules always work with the current node version.
   int moduleVersion = NODE_MODULE_VERSION;
   if (node::no_napi_modules) {
-    // NAPI is dsabled, so set the module version to -1 to cause the module to be unloaded.
+    // NAPI is disabled, so set the module version to -1 to cause the module to be unloaded.
     moduleVersion = -1;
   }
 
