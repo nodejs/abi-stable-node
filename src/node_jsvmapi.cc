@@ -10,6 +10,7 @@
 #include "node_jsvmapi_internal.h"
 #include <node_buffer.h>
 #include <node_object_wrap.h>
+#include <algorithm>
 #include <vector>
 #include <string.h>
 
@@ -223,17 +224,20 @@ namespace v8impl {
 
       ~TryCatch() {
         if (HasCaught()) {
-          lastException().Reset(_isolate, Exception());
+          _theException.Reset(_isolate, Exception());
         }
       }
 
-      static v8::Persistent<v8::Value> & lastException() {
-        static v8::Persistent<v8::Value> theException;
-        return theException;
+      static v8::Persistent<v8::Value>& lastException() {
+        return _theException;
       }
+
     private:
+      static v8::Persistent<v8::Value> _theException;
       v8::Isolate *_isolate;
   };
+
+  v8::Persistent<v8::Value> TryCatch::_theException;
 
 //=== Function napi_callback wrapper =================================
 
@@ -246,28 +250,44 @@ namespace v8impl {
   static const int kSetterIndex = 2;
   static const int kAccessorFieldCount = 3;
 
-  // Interface implemented by classes that wrap V8 function and property
-  // callback info.
-  struct CallbackWrapper {
-    virtual napi_value This() = 0;
-    virtual napi_value Holder() = 0;
-    virtual bool IsConstructCall() = 0;
-    virtual void* Data() = 0;
-    virtual int ArgsLength() = 0;
-    virtual void Args(napi_value* buffer, int bufferlength) = 0;
-    virtual void SetReturnValue(napi_value v) = 0;
+  // Base class extended by classes that wrap V8 function and property callback info.
+  class CallbackWrapper {
+    public:
+      CallbackWrapper(napi_value thisArg, int argsLength, void* data)
+        : _this(thisArg), _argsLength(argsLength), _data(data) {
+      }
+
+      virtual napi_value Holder() = 0;
+      virtual bool IsConstructCall() = 0;
+      virtual void Args(napi_value* buffer, int bufferlength) = 0;
+      virtual void SetReturnValue(napi_value v) = 0;
+
+      napi_value This() {
+        return _this;
+      }
+
+      int ArgsLength() {
+        return _argsLength;
+      }
+
+      void* Data() {
+        return _data;
+      }
+
+    protected:
+      const napi_value _this;
+      const int _argsLength;
+      void* _data;
   };
 
   template <typename T, int I>
   class CallbackWrapperBase : public CallbackWrapper {
     public:
-      CallbackWrapperBase(const T& cbinfo)
-        : _cbinfo(cbinfo),
+      CallbackWrapperBase(const T& cbinfo, const int argsLength)
+        : CallbackWrapper(JsValueFromV8LocalValue(cbinfo.This()), argsLength, nullptr),
+          _cbinfo(cbinfo),
           _cbdata(v8::Local<v8::Object>::Cast(cbinfo.Data())) {
-      }
-
-      virtual napi_value This() override {
-        return JsValueFromV8LocalValue(_cbinfo.This());
+        _data = v8::Local<v8::External>::Cast(_cbdata->GetInternalField(kDataIndex))->Value();
       }
 
       virtual napi_value Holder() override {
@@ -276,10 +296,6 @@ namespace v8impl {
 
       virtual bool IsConstructCall() override {
         return false;
-      }
-
-      virtual void* Data() override {
-        return v8::Local<v8::External>::Cast(_cbdata->GetInternalField(kDataIndex))->Value();
       }
 
     protected:
@@ -311,20 +327,16 @@ namespace v8impl {
 
       FunctionCallbackWrapper(
         const v8::FunctionCallbackInfo<v8::Value>& cbinfo)
-        : CallbackWrapperBase(cbinfo) {
+        : CallbackWrapperBase(cbinfo, cbinfo.Length()) {
       }
 
       virtual bool IsConstructCall() override {
         return _cbinfo.IsConstructCall();
       }
 
-      virtual int ArgsLength() override {
-        return _cbinfo.Length();
-      }
-
       virtual void Args(napi_value* buffer, int bufferlength) override {
         int i = 0;
-        int min = bufferlength < _cbinfo.Length() ? bufferlength : _cbinfo.Length();
+        int min = std::min(bufferlength, _argsLength);
 
         for (; i < min; i += 1) {
           buffer[i] = v8impl::JsValueFromV8LocalValue(_cbinfo[i]);
@@ -332,7 +344,7 @@ namespace v8impl {
 
         if (i < bufferlength) {
           napi_value undefined = v8impl::JsValueFromV8LocalValue(
-            v8::Undefined(v8::Isolate::GetCurrent()));
+            v8::Undefined(_cbinfo.GetIsolate()));
           for (; i < bufferlength; i += 1) {
             buffer[i] = undefined;
           }
@@ -357,17 +369,13 @@ namespace v8impl {
 
       GetterCallbackWrapper(
         const v8::PropertyCallbackInfo<v8::Value>& cbinfo)
-        : CallbackWrapperBase(cbinfo) {
-      }
-
-      virtual int ArgsLength() override {
-        return 0;
+        : CallbackWrapperBase(cbinfo, 0) {
       }
 
       virtual void Args(napi_value* buffer, int bufferlength) override {
         if (bufferlength > 0) {
           napi_value undefined = v8impl::JsValueFromV8LocalValue(
-            v8::Undefined(v8::Isolate::GetCurrent()));
+            v8::Undefined(_cbinfo.GetIsolate()));
           for (int i = 0; i < bufferlength; i += 1) {
             buffer[i] = undefined;
           }
@@ -394,12 +402,8 @@ namespace v8impl {
       SetterCallbackWrapper(
         const v8::PropertyCallbackInfo<void>& cbinfo,
         const v8::Local<v8::Value>& value)
-        : CallbackWrapperBase(cbinfo),
+        : CallbackWrapperBase(cbinfo, 1),
           _value(value) {
-      }
-
-      virtual int ArgsLength() override {
-        return 1;
       }
 
       virtual void Args(napi_value* buffer, int bufferlength) override {
@@ -408,7 +412,7 @@ namespace v8impl {
 
           if (bufferlength > 1) {
             napi_value undefined = v8impl::JsValueFromV8LocalValue(
-              v8::Undefined(v8::Isolate::GetCurrent()));
+              v8::Undefined(_cbinfo.GetIsolate()));
             for (int i = 1; i < bufferlength; i += 1) {
               buffer[i] = undefined;
             }
@@ -1162,7 +1166,7 @@ napi_status napi_create_range_error(napi_env e, napi_value msg, napi_value* resu
 }
 
 napi_status napi_get_type_of_value(napi_env e, napi_value vv, napi_valuetype* result) {
-  NAPI_PREAMBLE(e);
+  // Omit NAPI_PREAMBLE and GET_RETURN_STATUS because V8 calls here cannot throw JS exceptions.
   CHECK_ARG(result);
 
   v8::Local<v8::Value> v = v8impl::V8LocalValueFromJsValue(vv);
@@ -1191,7 +1195,7 @@ napi_status napi_get_type_of_value(napi_env e, napi_value vv, napi_valuetype* re
     *result = napi_object;   // Is this correct?
   }
 
-  return GET_RETURN_STATUS();
+  return napi_ok;
 }
 
 napi_status napi_get_undefined(napi_env e, napi_value* result) {
@@ -1234,79 +1238,103 @@ napi_status napi_get_true(napi_env e, napi_value* result) {
   return GET_RETURN_STATUS();
 }
 
+// Gets all callback info in a single call. (Ugly, but faster.)
+napi_status napi_get_cb_info(
+    napi_env e,                // [in] NAPI environment handle
+    napi_callback_info cbinfo, // [in] Opaque callback-info handle
+    int* argc,                 // [in-out] Specifies the size of the provided argv array
+                               // and receives the actual count of args.
+    napi_value* argv,          // [out] Array of values
+    napi_value* thisArg,       // [out] Receives the JS 'this' arg for the call
+    void** data) {             // [out] Receives the data pointer for the callback.
+  CHECK_ARG(argc);
+  CHECK_ARG(argv);
+  CHECK_ARG(thisArg);
+  CHECK_ARG(data);
+
+  v8impl::CallbackWrapper* info =
+    reinterpret_cast<v8impl::CallbackWrapper*>(cbinfo);
+
+  info->Args(argv, std::min(*argc, info->ArgsLength()));
+  *argc = info->ArgsLength();
+  *thisArg = info->This();
+  *data = info->Data();
+
+  return napi_ok;
+}
+
 napi_status napi_get_cb_args_length(napi_env e, napi_callback_info cbinfo, int* result) {
-  NAPI_PREAMBLE(e);
+  // Omit NAPI_PREAMBLE and GET_RETURN_STATUS because no V8 APIs are called.
   CHECK_ARG(result);
 
   v8impl::CallbackWrapper* info =
     reinterpret_cast<v8impl::CallbackWrapper*>(cbinfo);
 
   *result = info->ArgsLength();
-  return GET_RETURN_STATUS();
+  return napi_ok;
 }
 
 napi_status napi_is_construct_call(napi_env e, napi_callback_info cbinfo, bool* result) {
-  NAPI_PREAMBLE(e);
+  // Omit NAPI_PREAMBLE and GET_RETURN_STATUS because no V8 APIs are called.
   CHECK_ARG(result);
 
   v8impl::CallbackWrapper* info =
     reinterpret_cast<v8impl::CallbackWrapper*>(cbinfo);
 
   *result = info->IsConstructCall();
-  return GET_RETURN_STATUS();
+  return napi_ok;
 }
 
 // copy encoded arguments into provided buffer or return direct pointer to
 // encoded arguments array?
 napi_status napi_get_cb_args(napi_env e, napi_callback_info cbinfo,
                       napi_value* buffer, int bufferlength) {
-  NAPI_PREAMBLE(e);
+  // Omit NAPI_PREAMBLE and GET_RETURN_STATUS because no V8 APIs are called.
   CHECK_ARG(buffer);
 
   v8impl::CallbackWrapper* info =
     reinterpret_cast<v8impl::CallbackWrapper*>(cbinfo);
 
   info->Args(buffer, bufferlength);
-  return GET_RETURN_STATUS();
+  return napi_ok;
 }
 
 napi_status napi_get_cb_this(napi_env e, napi_callback_info cbinfo, napi_value* result) {
-  NAPI_PREAMBLE(e);
+  // Omit NAPI_PREAMBLE and GET_RETURN_STATUS because no V8 APIs are called.
   CHECK_ARG(result);
 
   v8impl::CallbackWrapper* info =
     reinterpret_cast<v8impl::CallbackWrapper*>(cbinfo);
 
   *result = info->This();
-  return GET_RETURN_STATUS();
+  return napi_ok;
 }
 
 // Holder is a V8 concept.  Is not clear if this can be emulated with other VMs
 // AFAIK Holder should be the owner of the JS function, which should be in the
 // prototype chain of This, so maybe it is possible to emulate.
-napi_status napi_get_cb_holder(
-  napi_env e,
-  napi_callback_info cbinfo,
-  napi_value* result) {
-  NAPI_PREAMBLE(e);
+napi_status napi_get_cb_holder(napi_env e,
+                               napi_callback_info cbinfo,
+                               napi_value* result) {
+  // Omit NAPI_PREAMBLE and GET_RETURN_STATUS because no V8 APIs are called.
   CHECK_ARG(result);
 
   v8impl::CallbackWrapper* info =
     reinterpret_cast<v8impl::CallbackWrapper*>(cbinfo);
 
   *result = info->Holder();
-  return GET_RETURN_STATUS();
+  return napi_ok;
 }
 
 napi_status napi_get_cb_data(napi_env e, napi_callback_info cbinfo, void** result) {
-  NAPI_PREAMBLE(e);
+  // Omit NAPI_PREAMBLE and GET_RETURN_STATUS because no V8 APIs are called.
   CHECK_ARG(result);
 
   v8impl::CallbackWrapper* info =
     reinterpret_cast<v8impl::CallbackWrapper*>(cbinfo);
 
   *result = info->Data();
-  return GET_RETURN_STATUS();
+  return napi_ok;
 }
 
 napi_status napi_call_function(napi_env e,
@@ -1407,7 +1435,7 @@ napi_status napi_throw_range_error(napi_env e, const char* msg) {
 }
 
 napi_status napi_get_value_double(napi_env e, napi_value v, double* result) {
-  NAPI_PREAMBLE(e);
+  // Omit NAPI_PREAMBLE and GET_RETURN_STATUS because V8 calls here cannot throw JS exceptions.
   CHECK_ARG(result);
 
   v8::Local<v8::Value> value = v8impl::V8LocalValueFromJsValue(v);
@@ -1415,11 +1443,11 @@ napi_status napi_get_value_double(napi_env e, napi_value v, double* result) {
 
   *result = value.As<v8::Number>()->Value();
 
-  return GET_RETURN_STATUS();
+  return napi_ok;
 }
 
 napi_status napi_get_value_int32(napi_env e, napi_value v, int32_t* result) {
-  NAPI_PREAMBLE(e);
+  // Omit NAPI_PREAMBLE and GET_RETURN_STATUS because V8 calls here cannot throw JS exceptions.
   CHECK_ARG(result);
 
   v8::Local<v8::Value> value = v8impl::V8LocalValueFromJsValue(v);
@@ -1427,11 +1455,11 @@ napi_status napi_get_value_int32(napi_env e, napi_value v, int32_t* result) {
 
   *result = value.As<v8::Int32>()->Value();
 
-  return GET_RETURN_STATUS();
+  return napi_ok;
 }
 
 napi_status napi_get_value_uint32(napi_env e, napi_value v, uint32_t* result) {
-  NAPI_PREAMBLE(e);
+  // Omit NAPI_PREAMBLE and GET_RETURN_STATUS because V8 calls here cannot throw JS exceptions.
   CHECK_ARG(result);
 
   v8::Local<v8::Value> value = v8impl::V8LocalValueFromJsValue(v);
@@ -1439,11 +1467,11 @@ napi_status napi_get_value_uint32(napi_env e, napi_value v, uint32_t* result) {
 
   *result = value.As<v8::Uint32>()->Value();
 
-  return GET_RETURN_STATUS();
+  return napi_ok;
 }
 
 napi_status napi_get_value_int64(napi_env e, napi_value v, int64_t* result) {
-  NAPI_PREAMBLE(e);
+  // Omit NAPI_PREAMBLE and GET_RETURN_STATUS because V8 calls here cannot throw JS exceptions.
   CHECK_ARG(result);
 
   v8::Local<v8::Value> value = v8impl::V8LocalValueFromJsValue(v);
@@ -1451,11 +1479,11 @@ napi_status napi_get_value_int64(napi_env e, napi_value v, int64_t* result) {
 
   *result = value.As<v8::Integer>()->Value();
 
-  return GET_RETURN_STATUS();
+  return napi_ok;
 }
 
 napi_status napi_get_value_bool(napi_env e, napi_value v, bool* result) {
-  NAPI_PREAMBLE(e);
+  // Omit NAPI_PREAMBLE and GET_RETURN_STATUS because V8 calls here cannot throw JS exceptions.
   CHECK_ARG(result);
 
   v8::Local<v8::Value> value = v8impl::V8LocalValueFromJsValue(v);
@@ -1463,7 +1491,7 @@ napi_status napi_get_value_bool(napi_env e, napi_value v, bool* result) {
 
   *result = value.As<v8::Boolean>()->Value();
 
-  return GET_RETURN_STATUS();
+  return napi_ok;
 }
 
 // Gets the number of CHARACTERS in the string.
@@ -1637,7 +1665,7 @@ napi_status napi_wrap(napi_env e,
 }
 
 napi_status napi_unwrap(napi_env e, napi_value jsObject, void** result) {
-  NAPI_PREAMBLE(e);
+  // Omit NAPI_PREAMBLE and GET_RETURN_STATUS because V8 calls here cannot throw JS exceptions.
   CHECK_ARG(jsObject);
   CHECK_ARG(result);
 
@@ -1649,7 +1677,7 @@ napi_status napi_unwrap(napi_env e, napi_value jsObject, void** result) {
 
   *result = obj->GetAlignedPointerFromInternalField(0);
 
-  return GET_RETURN_STATUS();
+  return napi_ok;
 }
 
 napi_status napi_create_external(napi_env e,
@@ -1708,13 +1736,13 @@ napi_status napi_create_reference(napi_env e,
 // Deletes a reference. The referenced value is released, and may be GC'd unless there
 // are other references to it.
 napi_status napi_delete_reference(napi_env e, napi_ref ref) {
-  NAPI_PREAMBLE(e);
+  // Omit NAPI_PREAMBLE and GET_RETURN_STATUS because V8 calls here cannot throw JS exceptions.
   CHECK_ARG(ref);
 
   v8impl::Reference* reference = reinterpret_cast<v8impl::Reference*>(ref);
   delete reference;
 
-  return GET_RETURN_STATUS();
+  return napi_ok;
 }
 
 // Increments the reference count, optionally returning the resulting count. After this call the
