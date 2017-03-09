@@ -1743,13 +1743,13 @@ napi_status napi_create_reference(napi_env e,
 // Deletes a reference. The referenced value is released, and may be GC'd unless there
 // are other references to it.
 napi_status napi_delete_reference(napi_env e, napi_ref ref) {
-  NAPI_PREAMBLE(e);
+  // Omit NAPI_PREAMBLE and GET_RETURN_STATUS because V8 calls here cannot throw JS exceptions.
   CHECK_ARG(ref);
 
   v8impl::Reference* reference = reinterpret_cast<v8impl::Reference*>(ref);
   delete reference;
 
-  return GET_RETURN_STATUS();
+  return napi_ok;
 }
 
 // Increments the reference count, optionally returning the resulting count. After this call the
