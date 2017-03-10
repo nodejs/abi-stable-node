@@ -32,12 +32,16 @@ NODE_EXTERN typedef void (*addon_abi_register_func)(
 }  // namespace node
 
 struct napi_module {
+  int nm_version;
   unsigned int nm_flags;
   const char* nm_filename;
   node::addon_abi_register_func nm_register_func;
   const char* nm_modname;
   void* nm_priv;
+  void* reserved[4];
 };
+
+#define NAPI_MODULE_VERSION  1
 
 #if defined(_MSC_VER)
 #pragma section(".CRT$XCU", read)
@@ -56,11 +60,13 @@ struct napi_module {
   extern "C" {                                                        \
     static napi_module _module =                                      \
     {                                                                 \
+      NAPI_MODULE_VERSION,                                            \
       flags,                                                          \
       __FILE__,                                                       \
       (node::addon_abi_register_func)regfunc,                         \
       #modname,                                                       \
       priv,                                                           \
+      {0},                                                            \
     };                                                                \
     NODE_ABI_CTOR(_register_ ## modname) {                            \
       napi_module_register(&_module);                                 \
