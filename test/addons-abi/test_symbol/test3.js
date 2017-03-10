@@ -1,19 +1,19 @@
 'use strict';
-var common = require('../../common');
-var assert = require('assert');
+const common = require('../../common');
+const assert = require('assert');
 
 // testing api calls for symbol
-var test_symbol = require(`./build/${common.buildType}/test_symbol`);
+const test_symbol = require(`./build/${common.buildType}/test_symbol`);
 
-assert.notEqual(test_symbol.New(), test_symbol.New());
-assert.notEqual(test_symbol.New('foo'), test_symbol.New('foo'));
-assert.notEqual(test_symbol.New('foo'), test_symbol.New('bar'));
+assert.notStrictEqual(test_symbol.New(), test_symbol.New());
+assert.notStrictEqual(test_symbol.New('foo'), test_symbol.New('foo'));
+assert.notStrictEqual(test_symbol.New('foo'), test_symbol.New('bar'));
 
-var foo1 = test_symbol.New('foo');
-var foo2 = test_symbol.New('foo');
-var object = {
+const foo1 = test_symbol.New('foo');
+const foo2 = test_symbol.New('foo');
+const object = {
   [foo1]: 1,
   [foo2]: 2,
 };
-assert(object[foo1] === 1);
-assert(object[foo2] === 2);
+assert.strictEqual(object[foo1], 1);
+assert.strictEqual(object[foo2], 2);

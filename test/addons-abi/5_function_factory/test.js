@@ -1,7 +1,7 @@
 'use strict';
-var common = require('../../common');
-var assert = require('assert');
-var addon = require(`./build/${common.buildType}/binding`);
+const common = require('../../common');
+const assert = require('assert');
+const addon = require(`./build/${common.buildType}/binding`);
 
-var fn = addon();
-assert.equal(fn(), 'hello world'); // 'hello world'
+const fn = addon();
+assert.strictEqual(fn(), 'hello world'); // 'hello world'

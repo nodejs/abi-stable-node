@@ -1,11 +1,11 @@
 'use strict';
-var common = require('../../common');
-var assert = require('assert');
+const common = require('../../common');
+const assert = require('assert');
 
 // Testing api calls for arrays
-var test_array = require(`./build/${common.buildType}/test_array`);
+const test_array = require(`./build/${common.buildType}/test_array`);
 
-var array = [
+const array = [
   1,
   9,
   48,
@@ -19,17 +19,17 @@ var array = [
   ]
 ];
 
-assert.equal(test_array.Test(array, array.length + 1), 'Index out of bound!');
+assert.strictEqual(test_array.Test(array, array.length + 1),
+                   'Index out of bound!');
 
 try {
   test_array.Test(array, -2);
-}
-catch (err) {
-  assert.equal(err.message, 'Invalid index. Expects a positive integer.');
+} catch (err) {
+  assert.strictEqual(err.message, 'Invalid index. Expects a positive integer.');
 }
 
 array.forEach(function(element, index) {
-  assert.equal(test_array.Test(array, index), element);
+  assert.strictEqual(test_array.Test(array, index), element);
 });
 
 
