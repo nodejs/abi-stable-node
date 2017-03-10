@@ -1,15 +1,15 @@
 'use strict';
-var common = require('../../common');
-var assert = require('assert');
+const common = require('../../common');
+const assert = require('assert');
 
 // testing api calls for symbol
-var test_symbol = require(`./build/${common.buildType}/test_symbol`);
+const test_symbol = require(`./build/${common.buildType}/test_symbol`);
 
-var fooSym = test_symbol.New('foo');
-var myObj = {};
+const fooSym = test_symbol.New('foo');
+const myObj = {};
 myObj['foo'] = 'bar';
 myObj[fooSym] = 'baz';
 Object.keys(myObj); // -> [ 'foo' ]
 Object.getOwnPropertyNames(myObj); // -> [ 'foo' ]
 Object.getOwnPropertySymbols(myObj); // -> [ Symbol(foo) ]
-assert(Object.getOwnPropertySymbols(myObj)[0] === fooSym);
+assert.strictEqual(Object.getOwnPropertySymbols(myObj)[0], fooSym);
