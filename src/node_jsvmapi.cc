@@ -520,7 +520,7 @@ void napi_module_register(napi_module* mod) {
     moduleVersion = -1;
   }
 
-  static node::node_module nm = {
+  node::node_module* nm = new node::node_module {
     moduleVersion,
     mod->nm_flags,
     nullptr,
@@ -531,7 +531,7 @@ void napi_module_register(napi_module* mod) {
     mod, // priv
     nullptr,
   };
-  node::node_module_register(&nm);
+  node::node_module_register(nm);
 }
 
 #define RETURN_STATUS_IF_FALSE(condition, status)                       \
