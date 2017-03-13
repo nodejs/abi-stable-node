@@ -75,9 +75,6 @@ NODE_EXTERN void napi_module_register(napi_module* mod);
 
 NODE_EXTERN const napi_extended_error_info* napi_get_last_error_info();
 
-// Environment
-NODE_EXTERN napi_status napi_get_current_env(napi_env* e);
-
 // Getters for defined singletons
 NODE_EXTERN napi_status napi_get_undefined(napi_env e, napi_value* result);
 NODE_EXTERN napi_status napi_get_null(napi_env e, napi_value* result);

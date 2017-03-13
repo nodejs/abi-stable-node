@@ -260,7 +260,6 @@
           'sources': [
             'src/node_asyncapi.cc',
             'src/node_jsvmapi.cc',
-            'src/node_api_helpers.h',
             'src/node_asyncapi.h',
             'src/node_asyncapi_internal.h',
             'src/node_asyncapi_types.h',
