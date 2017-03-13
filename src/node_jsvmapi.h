@@ -23,19 +23,17 @@ NODE_EXTERN typedef void (*addon_abi_register_func)(
   void* priv);
 }  // namespace node
 
-struct napi_module_struct {
+struct napi_module {
   int nm_version;
   unsigned int nm_flags;
-  void* nm_dso_handle;
   const char* nm_filename;
   node::addon_abi_register_func nm_register_func;
-  void* nm_context_register_func;
   const char* nm_modname;
   void* nm_priv;
-  void* nm_link;
+  void* reserved[4];
 };
 
-NODE_EXTERN void napi_module_register(void* mod);
+#define NAPI_MODULE_VERSION  1
 
 #if defined(_MSC_VER)
 #pragma section(".CRT$XCU", read)
@@ -52,17 +50,15 @@ NODE_EXTERN void napi_module_register(void* mod);
 
 #define NODE_MODULE_ABI_X(modname, regfunc, priv, flags)              \
   extern "C" {                                                        \
-    static napi_module_struct _module =                               \
+    static napi_module _module =                                      \
     {                                                                 \
-      -1,                                                             \
+      NAPI_MODULE_VERSION,                                            \
       flags,                                                          \
-      NULL,                                                           \
       __FILE__,                                                       \
       (node::addon_abi_register_func)regfunc,                         \
-      NULL,                                                           \
       #modname,                                                       \
       priv,                                                           \
-      NULL                                                            \
+      {0},                                                            \
     };                                                                \
     NODE_ABI_CTOR(_register_ ## modname) {                            \
       napi_module_register(&_module);                                 \
@@ -73,9 +69,9 @@ NODE_EXTERN void napi_module_register(void* mod);
   NODE_MODULE_ABI_X(modname, regfunc, NULL, 0)
 
 
-// TODO(ianhall): We're using C linkage for the API but we're also using the
-// bool type in these exports.  Is that safe and stable?
 extern "C" {
+
+NODE_EXTERN void napi_module_register(napi_module* mod);
 
 NODE_EXTERN const napi_extended_error_info* napi_get_last_error_info();
 
