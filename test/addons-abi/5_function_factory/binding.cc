@@ -15,7 +15,7 @@ void CreateFunction(napi_env env, napi_callback_info info) {
   napi_status status;
 
   napi_value fn;
-  status = napi_create_function(env, MyFunction, nullptr, &fn);
+  status = napi_create_function(env, MyFunction, nullptr, nullptr, &fn);
   if (status != napi_ok) return;
 
   napi_propertyname name;

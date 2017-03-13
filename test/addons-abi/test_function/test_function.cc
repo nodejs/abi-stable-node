@@ -1,4 +1,4 @@
-#include <node_jsvmapi.h>
+﻿#include <node_jsvmapi.h>
 
 void Test(napi_env env, napi_callback_info info) {
   napi_status status;
@@ -49,7 +49,7 @@ void Init(napi_env env, napi_value exports, napi_value module) {
   if (status != napi_ok) return;
 
   napi_value fn;
-  status =  napi_create_function(env, Test, nullptr, &fn);
+  status =  napi_create_function(env, Test, nullptr, nullptr, &fn);
   if (status != napi_ok) return;
 
   status = napi_set_property(env, exports, name, fn);
