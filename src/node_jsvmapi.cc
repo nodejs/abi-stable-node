@@ -505,14 +505,14 @@ void napi_module_register_cb(v8::Local<v8::Object> exports,
 
 namespace node {
   // Indicates whether NAPI was enabled/disabled via the node command-line.
-  extern bool no_napi_modules;
+  extern bool load_napi_modules;
 }
 
 // Registers a NAPI module.
 void napi_module_register(napi_module* mod) {
   // NAPI modules always work with the current node version.
   int moduleVersion = NODE_MODULE_VERSION;
-  if (node::no_napi_modules) {
+  if (!node::load_napi_modules) {
     // NAPI is disabled, so set the module version to -1 to cause the module to be unloaded.
     moduleVersion = -1;
   }

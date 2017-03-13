@@ -9,7 +9,6 @@ FLAKY_TESTS ?= run
 TEST_CI_ARGS ?=
 STAGINGSERVER ?= node-www
 LOGLEVEL ?= silent
-NAPI ?= True
 OSTYPE := $(shell uname -s | tr '[A-Z]' '[a-z]')
 
 ifdef JOBS
@@ -121,17 +120,12 @@ v8:
 	tools/make-v8.sh
 	$(MAKE) -C deps/v8 $(V8_ARCH).$(BUILDTYPE_LOWER) $(V8_BUILD_OPTIONS)
 
-ifeq ($(NAPI),True)
-BUILD_ADDONS = build-addons build-addons-abi
-TESTS_TO_RUN = addons addons-abi doctool inspector known_issues message pseudo-tty parallel sequential
-else
-BUILD_ADDONS = build-addons
-TESTS_TO_RUN = addons doctool inspector known_issues message pseudo-tty parallel sequential
-endif
-
 test: all
-	$(MAKE) $(BUILD_ADDONS) cctest
-	$(PYTHON) tools/test.py --mode=release -J $(TESTS_TO_RUN)
+	$(MAKE) build-addons
+	$(MAKE) build-addons-abi
+	$(MAKE) cctest
+	$(PYTHON) tools/test.py --mode=release -J \
+		addons addons-abi doctool inspector known_issues message pseudo-tty parallel sequential
 	$(MAKE) lint
 
 test-parallel: all
@@ -195,8 +189,6 @@ test/addons/.buildstamp: config.gypi \
 # TODO(bnoordhuis) Force rebuild after gyp update.
 build-addons: $(NODE_EXE) test/addons/.buildstamp
 
-ifeq ($(NAPI),True)
-
 ADDONS_ABI_BINDING_GYPS := \
 	$(filter-out test/addons-abi/??_*/binding.gyp, \
 		$(wildcard test/addons-abi/*/binding.gyp))
@@ -223,18 +215,12 @@ test/addons-abi/.buildstamp: $(ADDONS_ABI_BINDING_GYPS) \
 # TODO(bnoordhuis) Force rebuild after gyp or node-gyp update.
 build-addons-abi: $(NODE_EXE) test/addons-abi/.buildstamp
 
-endif #eq ($(NAPI),True)
-
 test-gc: all test/gc/node_modules/weak/build/Release/weakref.node
 	$(PYTHON) tools/test.py --mode=release gc
 
-test-build: | all $(BUILD_ADDONS)
+test-build: | all build-addons build-addons-abi
 
-test-build-addons: all build-addons
-
-ifeq ($(NAPI),True)
 test-build-addons-abi: all build-addons-abi
-endif #eq ($(NAPI),True)
 
 test-all: test-build test/gc/node_modules/weak/build/Release/weakref.node
 	$(PYTHON) tools/test.py --mode=debug,release
@@ -242,7 +228,7 @@ test-all: test-build test/gc/node_modules/weak/build/Release/weakref.node
 test-all-valgrind: test-build
 	$(PYTHON) tools/test.py --mode=debug,release --valgrind
 
-CI_NATIVE_SUITES := addons $(if $(filter $(NAPI),True),addons-abi)
+CI_NATIVE_SUITES := addons addons-abi
 CI_JS_SUITES := doctool inspector known_issues message parallel pseudo-tty sequential
 
 # Build and test addons without building anything else
@@ -259,10 +245,11 @@ test-ci-js:
 		$(TEST_CI_ARGS) $(CI_JS_SUITES)
 
 test-ci: LOGLEVEL := info
-test-ci: | $(BUILD_ADDONS)
+test-ci: | build-addons build-addons-abi
+	out/Release/cctest --gtest_output=tap:cctest.tap
 	$(PYTHON) tools/test.py $(PARALLEL_ARGS) -p tap --logfile test.tap \
 		--mode=release --flaky-tests=$(FLAKY_TESTS) \
-		$(TEST_CI_ARGS) $(CI_NATIVE_SUITES) addon-abi $(CI_JS_SUITES)
+		$(TEST_CI_ARGS) $(CI_NATIVE_SUITES) addons-abi $(CI_JS_SUITES)
 
 test-release: test-build
 	$(PYTHON) tools/test.py --mode=release
@@ -300,13 +287,11 @@ test-npm: $(NODE_EXE)
 test-npm-publish: $(NODE_EXE)
 	npm_package_config_publishtest=true $(NODE) deps/npm/test/run.js
 
-test-addons: test-build-addons
-	$(PYTHON) tools/test.py --mode=release addons
-
-ifeq ($(NAPI),True)
 test-addons-abi: test-build-addons-abi
 	$(PYTHON) tools/test.py --mode=release addons-abi
-endif #eq ($(NAPI),True)
+
+test-addons: test-build test-addons-abi
+	$(PYTHON) tools/test.py --mode=release addons
 
 test-timers:
 	$(MAKE) --directory=tools faketime
@@ -766,9 +751,7 @@ CPPLINT_EXCLUDE += src/node_root_certs.h
 CPPLINT_EXCLUDE += src/queue.h
 CPPLINT_EXCLUDE += src/tree.h
 CPPLINT_EXCLUDE += $(wildcard test/addons/??_*/*.cc test/addons/??_*/*.h)
-ifeq ($(NAPI),True)
 CPPLINT_EXCLUDE += $(wildcard test/addons-abi/??_*/*.cc test/addons-abi/??_*/*.h)
-endif #eq ($(NAPI),True)
 
 CPPLINT_FILES = $(filter-out $(CPPLINT_EXCLUDE), $(wildcard \
 	src/*.c \
@@ -778,8 +761,8 @@ CPPLINT_FILES = $(filter-out $(CPPLINT_EXCLUDE), $(wildcard \
 	test/addons/*/*.h \
 	test/cctest/*.cc \
 	test/cctest/*.h \
-	$(if $(filter $(NAPI),True),test/addons-abi/*/*.cc) \
-	$(if $(filter $(NAPI),True),test/addons-abi/*/*.h) \
+	test/addons-abi/*/*.cc \
+	test/addons-abi/*/*.h \
 	tools/icu/*.cc \
 	tools/icu/*.h \
 	))
@@ -809,12 +792,6 @@ lint:
 lint-ci: lint
 endif
 
-ifeq ($(NAPI),True)
-PHONY_ABI = test-addons-abi build-addons-abi
-else
-PHONY_ABI =
-endif #eq ($(NAPI),True)
-
 .PHONY: lint cpplint jslint bench clean docopen docclean doc dist distclean \
 	check uninstall install install-includes install-bin all staticlib \
 	dynamiclib test test-all test-addons build-addons website-upload pkg \
@@ -822,4 +799,5 @@ endif #eq ($(NAPI),True)
 	bench-all bench bench-misc bench-array bench-buffer bench-net \
 	bench-http bench-fs bench-tls cctest run-ci test-v8 test-v8-intl \
 	test-v8-benchmarks test-v8-all v8 lint-ci bench-ci jslint-ci doc-only \
-	$(TARBALL)-headers test-ci test-ci-native test-ci-js build-ci $(PHONY_ABI)
+	$(TARBALL)-headers test-ci test-ci-native test-ci-js build-ci \
+	test-addons-abi build-addons-abi

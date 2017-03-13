@@ -156,6 +156,10 @@
         'src/handle_wrap.cc',
         'src/js_stream.cc',
         'src/node.cc',
+        'src/node_asyncapi.cc',
+        'src/node_asyncapi.h',
+        'src/node_asyncapi_internal.h',
+        'src/node_asyncapi_types.h',
         'src/node_buffer.cc',
         'src/node_config.cc',
         'src/node_constants.cc',
@@ -164,6 +168,10 @@
         'src/node_file.cc',
         'src/node_http_parser.cc',
         'src/node_javascript.cc',
+        'src/node_jsvmapi.cc',
+        'src/node_jsvmapi.h',
+        'src/node_jsvmapi_internal.h',
+        'src/node_jsvmapi_types.h',
         'src/node_main.cc',
         'src/node_os.cc',
         'src/node_revert.cc',
@@ -256,21 +264,6 @@
 
 
       'conditions': [
-        [ 'enable_napi=="true"', {
-          'sources': [
-            'src/node_asyncapi.cc',
-            'src/node_jsvmapi.cc',
-            'src/node_asyncapi.h',
-            'src/node_asyncapi_internal.h',
-            'src/node_asyncapi_types.h',
-            'src/node_jsvmapi.h',
-            'src/node_jsvmapi_internal.h',
-            'src/node_jsvmapi_types.h'
-          ],
-          'defines': [
-            'ENABLE_NAPI'
-          ]
-        }],
         [ 'node_shared=="false"', {
           'msvs_settings': {
             'VCManifestTool': {

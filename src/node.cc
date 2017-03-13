@@ -29,10 +29,6 @@
 #include "node_lttng.h"
 #endif
 
-#if defined ENABLE_NAPI
-#include "node_jsvmapi_internal.h"
-#endif
-
 #include "ares.h"
 #include "async-wrap.h"
 #include "async-wrap-inl.h"
@@ -164,7 +160,7 @@ static const char* icu_data_dir = nullptr;
 #endif
 
 // By default we accept N-API addons
-bool no_napi_modules = false;
+bool load_napi_modules = true;
 
 // used by C++ modules as well
 bool no_deprecation = false;
@@ -2427,7 +2423,6 @@ void DLOpen(const FunctionCallbackInfo<Value>& args) {
     env->ThrowError("Module did not self-register.");
     return;
   }
-
   if (mp->nm_version != NODE_MODULE_VERSION) {
     char errmsg[1024];
     if (mp->nm_version == -1) {
@@ -3519,6 +3514,7 @@ static void PrintHelp() {
          "  --trace-deprecation        show stack traces on deprecations\n"
          "  --throw-deprecation        throw an exception on deprecations\n"
          "  --no-warnings              silence all process warnings\n"
+         "  --napi-modules[=yes|no]    load N-API modules (default no)\n"
          "  --trace-warnings           show stack traces on process warnings\n"
          "  --redirect-warnings=path\n"
          "                             write warnings to path instead of\n"
@@ -3686,8 +3682,12 @@ static void ParseArgs(int* argc,
       force_repl = true;
     } else if (strcmp(arg, "--no-deprecation") == 0) {
       no_deprecation = true;
-    } else if (strcmp(arg, "--no-napi-modules") == 0) {
-      no_napi_modules = true;
+    } else if (strcmp(arg, "--napi-modules") == 0) {
+      load_napi_modules = true;
+    } else if (strcmp(arg, "--napi-modules=yes") == 0) {
+      load_napi_modules = true;
+    } else if (strcmp(arg, "--napi-modules=no") == 0) {
+      load_napi_modules = false;
     } else if (strcmp(arg, "--no-warnings") == 0) {
       no_process_warnings = true;
     } else if (strcmp(arg, "--trace-warnings") == 0) {
