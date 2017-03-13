@@ -1,6 +1,6 @@
 #include <string.h>
 #include <string>
-#include <node_api_helpers.h>
+#include <node_jsvmapi.h>
 
 #define JS_ASSERT(env, assertion, message) \
   if (!(assertion)) { \

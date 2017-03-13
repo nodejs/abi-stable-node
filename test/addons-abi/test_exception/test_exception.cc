@@ -1,5 +1,4 @@
 #include <node_jsvmapi.h>
-#include <node_api_helpers.h>
 
 static bool exceptionWasPending = false;
 

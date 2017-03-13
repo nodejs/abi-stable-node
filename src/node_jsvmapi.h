@@ -22,6 +22,14 @@
 #include "node_macros.h"
 #include "node_jsvmapi_types.h"
 
+#define NAPI_METHOD(name)                                                      \
+  void name(napi_env env, napi_callback_info info)
+#define NAPI_GETTER(name) NAPI_METHOD(name)
+#define NAPI_SETTER(name) NAPI_METHOD(name)
+
+#define NAPI_MODULE_INIT(name)                                                 \
+  void name(napi_env env, napi_value exports, napi_value module)
+
 namespace node {
 
 NODE_EXTERN typedef void (*addon_abi_register_func)(
@@ -86,9 +94,6 @@ NODE_EXTERN void napi_module_register(void* mod);
 extern "C" {
 
 NODE_EXTERN const napi_extended_error_info* napi_get_last_error_info();
-
-// Environment
-NODE_EXTERN napi_status napi_get_current_env(napi_env* e);
 
 // Getters for defined singletons
 NODE_EXTERN napi_status napi_get_undefined(napi_env e, napi_value* result);
