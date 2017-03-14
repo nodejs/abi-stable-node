@@ -22,14 +22,6 @@
 #include "node_macros.h"
 #include "node_jsvmapi_types.h"
 
-#define NAPI_METHOD(name)                                                      \
-  void name(napi_env env, napi_callback_info info)
-#define NAPI_GETTER(name) NAPI_METHOD(name)
-#define NAPI_SETTER(name) NAPI_METHOD(name)
-
-#define NAPI_MODULE_INIT(name)                                                 \
-  void name(napi_env env, napi_value exports, napi_value module)
-
 namespace node {
 
 NODE_EXTERN typedef void (*addon_abi_register_func)(

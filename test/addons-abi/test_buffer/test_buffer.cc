@@ -29,7 +29,7 @@ static void noopDeleter(void *data) {
   deleterCallCount++;
 }
 
-NAPI_METHOD(newBuffer) {
+void newBuffer(napi_env env, napi_callback_info info) {
   napi_value theBuffer;
   char *theCopy;
   NAPI_CALL(env, napi_create_buffer(env, sizeof(theText), &theCopy,
@@ -39,7 +39,7 @@ NAPI_METHOD(newBuffer) {
   NAPI_CALL(env, napi_set_return_value(env, info, theBuffer));
 }
 
-NAPI_METHOD(newExternalBuffer) {
+void newExternalBuffer(napi_env env, napi_callback_info info) {
   napi_value theBuffer;
   char *theCopy = strdup(theText);
   JS_ASSERT(env, theCopy,
@@ -49,20 +49,20 @@ NAPI_METHOD(newExternalBuffer) {
   NAPI_CALL(env, napi_set_return_value(env, info, theBuffer));
 }
 
-NAPI_METHOD(getDeleterCallCount) {
+void getDeleterCallCount(napi_env env, napi_callback_info info) {
   napi_value callCount;
   NAPI_CALL(env, napi_create_number(env, deleterCallCount, &callCount));
   NAPI_CALL(env, napi_set_return_value(env, info, callCount));
 }
 
-NAPI_METHOD(copyBuffer) {
+void copyBuffer(napi_env env, napi_callback_info info) {
   napi_value theBuffer;
   NAPI_CALL(env, napi_create_buffer_copy(env, theText, sizeof(theText),
     &theBuffer));
   NAPI_CALL(env, napi_set_return_value(env, info, theBuffer));
 }
 
-NAPI_METHOD(bufferHasInstance) {
+void bufferHasInstance(napi_env env, napi_callback_info info) {
   int argc;
   NAPI_CALL(env, napi_get_cb_args_length(env, info, &argc));
   JS_ASSERT(env, argc == 1, "Wrong number of arguments");
@@ -80,7 +80,7 @@ NAPI_METHOD(bufferHasInstance) {
   NAPI_CALL(env, napi_set_return_value(env, info, returnValue));
 }
 
-NAPI_METHOD(bufferInfo) {
+void bufferInfo(napi_env env, napi_callback_info info) {
   int argc;
   NAPI_CALL(env, napi_get_cb_args_length(env, info, &argc));
   JS_ASSERT(env, argc == 1, "Wrong number of arguments");
@@ -96,7 +96,7 @@ NAPI_METHOD(bufferInfo) {
   NAPI_CALL(env, napi_set_return_value(env, info, returnValue));
 }
 
-NAPI_METHOD(staticBuffer) {
+void staticBuffer(napi_env env, napi_callback_info info) {
   napi_value theBuffer;
   NAPI_CALL(env, napi_create_external_buffer(env, sizeof(theText),
     (char *)theText, noopDeleter, &theBuffer));

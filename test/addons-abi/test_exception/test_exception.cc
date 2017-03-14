@@ -2,7 +2,7 @@
 
 static bool exceptionWasPending = false;
 
-NAPI_METHOD(returnException) {
+void returnException(napi_env env, napi_callback_info info) {
   napi_status status;
   napi_value jsFunction;
 
@@ -25,7 +25,7 @@ NAPI_METHOD(returnException) {
   }
 }
 
-NAPI_METHOD(allowException) {
+void allowException(napi_env env, napi_callback_info info) {
   napi_status status;
   napi_value jsFunction;
 
@@ -44,7 +44,7 @@ NAPI_METHOD(allowException) {
   if (status != napi_ok) return;
 }
 
-NAPI_METHOD(wasPending) {
+void wasPending(napi_env env, napi_callback_info info) {
   napi_status status;
 
   napi_value result;
@@ -55,7 +55,7 @@ NAPI_METHOD(wasPending) {
   if (status != napi_ok) return;
 }
 
-NAPI_MODULE_INIT(Init) {
+void Init(napi_env env, napi_value exports, napi_value module) {
   napi_status status;
 
   napi_property_descriptor descriptors[] = {
