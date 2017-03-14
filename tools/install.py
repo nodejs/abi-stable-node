@@ -155,7 +155,6 @@ def headers(action, conf):
   ], 'include/node/')
   if conf['variables']['enable_napi'] == 'true':
     action([
-      'src/node_api_helpers.h',
       'src/node_asyncapi.h',
       'src/node_asyncapi_types.h',
       'src/node_jsvmapi.h',

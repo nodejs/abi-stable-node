@@ -635,13 +635,6 @@ napi_status napi_set_last_error(napi_status error_code,
   return error_code;
 }
 
-napi_status napi_get_current_env(napi_env* e) {
-  CHECK_ARG(e);
-
-  *e = v8impl::JsEnvFromV8Isolate(v8::Isolate::GetCurrent());
-  return napi_ok;
-}
-
 napi_status napi_create_function(
     napi_env e,
     napi_callback cb,
