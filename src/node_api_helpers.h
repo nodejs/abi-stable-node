@@ -132,23 +132,13 @@ namespace Napi {
   // like Nan, always using the current one?
   class Callback {
    public:
-    Callback() {
-      napi_env env;
-      napi_get_current_env(&env);
-      HandleScope scope(env);
-      napi_value obj;
-      napi_create_object(env, &obj);
-      napi_create_reference(env, obj, 1, &handle);
-    }
+    Callback() {}
 
     explicit Callback(napi_value fn) {
       napi_env env;
       napi_get_current_env(&env);
       HandleScope scope(env);
-      napi_value obj;
-      napi_create_object(env, &obj);
-      napi_create_reference(env, obj, 1, &handle);
-      SetFunction(fn);
+      napi_create_reference(env, fn, 1, &handle);
     }
 
     ~Callback() {
@@ -166,15 +156,10 @@ namespace Napi {
       napi_env env;
       napi_get_current_env(&env);
 
-      napi_value ha;
-      napi_get_reference_value(env, handle, &ha);
-      napi_value hb;
-      napi_get_reference_value(env, other.handle, &hb);
-
       napi_value a;
-      napi_get_element(env, ha, kCallbackIndex, &a);
+      napi_get_reference_value(env, handle, &a);
       napi_value b;
-      napi_get_element(env, hb, kCallbackIndex, &b);
+      napi_get_reference_value(env, other.handle, &b);
 
       bool result;
       napi_strict_equals(env, a, b, &result);
@@ -205,19 +190,16 @@ namespace Napi {
       HandleScope scope;
       napi_env env;
       napi_get_current_env(&env);
-      napi_value h;
-      napi_get_reference_value(env, handle, &h);
-      napi_set_element(env, h, kCallbackIndex, fn);
+      napi_delete_reference(env, handle);
+      napi_create_reference(env, fn, 1, &handle);
     }
 
     inline napi_value GetFunction() const {
       EscapableHandleScope scope;
       napi_env env;
       napi_get_current_env(&env);
-      napi_value h;
-      napi_get_reference_value(env, handle, &h);
       napi_value fn;
-      napi_get_element(env, h, kCallbackIndex, &fn);
+      napi_get_reference_value(env, handle, &fn);
       return scope.Escape(fn);
     }
 
@@ -225,10 +207,8 @@ namespace Napi {
       HandleScope scope;
       napi_env env;
       napi_get_current_env(&env);
-      napi_value h;
-      napi_get_reference_value(env, handle, &h);
       napi_value fn;
-      napi_get_element(env, h, kCallbackIndex, &fn);
+      napi_get_reference_value(env, handle, &fn);
       napi_valuetype valuetype;
       napi_get_type_of_value(env, fn, &valuetype);
       return napi_undefined == valuetype;
@@ -262,10 +242,8 @@ namespace Napi {
       napi_env env;
       napi_get_current_env(&env);
 
-      napi_value h;
-      napi_get_reference_value(env, handle, &h);
       napi_value fn;
-      napi_get_element(env, h, kCallbackIndex, &fn);
+      napi_get_reference_value(env, handle, &fn);
 
       napi_value cb;
       napi_make_callback(
