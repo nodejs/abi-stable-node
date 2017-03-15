@@ -644,9 +644,9 @@ napi_status napi_get_current_env(napi_env* e) {
 
 napi_status napi_create_function(
     napi_env e,
+    const char* utf8name,
     napi_callback cb,
     void* data,
-    const char* utf8name,
     napi_value* result) {
   NAPI_PREAMBLE(e);
   CHECK_ARG(result);

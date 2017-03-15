@@ -15,7 +15,7 @@ void CreateFunction(napi_env env, napi_callback_info info) {
   napi_status status;
 
   napi_value fn;
-  status = napi_create_function(env, MyFunction, nullptr, "theFunction", &fn);
+  status = napi_create_function(env, "theFunction", MyFunction, nullptr, &fn);
   if (status != napi_ok) return;
 
   status = napi_set_return_value(env, info, fn);
