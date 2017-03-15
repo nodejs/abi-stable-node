@@ -1372,7 +1372,7 @@ napi_status napi_call_function(napi_env e,
                                napi_value recv,
                                napi_value func,
                                int argc,
-                               napi_value* argv,
+                               const napi_value* argv,
                                napi_value* result) {
   NAPI_PREAMBLE(e);
   CHECK_ARG(result);
@@ -1881,7 +1881,7 @@ napi_status napi_close_handle_scope(napi_env e, napi_handle_scope scope) {
 napi_status napi_new_instance(napi_env e,
                               napi_value cons,
                               int argc,
-                              napi_value* argv,
+                              const napi_value* argv,
                               napi_value* result) {
   NAPI_PREAMBLE(e);
   CHECK_ARG(result);
@@ -1963,7 +1963,7 @@ napi_status napi_make_callback(napi_env e,
                                napi_value recv,
                                napi_value func,
                                int argc,
-                               napi_value* argv,
+                               const napi_value* argv,
                                napi_value* result) {
   NAPI_PREAMBLE(e);
   CHECK_ARG(result);
