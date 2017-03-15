@@ -17,6 +17,7 @@ class MyObject {
   static void SetValue(napi_env env, napi_callback_info info);
   static void PlusOne(napi_env env, napi_callback_info info);
   static void Multiply(napi_env env, napi_callback_info info);
+  static void IsInstance(napi_env env, napi_callback_info info);
   static napi_ref constructor;
   double value_;
   napi_env env_;

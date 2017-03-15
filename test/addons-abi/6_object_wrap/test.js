@@ -18,3 +18,5 @@ assert.equal(obj.multiply(10).value, 130);
 var newobj = obj.multiply(-1);
 assert.equal(newobj.value, -13);
 assert(obj !== newobj);
+
+assert.ok(obj.isInstance());
