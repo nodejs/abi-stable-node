@@ -110,7 +110,7 @@ NODE_EXTERN napi_status napi_create_symbol(napi_env e,
 NODE_EXTERN napi_status napi_create_function(napi_env e,
                                              napi_callback cb,
                                              void* data,
-                                             napi_propertyname name,
+                                             const char* utf8name,
                                              napi_value* result);
 NODE_EXTERN napi_status napi_create_error(napi_env e,
                                           napi_value msg,

@@ -1,4 +1,4 @@
-#include <node_jsvmapi.h>
+﻿#include <node_jsvmapi.h>
 
 void MyFunction(napi_env env, napi_callback_info info) {
   napi_status status;
@@ -14,12 +14,8 @@ void MyFunction(napi_env env, napi_callback_info info) {
 void CreateFunction(napi_env env, napi_callback_info info) {
   napi_status status;
 
-  napi_propertyname name;
-  status = napi_property_name(env, "theFunction", &name);
-  if (status != napi_ok) return;
-
   napi_value fn;
-  status = napi_create_function(env, MyFunction, nullptr, name, &fn);
+  status = napi_create_function(env, MyFunction, nullptr, "theFunction", &fn);
   if (status != napi_ok) return;
 
   status = napi_set_return_value(env, info, fn);

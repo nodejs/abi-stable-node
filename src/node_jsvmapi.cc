@@ -646,7 +646,7 @@ napi_status napi_create_function(
     napi_env e,
     napi_callback cb,
     void* data,
-    napi_propertyname name,
+    const char* utf8name,
     napi_value* result) {
   NAPI_PREAMBLE(e);
   CHECK_ARG(result);
@@ -666,10 +666,11 @@ napi_status napi_create_function(
     isolate, v8impl::FunctionCallbackWrapper::Invoke, cbdata);
 
   retval = scope.Escape(tpl->GetFunction());
-
-  if (name) {
-    v8::Local<v8::String> n = v8impl::V8LocalStringFromJsPropertyName(name);
-    retval->SetName(n);
+  
+  if (utf8name) {
+    v8::Local<v8::String> namestring;
+    CHECK_NEW_FROM_UTF8(isolate, namestring, utf8name);
+    retval->SetName(namestring);
   }
 
   *result = v8impl::JsValueFromV8LocalValue(retval);
