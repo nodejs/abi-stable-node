@@ -243,12 +243,12 @@ NODE_EXTERN napi_status napi_call_function(napi_env e,
                                            napi_value recv,
                                            napi_value func,
                                            int argc,
-                                           napi_value* argv,
+                                           const napi_value* argv,
                                            napi_value* result);
 NODE_EXTERN napi_status napi_new_instance(napi_env e,
                                           napi_value cons,
                                           int argc,
-                                          napi_value* argv,
+                                          const napi_value* argv,
                                           napi_value* result);
 NODE_EXTERN napi_status napi_instanceof(napi_env e, napi_value obj,
                                         napi_value cons, bool* result);
@@ -258,7 +258,7 @@ NODE_EXTERN napi_status napi_make_callback(napi_env e,
                                            napi_value recv,
                                            napi_value func,
                                            int argc,
-                                           napi_value* argv,
+                                           const napi_value* argv,
                                            napi_value* result);
 
 // Methods to work with napi_callbacks
