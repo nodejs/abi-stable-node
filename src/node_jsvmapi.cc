@@ -1,4 +1,4 @@
-/*******************************************************************************
+﻿/*******************************************************************************
  * Experimental prototype for demonstrating VM agnostic and ABI stable API
  * for native modules to use instead of using Nan and V8 APIs directly.
  *
@@ -2020,7 +2020,7 @@ napi_status napi_get_and_clear_last_exception(napi_env e, napi_value* result) {
   return napi_ok;
 }
 
-napi_status napi_create_buffer(napi_env e, size_t size, char** data,
+napi_status napi_create_buffer(napi_env e, size_t size, void** data,
                                napi_value* result) {
   NAPI_PREAMBLE(e);
   CHECK_ARG(data);
@@ -2038,13 +2038,14 @@ napi_status napi_create_buffer(napi_env e, size_t size, char** data,
   return GET_RETURN_STATUS();
 }
 
-napi_status napi_create_external_buffer(napi_env e, size_t size, char* data,
+napi_status napi_create_external_buffer(napi_env e, size_t size, void* data,
                                         napi_finalize finalize_cb,
                                         napi_value* result) {
   NAPI_PREAMBLE(e);
   CHECK_ARG(result);
 
-  auto maybe = node::Buffer::New(v8impl::V8IsolateFromJsEnv(e), data, size,
+  auto maybe = node::Buffer::New(v8impl::V8IsolateFromJsEnv(e), 
+    static_cast<char*>(data), size,
     (node::Buffer::FreeCallback)finalize_cb, nullptr);
 
   CHECK_MAYBE_EMPTY(maybe, napi_generic_failure);
@@ -2053,12 +2054,13 @@ napi_status napi_create_external_buffer(napi_env e, size_t size, char* data,
   return GET_RETURN_STATUS();
 }
 
-napi_status napi_create_buffer_copy(napi_env e, const char* data,
+napi_status napi_create_buffer_copy(napi_env e, const void* data,
                                     size_t size, napi_value* result) {
   NAPI_PREAMBLE(e);
   CHECK_ARG(result);
 
-  auto maybe = node::Buffer::Copy(v8impl::V8IsolateFromJsEnv(e), data, size);
+  auto maybe = node::Buffer::Copy(v8impl::V8IsolateFromJsEnv(e), 
+    static_cast<const char*>(data), size);
 
   CHECK_MAYBE_EMPTY(maybe, napi_generic_failure);
 
@@ -2074,7 +2076,7 @@ napi_status napi_is_buffer(napi_env e, napi_value v, bool* result) {
   return GET_RETURN_STATUS();
 }
 
-napi_status napi_get_buffer_info(napi_env e, napi_value v, char** data,
+napi_status napi_get_buffer_info(napi_env e, napi_value v, void** data,
                                  size_t* length) {
   NAPI_PREAMBLE(e);
 

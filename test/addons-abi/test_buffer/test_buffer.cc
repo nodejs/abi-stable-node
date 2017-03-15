@@ -1,4 +1,4 @@
-#include <string.h>
+﻿#include <string.h>
 #include <string>
 #include <node_api_helpers.h>
 
@@ -32,7 +32,7 @@ static void noopDeleter(void *data) {
 NAPI_METHOD(newBuffer) {
   napi_value theBuffer;
   char *theCopy;
-  NAPI_CALL(env, napi_create_buffer(env, sizeof(theText), &theCopy,
+  NAPI_CALL(env, napi_create_buffer(env, sizeof(theText), (void**)&theCopy,
     &theBuffer));
   JS_ASSERT(env, theCopy, "Failed to copy static text for newBuffer");
   strcpy(theCopy, theText);
@@ -88,7 +88,7 @@ NAPI_METHOD(bufferInfo) {
   NAPI_CALL(env, napi_get_cb_args(env, info, &theBuffer, 1));
   char *bufferData;
   size_t bufferLength;
-  NAPI_CALL(env, napi_get_buffer_info(env, theBuffer, &bufferData,
+  NAPI_CALL(env, napi_get_buffer_info(env, theBuffer, (void**)&bufferData,
     &bufferLength));
   NAPI_CALL(env, napi_create_boolean(env,
     !strcmp(bufferData, theText) && bufferLength == sizeof(theText),
