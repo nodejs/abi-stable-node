@@ -1,4 +1,4 @@
-/*******************************************************************************
+﻿/*******************************************************************************
  * Experimental prototype for demonstrating VM agnostic and ABI stable API
  * for native modules to use instead of using Nan and V8 APIs directly.
  *
@@ -1469,6 +1469,16 @@ napi_status napi_throw_range_error(napi_env e, const char* msg) {
   isolate->ThrowException(v8::Exception::RangeError(str));
   // any VM calls after this point and before returning
   // to the javascript invoker will fail
+  return napi_ok;
+}
+
+napi_status napi_is_error(napi_env e, napi_value v, bool* result) {
+  // Omit NAPI_PREAMBLE and GET_RETURN_STATUS because V8 calls here cannot throw JS exceptions.
+  CHECK_ARG(result);
+
+  v8::Local<v8::Value> value = v8impl::V8LocalValueFromJsValue(v);
+  *result = value->IsNativeError();
+
   return napi_ok;
 }
 

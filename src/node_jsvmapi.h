@@ -1,4 +1,4 @@
-/*******************************************************************************
+﻿/*******************************************************************************
  * Experimental prototype for demonstrating VM agnostic and ABI stable API
  * for native modules to use instead of using Nan and V8 APIs directly.
  *
@@ -381,6 +381,7 @@ NODE_EXTERN napi_status napi_throw(napi_env e, napi_value error);
 NODE_EXTERN napi_status napi_throw_error(napi_env e, const char* msg);
 NODE_EXTERN napi_status napi_throw_type_error(napi_env e, const char* msg);
 NODE_EXTERN napi_status napi_throw_range_error(napi_env e, const char* msg);
+NODE_EXTERN napi_status napi_is_error(napi_env e, napi_value v, bool* result);
 
 // Methods to support catching exceptions
 NODE_EXTERN napi_status napi_is_exception_pending(napi_env e, bool* result);
