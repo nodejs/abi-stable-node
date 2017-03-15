@@ -386,21 +386,21 @@ NODE_EXTERN napi_status napi_get_and_clear_last_exception(napi_env e,
 // Methods to provide node::Buffer functionality with napi types
 NODE_EXTERN napi_status napi_create_buffer(napi_env e,
                                            size_t size,
-                                           char** data,
+                                           void** data,
                                            napi_value* result);
 NODE_EXTERN napi_status napi_create_external_buffer(napi_env e,
                                                     size_t size,
-                                                    char* data,
+                                                    void* data,
                                                     napi_finalize finalize_cb,
                                                     napi_value* result);
 NODE_EXTERN napi_status napi_create_buffer_copy(napi_env e,
-                                                const char* data,
+                                                const void* data,
                                                 size_t size,
                                                 napi_value* result);
 NODE_EXTERN napi_status napi_is_buffer(napi_env e, napi_value v, bool* result);
 NODE_EXTERN napi_status napi_get_buffer_info(napi_env e,
                                              napi_value v,
-                                             char** data,
+                                             void** data,
                                              size_t* length);
 
 // Methods to work with array buffers and typed arrays
