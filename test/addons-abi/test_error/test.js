@@ -32,7 +32,7 @@ assert.strictEqual(test_error.checkError(theRangeError), true,
 
 // Test that native reference error object is correctly classed
 assert.strictEqual(test_error.checkError(theReferenceError), true,
-                   'Reference error object correctly classed by' + 
+                   'Reference error object correctly classed by' +
                    ' napi_is_error');
 
 // Test that native URI error object is correctly classed
