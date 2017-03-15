@@ -1,4 +1,4 @@
-/*******************************************************************************
+﻿/*******************************************************************************
  * Experimental prototype for demonstrating VM agnostic and ABI stable API
  * for native modules to use instead of using Nan and V8 APIs directly.
  *
@@ -99,11 +99,11 @@ namespace v8impl {
     return u.l;
   }
 
-  v8::Local<v8::Value> V8LocalValueFromJsPropertyName(napi_propertyname pn) {
+  v8::Local<v8::String> V8LocalStringFromJsPropertyName(napi_propertyname pn) {
     // Likewise awkward
     union U {
       napi_propertyname pn;
-      v8::Local<v8::Value> l;
+      v8::Local<v8::String> l;
       U(napi_propertyname _pn) : pn(_pn) { }
     } u(pn);
     assert(sizeof(u.pn) == sizeof(u.l));
@@ -637,6 +637,7 @@ napi_status napi_set_last_error(napi_status error_code,
 
 napi_status napi_create_function(
     napi_env e,
+    const char* utf8name,
     napi_callback cb,
     void* data,
     napi_value* result) {
@@ -645,7 +646,7 @@ napi_status napi_create_function(
 
   v8::Isolate *isolate = v8impl::V8IsolateFromJsEnv(e);
   v8::Local<v8::Context> context = isolate->GetCurrentContext();
-  v8::Local<v8::Object> retval;
+  v8::Local<v8::Function> retval;
 
   v8::EscapableHandleScope scope(isolate);
 
@@ -658,6 +659,13 @@ napi_status napi_create_function(
     isolate, v8impl::FunctionCallbackWrapper::Invoke, cbdata);
 
   retval = scope.Escape(tpl->GetFunction());
+  
+  if (utf8name) {
+    v8::Local<v8::String> namestring;
+    CHECK_NEW_FROM_UTF8(isolate, namestring, utf8name);
+    retval->SetName(namestring);
+  }
+
   *result = v8impl::JsValueFromV8LocalValue(retval);
 
   return GET_RETURN_STATUS();
@@ -766,17 +774,6 @@ napi_status napi_define_class(
   return GET_RETURN_STATUS();
 }
 
-napi_status napi_set_function_name(napi_env e, napi_value func,
-                                   napi_propertyname name) {
-  NAPI_PREAMBLE(e);
-
-  v8::Local<v8::Function> v8func = v8impl::V8LocalFunctionFromJsValue(func);
-  v8func->SetName(
-      v8impl::V8LocalValueFromJsPropertyName(name).As<v8::String>());
-
-  return GET_RETURN_STATUS();
-}
-
 napi_status napi_set_return_value(napi_env e,
                                   napi_callback_info cbinfo, napi_value v) {
   NAPI_PREAMBLE(e);
@@ -833,7 +830,7 @@ napi_status napi_set_property(napi_env e,
 
   CHECK_TO_OBJECT(context, obj, o);
 
-  v8::Local<v8::Value> key = v8impl::V8LocalValueFromJsPropertyName(k);
+  v8::Local<v8::String> key = v8impl::V8LocalStringFromJsPropertyName(k);
   v8::Local<v8::Value> val = v8impl::V8LocalValueFromJsValue(v);
 
   v8::Maybe<bool> set_maybe = obj->Set(context, key, val);
@@ -852,7 +849,7 @@ napi_status napi_has_property(napi_env e, napi_value o, napi_propertyname k, boo
 
   CHECK_TO_OBJECT(context, obj, o);
 
-  v8::Local<v8::Value> key = v8impl::V8LocalValueFromJsPropertyName(k);
+  v8::Local<v8::String> key = v8impl::V8LocalStringFromJsPropertyName(k);
   v8::Maybe<bool> has_maybe = obj->Has(context, key);
 
   CHECK_MAYBE_NOTHING(has_maybe, napi_generic_failure);
@@ -870,7 +867,7 @@ napi_status napi_get_property(napi_env e,
 
   v8::Isolate *isolate = v8impl::V8IsolateFromJsEnv(e);
   v8::Local<v8::Context> context = isolate->GetCurrentContext();
-  v8::Local<v8::Value> key = v8impl::V8LocalValueFromJsPropertyName(k);
+  v8::Local<v8::String> key = v8impl::V8LocalStringFromJsPropertyName(k);
   v8::Local<v8::Object> obj;
 
   CHECK_TO_OBJECT(context, obj, o);

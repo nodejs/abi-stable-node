@@ -1,4 +1,4 @@
-/*******************************************************************************
+﻿/*******************************************************************************
  * Experimental prototype for demonstrating VM agnostic and ABI stable API
  * for native modules to use instead of using Nan and V8 APIs directly.
  *
@@ -105,6 +105,7 @@ NODE_EXTERN napi_status napi_create_symbol(napi_env e,
                                            const char* s,
                                            napi_value* result);
 NODE_EXTERN napi_status napi_create_function(napi_env e,
+                                             const char* utf8name,
                                              napi_callback cb,
                                              void* data,
                                              napi_value* result);
@@ -236,9 +237,6 @@ NODE_EXTERN napi_status napi_strict_equals(napi_env e,
                                            bool* result);
 
 // Methods to work with Functions
-NODE_EXTERN napi_status napi_set_function_name(napi_env e,
-                                               napi_value func,
-                                               napi_propertyname napi_value);
 NODE_EXTERN napi_status napi_call_function(napi_env e,
                                            napi_value recv,
                                            napi_value func,
