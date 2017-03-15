@@ -1462,6 +1462,16 @@ napi_status napi_throw_range_error(napi_env e, const char* msg) {
   return napi_ok;
 }
 
+napi_status napi_is_error(napi_env e, napi_value v, bool* result) {
+  // Omit NAPI_PREAMBLE and GET_RETURN_STATUS because V8 calls here cannot throw JS exceptions.
+  CHECK_ARG(result);
+
+  v8::Local<v8::Value> value = v8impl::V8LocalValueFromJsValue(v);
+  *result = value->IsNativeError();
+
+  return napi_ok;
+}
+
 napi_status napi_get_value_double(napi_env e, napi_value v, double* result) {
   // Omit NAPI_PREAMBLE and GET_RETURN_STATUS because V8 calls here cannot throw JS exceptions.
   CHECK_ARG(result);
