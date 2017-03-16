@@ -1,4 +1,4 @@
-#include "node_asyncapi_internal.h"
+#include "node_api_async_internal.h"
 
 napi_work napi_create_async_work() {
   napi_work_impl* worker =

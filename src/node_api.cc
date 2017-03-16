@@ -14,7 +14,7 @@
 #include <string.h>
 #include <algorithm>
 #include <vector>
-#include "node_jsvmapi_internal.h"
+#include "node_api_internal.h"
 
 namespace v8impl {
 

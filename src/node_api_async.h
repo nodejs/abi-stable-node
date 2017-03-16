@@ -1,8 +1,8 @@
-#ifndef SRC_NODE_ASYNCAPI_H_
-#define SRC_NODE_ASYNCAPI_H_
+#ifndef SRC_NODE_API_ASYNC_H_
+#define SRC_NODE_API_ASYNC_H_
 
 #include <stdlib.h>
-#include "node_asyncapi_types.h"
+#include "node_api_async_types.h"
 
 #ifndef NODE_EXTERN
 #ifdef _WIN32
@@ -26,4 +26,4 @@ NODE_EXTERN void napi_async_set_destroy(napi_work w, void (*destroy)(void*));
 NODE_EXTERN void napi_async_queue_worker(napi_work w);
 }  // extern "C"
 
-#endif  // SRC_NODE_ASYNCAPI_H_
+#endif  // SRC_NODE_API_ASYNC_H_

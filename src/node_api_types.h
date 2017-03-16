@@ -1,5 +1,5 @@
-﻿#ifndef SRC_NODE_JSVMAPI_TYPES_H_
-#define SRC_NODE_JSVMAPI_TYPES_H_
+#ifndef SRC_NODE_API_TYPES_H_
+#define SRC_NODE_API_TYPES_H_
 
 #include <stddef.h>
 #include <stdint.h>
@@ -86,4 +86,4 @@ struct napi_extended_error_info {
   napi_status error_code;
 };
 
-#endif  // SRC_NODE_JSVMAPI_TYPES_H_
+#endif  // SRC_NODE_API_TYPES_H_

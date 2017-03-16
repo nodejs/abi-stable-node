@@ -1,7 +1,7 @@
-#ifndef SRC_NODE_JSVMAPI_INTERNAL_H_
-#define SRC_NODE_JSVMAPI_INTERNAL_H_
+#ifndef SRC_NODE_API_INTERNAL_H_
+#define SRC_NODE_API_INTERNAL_H_
 
-#include "node_jsvmapi.h"
+#include "node_api.h"
 #include "node.h"
 
 namespace v8impl {
@@ -13,4 +13,4 @@ namespace v8impl {
 }
 
 
-#endif  // SRC_NODE_JSVMAPI_INTERNAL_H_
+#endif  // SRC_NODE_API_INTERNAL_H_

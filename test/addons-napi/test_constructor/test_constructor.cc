@@ -1,4 +1,4 @@
-#include <node_jsvmapi.h>
+#include <node_api.h>
 
 static double value_ = 1;
 napi_ref constructor_;

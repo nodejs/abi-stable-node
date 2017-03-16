@@ -7,11 +7,11 @@
  * and as an experimental feature is NOT subject to semver.
  *
  ******************************************************************************/
-#ifndef SRC_NODE_JSVMAPI_H_
-#define SRC_NODE_JSVMAPI_H_
+#ifndef SRC_NODE_API_H_
+#define SRC_NODE_API_H_
 
 #include <stddef.h>
-#include "node_jsvmapi_types.h"
+#include "node_api_types.h"
 #include "node_macros.h"
 
 namespace node {
@@ -461,4 +461,4 @@ NODE_EXTERN napi_status napi_get_typedarray_info(napi_env env,
                                                  size_t* byte_offset);
 }  // extern "C"
 
-#endif  // SRC_NODE_JSVMAPI_H__
+#endif  // SRC_NODE_API_H__
