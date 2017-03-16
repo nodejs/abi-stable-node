@@ -5,7 +5,7 @@ MyObject::MyObject() : env_(nullptr), wrapper_(nullptr) {}
 
 MyObject::~MyObject() { napi_delete_reference(env_, wrapper_); }
 
-void MyObject::Destructor(void* nativeObject) {
+void MyObject::Destructor(void* nativeObject, void* /*finalize_hint*/) {
   reinterpret_cast<MyObject*>(nativeObject)->~MyObject();
 }
 
@@ -53,6 +53,7 @@ void MyObject::New(napi_env env, napi_callback_info info) {
                      jsthis,
                      reinterpret_cast<void*>(obj),
                      MyObject::Destructor,
+                     nullptr,  // finalize_hint
                      &obj->wrapper_);
   if (status != napi_ok) return;
 

@@ -141,13 +141,15 @@ class Reference {
             int initialRefcount,
             bool deleteSelf,
             napi_finalize finalizeCallback = nullptr,
-            void* finalizeData = nullptr)
-      : _isolate(isolate),
+            void* finalizeData = nullptr,
+            void* finalizeHint = nullptr)
+       : _isolate(isolate),
         _persistent(isolate, value),
         _refcount(initialRefcount),
         _deleteSelf(deleteSelf),
         _finalizeCallback(finalizeCallback),
-        _finalizeData(finalizeData) {
+        _finalizeData(finalizeData),
+        _finalizeHint(finalizeHint) {
     if (initialRefcount == 0) {
       if (_finalizeCallback != nullptr || _deleteSelf) {
         _persistent.SetWeak(
@@ -209,7 +211,8 @@ class Reference {
     bool deleteSelf = reference->_deleteSelf;
 
     if (reference->_finalizeCallback != nullptr) {
-      reference->_finalizeCallback(reference->_finalizeData);
+      reference->_finalizeCallback(reference->_finalizeData,
+          reference->_finalizeHint);
     }
 
     if (deleteSelf) {
@@ -223,6 +226,7 @@ class Reference {
   bool _deleteSelf;
   napi_finalize _finalizeCallback;
   void* _finalizeData;
+  void* _finalizeHint;
 };
 
 class TryCatch : public v8::TryCatch {
@@ -1733,6 +1737,7 @@ napi_status napi_wrap(napi_env e,
                       napi_value jsObject,
                       void* nativeObj,
                       napi_finalize finalize_cb,
+                      void* finalize_hint,
                       napi_ref* result) {
   NAPI_PREAMBLE(e);
   CHECK_ARG(jsObject);
@@ -1751,7 +1756,13 @@ napi_status napi_wrap(napi_env e,
     // Create a separate self-deleting reference for the finalizer callback.
     // This ensures the finalizer is not dependent on the lifetime of the
     // returned reference.
-    new v8impl::Reference(isolate, obj, 0, true, finalize_cb, nativeObj);
+    new v8impl::Reference(isolate,
+        obj,
+        0,
+        true,
+        finalize_cb,
+        nativeObj,
+        finalize_hint);
   }
 
   if (result != nullptr) {
@@ -1761,7 +1772,7 @@ napi_status napi_wrap(napi_env e,
     // deleted via
     // napi_delete_reference() when it is no longer needed.
     v8impl::Reference* reference =
-        new v8impl::Reference(isolate, obj, 0, false, nullptr, nullptr);
+        new v8impl::Reference(isolate, obj, 0, false);
     *result = reinterpret_cast<napi_ref>(reference);
   }
 
@@ -1789,6 +1800,7 @@ napi_status napi_unwrap(napi_env e, napi_value jsObject, void** result) {
 napi_status napi_create_external(napi_env e,
                                  void* data,
                                  napi_finalize finalize_cb,
+                                 void* finalize_hint,
                                  napi_value* result) {
   NAPI_PREAMBLE(e);
   CHECK_ARG(result);
@@ -1799,7 +1811,13 @@ napi_status napi_create_external(napi_env e,
 
   // The Reference object will delete itself after invoking the finalizer
   // callback.
-  new v8impl::Reference(isolate, externalValue, 0, true, finalize_cb, data);
+  new v8impl::Reference(isolate,
+      externalValue,
+      0,
+      true,
+      finalize_cb,
+      data,
+      finalize_hint);
 
   *result = v8impl::JsValueFromV8LocalValue(externalValue);
 
@@ -2126,6 +2144,7 @@ napi_status napi_create_external_buffer(napi_env e,
                                         size_t size,
                                         void* data,
                                         napi_finalize finalize_cb,
+                                        void* finalize_hint,
                                         napi_value* result) {
   NAPI_PREAMBLE(e);
   CHECK_ARG(result);
@@ -2134,7 +2153,7 @@ napi_status napi_create_external_buffer(napi_env e,
                                  static_cast<char*>(data),
                                  size,
                                  (node::Buffer::FreeCallback)finalize_cb,
-                                 nullptr);
+                                 finalize_hint);
 
   CHECK_MAYBE_EMPTY(maybe, napi_generic_failure);
 
@@ -2220,6 +2239,7 @@ napi_status napi_create_external_arraybuffer(napi_env e,
                                              void* external_data,
                                              size_t byte_length,
                                              napi_finalize finalize_cb,
+                                             void* finalize_hint,
                                              napi_value* result) {
   NAPI_PREAMBLE(e);
   CHECK_ARG(result);
@@ -2231,7 +2251,13 @@ napi_status napi_create_external_arraybuffer(napi_env e,
   if (finalize_cb != nullptr) {
     // Create a self-deleting weak reference that invokes the finalizer
     // callback.
-    new v8impl::Reference(isolate, buffer, 0, true, finalize_cb, external_data);
+    new v8impl::Reference(isolate,
+        buffer,
+        0,
+        true,
+        finalize_cb,
+        external_data,
+        finalize_hint);
   }
 
   *result = v8impl::JsValueFromV8LocalValue(buffer);

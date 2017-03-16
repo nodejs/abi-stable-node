@@ -15,7 +15,7 @@ typedef struct napi_propertyname__ *napi_propertyname;
 typedef struct napi_callback_info__ *napi_callback_info;
 
 typedef void (*napi_callback)(napi_env, napi_callback_info);
-typedef void (*napi_finalize)(void* v);
+typedef void (*napi_finalize)(void* finalize_data, void* finalize_hint);
 
 enum napi_property_attributes {
   napi_default = 0,

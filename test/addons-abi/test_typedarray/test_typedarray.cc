@@ -105,7 +105,12 @@ void External(napi_env env, napi_callback_info info) {
 
   napi_value output_buffer;
   napi_status status = napi_create_external_arraybuffer(
-      env, externalData, sizeof(externalData), nullptr, &output_buffer);
+      env,
+      externalData,
+      sizeof(externalData),
+      nullptr,  // finalize_callback
+      nullptr,  // finalize_hint
+      &output_buffer);
   if (status != napi_ok) return;
 
   napi_value output_array;
