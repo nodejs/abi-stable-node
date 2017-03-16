@@ -1422,7 +1422,7 @@ napi_status napi_call_function(napi_env e,
   auto maybe = v8func->Call(context, v8recv, argc, args.data());
 
   if (tryCatch.HasCaught()) {
-    return napi_pending_exception;
+    return napi_set_last_error(napi_pending_exception);
   } else {
     CHECK_MAYBE_EMPTY(maybe, napi_generic_failure);
     *result = v8impl::JsValueFromV8LocalValue(maybe.ToLocalChecked());
