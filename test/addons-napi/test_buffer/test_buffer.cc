@@ -28,7 +28,9 @@ static void deleteTheText(void *data, void* /*finalize_hint*/) {
   deleterCallCount++;
 }
 
-static void noopDeleter(void *data, void* /*finalize_hint*/) { deleterCallCount++; }
+static void noopDeleter(void *data, void* /*finalize_hint*/) {
+    deleterCallCount++;
+}
 
 void newBuffer(napi_env env, napi_callback_info info) {
   napi_value theBuffer;
@@ -132,7 +134,7 @@ void staticBuffer(napi_env env, napi_callback_info info) {
 void Init(napi_env env, napi_value exports, napi_value module) {
   napi_value theValue;
 
-  NAPI_CALL(env, napi_create_string_utf8(env, 
+  NAPI_CALL(env, napi_create_string_utf8(env,
             theText, sizeof(theText), &theValue));
   NAPI_CALL(env, napi_set_named_property(env, exports, "theText", theValue));
 
