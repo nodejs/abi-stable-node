@@ -1,4 +1,4 @@
-﻿/******************************************************************************
+/******************************************************************************
  * Experimental prototype for demonstrating VM agnostic and ABI stable API
  * for native modules to use instead of using Nan and V8 APIs directly.
  *
@@ -233,8 +233,8 @@ napi_define_properties(napi_env e,
                        const napi_property_descriptor* properties);
 
 // Methods to work with Arrays
-NODE_EXTERN napi_status napi_is_array(napi_env e, 
-                                      napi_value value, 
+NODE_EXTERN napi_status napi_is_array(napi_env e,
+                                      napi_value value,
                                       bool* result);
 NODE_EXTERN napi_status napi_get_array_length(napi_env e,
                                               napi_value value,
@@ -379,7 +379,7 @@ NODE_EXTERN napi_status
 napi_open_escapable_handle_scope(napi_env e,
                                  napi_escapable_handle_scope* result);
 NODE_EXTERN napi_status
-napi_close_escapable_handle_scope(napi_env e, 
+napi_close_escapable_handle_scope(napi_env e,
                                   napi_escapable_handle_scope scope);
 
 NODE_EXTERN napi_status napi_escape_handle(napi_env e,
@@ -392,8 +392,8 @@ NODE_EXTERN napi_status napi_throw(napi_env e, napi_value error);
 NODE_EXTERN napi_status napi_throw_error(napi_env e, const char* msg);
 NODE_EXTERN napi_status napi_throw_type_error(napi_env e, const char* msg);
 NODE_EXTERN napi_status napi_throw_range_error(napi_env e, const char* msg);
-NODE_EXTERN napi_status napi_is_error(napi_env e, 
-                                      napi_value value, 
+NODE_EXTERN napi_status napi_is_error(napi_env e,
+                                      napi_value value,
                                       bool* result);
 
 // Methods to support catching exceptions
@@ -416,8 +416,8 @@ NODE_EXTERN napi_status napi_create_buffer_copy(napi_env e,
                                                 const void* data,
                                                 size_t size,
                                                 napi_value* result);
-NODE_EXTERN napi_status napi_is_buffer(napi_env e, 
-                                       napi_value value, 
+NODE_EXTERN napi_status napi_is_buffer(napi_env e,
+                                       napi_value value,
                                        bool* result);
 NODE_EXTERN napi_status napi_get_buffer_info(napi_env e,
                                              napi_value value,

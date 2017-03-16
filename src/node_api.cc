@@ -1,4 +1,4 @@
-﻿/******************************************************************************
+/******************************************************************************
  * Experimental prototype for demonstrating VM agnostic and ABI stable API
  * for native modules to use instead of using Nan and V8 APIs directly.
  *
@@ -771,8 +771,8 @@ napi_status napi_set_return_value(napi_env e,
   return GET_RETURN_STATUS();
 }
 
-napi_status napi_get_propertynames(napi_env e, 
-                                   napi_value object, 
+napi_status napi_get_propertynames(napi_env e,
+                                   napi_value object,
                                    napi_value* result) {
   NAPI_PREAMBLE(e);
   CHECK_ARG(result);
@@ -786,7 +786,8 @@ napi_status napi_get_propertynames(napi_env e,
 
   CHECK_MAYBE_EMPTY(maybe_propertynames, napi_generic_failure);
 
-  *result = v8impl::JsValueFromV8LocalValue(maybe_propertynames.ToLocalChecked());
+  *result = v8impl::JsValueFromV8LocalValue(
+      maybe_propertynames.ToLocalChecked());
   return GET_RETURN_STATUS();
 }
 
@@ -1073,15 +1074,15 @@ napi_status napi_is_array(napi_env e, napi_value value, bool* result) {
   return GET_RETURN_STATUS();
 }
 
-napi_status napi_get_array_length(napi_env e, 
-                                  napi_value value, 
+napi_status napi_get_array_length(napi_env e,
+                                  napi_value value,
                                   uint32_t* result) {
   NAPI_PREAMBLE(e);
   CHECK_ARG(result);
 
   // TODO(boingoing): Should this also check to see if v is an array before
   // blindly casting it?
-  v8::Local<v8::Array> arr = 
+  v8::Local<v8::Array> arr =
     v8impl::V8LocalValueFromJsValue(value).As<v8::Array>();
 
   *result = arr->Length();
@@ -1102,8 +1103,8 @@ napi_status napi_strict_equals(napi_env e,
   return GET_RETURN_STATUS();
 }
 
-napi_status napi_get_prototype(napi_env e, 
-                               napi_value object, 
+napi_status napi_get_prototype(napi_env e,
+                               napi_value object,
                                napi_value* result) {
   NAPI_PREAMBLE(e);
   CHECK_ARG(result);
@@ -1548,8 +1549,8 @@ napi_status napi_is_error(napi_env e, napi_value value, bool* result) {
   return napi_ok;
 }
 
-napi_status napi_get_value_double(napi_env e, 
-                                  napi_value value, 
+napi_status napi_get_value_double(napi_env e,
+                                  napi_value value,
                                   double* result) {
   // Omit NAPI_PREAMBLE and GET_RETURN_STATUS because V8 calls here cannot throw
   // JS exceptions.
@@ -1563,8 +1564,8 @@ napi_status napi_get_value_double(napi_env e,
   return napi_ok;
 }
 
-napi_status napi_get_value_int32(napi_env e, 
-                                 napi_value value, 
+napi_status napi_get_value_int32(napi_env e,
+                                 napi_value value,
                                  int32_t* result) {
   // Omit NAPI_PREAMBLE and GET_RETURN_STATUS because V8 calls here cannot throw
   // JS exceptions.
@@ -1578,8 +1579,8 @@ napi_status napi_get_value_int32(napi_env e,
   return napi_ok;
 }
 
-napi_status napi_get_value_uint32(napi_env e, 
-                                  napi_value value, 
+napi_status napi_get_value_uint32(napi_env e,
+                                  napi_value value,
                                   uint32_t* result) {
   // Omit NAPI_PREAMBLE and GET_RETURN_STATUS because V8 calls here cannot throw
   // JS exceptions.
@@ -1593,8 +1594,8 @@ napi_status napi_get_value_uint32(napi_env e,
   return napi_ok;
 }
 
-napi_status napi_get_value_int64(napi_env e, 
-                                 napi_value value, 
+napi_status napi_get_value_int64(napi_env e,
+                                 napi_value value,
                                  int64_t* result) {
   // Omit NAPI_PREAMBLE and GET_RETURN_STATUS because V8 calls here cannot throw
   // JS exceptions.
@@ -1734,7 +1735,7 @@ napi_status napi_coerce_to_object(napi_env e,
   return GET_RETURN_STATUS();
 }
 
-napi_status napi_coerce_to_bool(napi_env e, 
+napi_status napi_coerce_to_bool(napi_env e,
                                 napi_value value,
                                 napi_value* result) {
   NAPI_PREAMBLE(e);
@@ -1873,7 +1874,7 @@ napi_status napi_create_external(napi_env e,
   return GET_RETURN_STATUS();
 }
 
-napi_status napi_get_value_external(napi_env e, 
+napi_status napi_get_value_external(napi_env e,
                                     napi_value value,
                                     void** result) {
   NAPI_PREAMBLE(e);
@@ -2049,7 +2050,7 @@ napi_status napi_new_instance(napi_env e,
     args[i] = v8impl::V8LocalValueFromJsValue(argv[i]);
   }
 
-  v8::Local<v8::Function> v8cons = 
+  v8::Local<v8::Function> v8cons =
     v8impl::V8LocalFunctionFromJsValue(constructor);
 
   auto maybe = v8cons->NewInstance(context, argc, args.data());
