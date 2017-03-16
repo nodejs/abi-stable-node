@@ -55,8 +55,8 @@ void newExternalBuffer(napi_env env, napi_callback_info info) {
                 env,
                 sizeof(theText),
                 theCopy,
-                deleteTheText,  // finalize_hint
-                nullptr,
+                deleteTheText,
+                nullptr,  // finalize_hint
                 &theBuffer));
   NAPI_CALL(env, napi_set_return_value(env, info, theBuffer));
 }
