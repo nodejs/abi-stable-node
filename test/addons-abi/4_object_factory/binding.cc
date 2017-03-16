@@ -11,11 +11,7 @@ void CreateObject(napi_env env, const napi_callback_info info) {
   status = napi_create_object(env, &obj);
   if (status != napi_ok) return;
 
-  napi_propertyname msgprop;
-  status = napi_property_name(env, "msg", &msgprop);
-  if (status != napi_ok) return;
-
-  status = napi_set_property(env, obj, msgprop, args[0]);
+  status = napi_set_named_property(env, obj, "msg", args[0]);
   if (status != napi_ok) return;
 
   status = napi_set_return_value(env, info, obj);

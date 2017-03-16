@@ -95,11 +95,7 @@ void Init(napi_env env, napi_value exports, napi_value module) {
     nullptr, sizeof(properties)/sizeof(*properties), properties, &cons);
   if (status != napi_ok) return;
 
-  napi_propertyname name;
-  status = napi_property_name(env, "exports", &name);
-  if (status != napi_ok) return;
-
-  status = napi_set_property(env, module, name, cons);
+  status = napi_set_named_property(env, module, "exports", cons);
   if (status != napi_ok) return;
 
   status = napi_create_reference(env, cons, 1, &constructor_);

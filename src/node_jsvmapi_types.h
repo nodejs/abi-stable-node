@@ -1,4 +1,4 @@
-#ifndef SRC_NODE_JSVMAPI_TYPES_H_
+﻿#ifndef SRC_NODE_JSVMAPI_TYPES_H_
 #define SRC_NODE_JSVMAPI_TYPES_H_
 
 #include <stddef.h>
@@ -11,7 +11,6 @@ typedef struct napi_value__ *napi_value;
 typedef struct napi_ref__ *napi_ref;
 typedef struct napi_handle_scope__ *napi_handle_scope;
 typedef struct napi_escapable_handle_scope__ *napi_escapable_handle_scope;
-typedef struct napi_propertyname__ *napi_propertyname;
 typedef struct napi_callback_info__ *napi_callback_info;
 
 typedef void (*napi_callback)(napi_env, napi_callback_info);

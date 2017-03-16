@@ -30,29 +30,66 @@ void Get(napi_env env, napi_callback_info info) {
   status = napi_get_type_of_value(env, args[1], &valuetype1);
   if (status != napi_ok) return;
 
-  if (valuetype1 != napi_string) {
-    napi_throw_type_error(
-        env, "Wrong type of argments. Expects a string as second argument.");
+  if (valuetype1 != napi_string && valuetype1 != napi_symbol) {
+    napi_throw_type_error(env,
+        "Wrong type of argments. Expects a string or symbol as second.");
     return;
   }
 
   napi_value object = args[0];
-  char buffer[128];
-  int buffer_size = 128;
-
-  status =
-      napi_get_value_string_utf8(env, args[1], buffer, buffer_size, nullptr);
-  if (status != napi_ok) return;
-
-  napi_propertyname property_name;
-  status = napi_property_name(env, buffer, &property_name);
-  if (status != napi_ok) return;
-
   napi_value output;
-  status = napi_get_property(env, object, property_name, &output);
+  status = napi_get_property(env, object, args[1], &output);
   if (status != napi_ok) return;
 
   status = napi_set_return_value(env, info, output);
+  if (status != napi_ok) return;
+}
+
+void Set(napi_env env, napi_callback_info info) {
+  napi_status status;
+
+  int argc;
+  status = napi_get_cb_args_length(env, info, &argc);
+  if (status != napi_ok) return;
+
+  if (argc < 3) {
+    napi_throw_type_error(env, "Wrong number of arguments");
+    return;
+  }
+
+  napi_value args[3];
+  status = napi_get_cb_args(env, info, args, 3);
+  if (status != napi_ok) return;
+
+  napi_valuetype valuetype0;
+  status = napi_get_type_of_value(env, args[0], &valuetype0);
+  if (status != napi_ok) return;
+
+  if (valuetype0 != napi_object) {
+    napi_throw_type_error(env,
+        "Wrong type of argments. Expects an object as first argument.");
+    return;
+  }
+
+  napi_valuetype valuetype1;
+  status = napi_get_type_of_value(env, args[1], &valuetype1);
+  if (status != napi_ok) return;
+
+  if (valuetype1 != napi_string && valuetype1 != napi_symbol) {
+    napi_throw_type_error(env,
+        "Wrong type of argments. Expects a string or symbol as second.");
+    return;
+  }
+
+  napi_value object = args[0];
+  status = napi_set_property(env, object, args[1], args[2]);
+  if (status != napi_ok) return;
+
+  napi_value valuetrue;
+  status = napi_get_true(env, &valuetrue);
+  if (status != napi_ok) return;
+  
+  status = napi_set_return_value(env, info, valuetrue);
   if (status != napi_ok) return;
 }
 
@@ -86,26 +123,15 @@ void Has(napi_env env, napi_callback_info info) {
   status = napi_get_type_of_value(env, args[1], &valuetype1);
   if (status != napi_ok) return;
 
-  if (valuetype1 != napi_string) {
-    napi_throw_type_error(
-        env, "Wrong type of argments. Expects a string as second argument.");
+  if (valuetype1 != napi_string && valuetype1 != napi_symbol) {
+    napi_throw_type_error(env,
+        "Wrong type of argments. Expects a string or symbol as second.");
     return;
   }
 
   napi_value obj = args[0];
-  const int kBufferSize = 128;
-  char buffer[kBufferSize];
-
-  status =
-      napi_get_value_string_utf8(env, args[1], buffer, kBufferSize, nullptr);
-  if (status != napi_ok) return;
-
-  napi_propertyname property_name;
-  status = napi_property_name(env, buffer, &property_name);
-  if (status != napi_ok) return;
-
   bool has_property;
-  status = napi_has_property(env, obj, property_name, &has_property);
+  status = napi_has_property(env, obj, args[1], &has_property);
   if (status != napi_ok) return;
 
   napi_value ret;
@@ -122,26 +148,18 @@ void New(napi_env env, napi_callback_info info) {
   napi_value ret;
   status = napi_create_object(env, &ret);
 
-  napi_propertyname test_number;
-  status = napi_property_name(env, "test_number", &test_number);
-  if (status != napi_ok) return;
-
   napi_value num;
   status = napi_create_number(env, 987654321, &num);
   if (status != napi_ok) return;
 
-  status = napi_set_property(env, ret, test_number, num);
-  if (status != napi_ok) return;
-
-  napi_propertyname test_string;
-  status = napi_property_name(env, "test_string", &test_string);
+  status = napi_set_named_property(env, ret, "test_number", num);
   if (status != napi_ok) return;
 
   napi_value str;
   status = napi_create_string_utf8(env, "test string", -1, &str);
   if (status != napi_ok) return;
 
-  status = napi_set_property(env, ret, test_string, str);
+  status = napi_set_named_property(env, ret, "test_string", str);
   if (status != napi_ok) return;
 
   status = napi_set_return_value(env, info, ret);
@@ -189,19 +207,8 @@ void Inflate(napi_env env, napi_callback_info info) {
     status = napi_get_element(env, propertynames, i, &property_str);
     if (status != napi_ok) return;
 
-    const int kBufferSize = 128;
-    char buffer[kBufferSize];
-
-    status = napi_get_value_string_utf8(
-        env, property_str, buffer, kBufferSize, nullptr);
-    if (status != napi_ok) return;
-
-    napi_propertyname propertyname;
-    status = napi_property_name(env, buffer, &propertyname);
-    if (status != napi_ok) return;
-
     napi_value value;
-    status = napi_get_property(env, obj, propertyname, &value);
+    status = napi_get_property(env, obj, property_str, &value);
     if (status != napi_ok) return;
 
     double double_val;
@@ -211,7 +218,7 @@ void Inflate(napi_env env, napi_callback_info info) {
     status = napi_create_number(env, double_val + 1, &value);
     if (status != napi_ok) return;
 
-    status = napi_set_property(env, obj, propertyname, value);
+    status = napi_set_property(env, obj, property_str, value);
     if (status != napi_ok) return;
   }
   status = napi_set_return_value(env, info, obj);
@@ -221,7 +228,11 @@ void Init(napi_env env, napi_value exports, napi_value module) {
   napi_status status;
 
   napi_property_descriptor descriptors[] = {
-      {"Get", Get}, {"Has", Has}, {"New", New}, {"Inflate", Inflate},
+    { "Get", Get },
+    { "Set", Set },
+    { "Has", Has },
+    { "New", New },
+    { "Inflate", Inflate },
   };
 
   status = napi_define_properties(

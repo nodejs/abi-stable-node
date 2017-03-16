@@ -43,3 +43,23 @@ assert.deepStrictEqual(test_object.Inflate(cube), {x: 12, y: 12, z: 12});
 assert.deepStrictEqual(test_object.Inflate(cube), {x: 13, y: 13, z: 13});
 cube.t = 13;
 assert.deepStrictEqual(test_object.Inflate(cube), {x: 14, y: 14, z: 14, t: 14});
+
+const sym1 = Symbol('1');
+const sym2 = Symbol('2');
+const sym3 = Symbol('3');
+const sym4 = Symbol('4');
+const object2 = {
+  [sym1]: '@@iterator',
+  [sym2]: sym3
+};
+
+assert(test_object.Has(object2, sym1));
+assert(test_object.Has(object2, sym2));
+assert.strictEqual(test_object.Get(object2, sym1), '@@iterator');
+assert.strictEqual(test_object.Get(object2, sym2), sym3);
+assert(test_object.Set(object2, 'string', 'value'));
+assert(test_object.Set(object2, sym4, 123));
+assert(test_object.Has(object2, 'string'));
+assert(test_object.Has(object2, sym4));
+assert.strictEqual(test_object.Get(object2, 'string'), 'value');
+assert.strictEqual(test_object.Get(object2, sym4), 123);

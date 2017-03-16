@@ -121,13 +121,11 @@ void staticBuffer(napi_env env, napi_callback_info info) {
 }
 
 void Init(napi_env env, napi_value exports, napi_value module) {
-  napi_propertyname propName;
   napi_value theValue;
 
-  NAPI_CALL(env, napi_property_name(env, "theText", &propName));
-  NAPI_CALL(env,
-            napi_create_string_utf8(env, theText, sizeof(theText), &theValue));
-  NAPI_CALL(env, napi_set_property(env, exports, propName, theValue));
+  NAPI_CALL(env, napi_create_string_utf8(env, 
+            theText, sizeof(theText), &theValue));
+  NAPI_CALL(env, napi_set_named_property(env, exports, "theText", theValue));
 
   napi_property_descriptor methods[] = {
       {"newBuffer", newBuffer},

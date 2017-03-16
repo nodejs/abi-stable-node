@@ -187,34 +187,43 @@ NODE_EXTERN napi_status napi_coerce_to_string(napi_env e,
 NODE_EXTERN napi_status napi_get_prototype(napi_env e,
                                            napi_value object,
                                            napi_value* result);
-NODE_EXTERN napi_status napi_property_name(napi_env e,
-                                           const char* utf8name,
-                                           napi_propertyname* result);
 NODE_EXTERN napi_status napi_get_propertynames(napi_env e,
                                                napi_value object,
                                                napi_value* result);
 NODE_EXTERN napi_status napi_set_property(napi_env e,
-                                          napi_value object,
-                                          napi_propertyname name,
+                                          napi_value o,
+                                          napi_value k,
                                           napi_value v);
 NODE_EXTERN napi_status napi_has_property(napi_env e,
-                                          napi_value object,
-                                          napi_propertyname name,
+                                          napi_value o,
+                                          napi_value k,
                                           bool* result);
 NODE_EXTERN napi_status napi_get_property(napi_env e,
-                                          napi_value object,
-                                          napi_propertyname name,
+                                          napi_value o,
+                                          napi_value k,
+                                          napi_value* result);
+NODE_EXTERN napi_status napi_set_named_property(napi_env e,
+                                          napi_value o,
+                                          const char* utf8name,
+                                          napi_value value);
+NODE_EXTERN napi_status napi_has_named_property(napi_env e,
+                                          napi_value o,
+                                          const char* utf8name,
+                                          bool* result);
+NODE_EXTERN napi_status napi_get_named_property(napi_env e,
+                                          napi_value o,
+                                          const char* utf8name,
                                           napi_value* result);
 NODE_EXTERN napi_status napi_set_element(napi_env e,
-                                         napi_value object,
+                                         napi_value o,
                                          uint32_t i,
                                          napi_value v);
 NODE_EXTERN napi_status napi_has_element(napi_env e,
-                                         napi_value object,
+                                         napi_value o,
                                          uint32_t i,
                                          bool* result);
 NODE_EXTERN napi_status napi_get_element(napi_env e,
-                                         napi_value object,
+                                         napi_value o,
                                          uint32_t i,
                                          napi_value* result);
 NODE_EXTERN napi_status
