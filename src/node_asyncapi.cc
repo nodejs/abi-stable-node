@@ -1,8 +1,9 @@
 #include "node_asyncapi_internal.h"
 
 napi_work napi_create_async_work() {
-  napi_work_impl* worker = (napi_work_impl*) malloc(sizeof(napi_work_impl));
-  uv_work_t* req = (uv_work_t*) malloc(sizeof(uv_work_t));
+  napi_work_impl* worker =
+      reinterpret_cast<napi_work_impl*>(malloc(sizeof(napi_work_impl)));
+  uv_work_t* req = reinterpret_cast<uv_work_t*>(malloc(sizeof(uv_work_t)));
   req->data = worker;
   worker->work = req;
   return reinterpret_cast<napi_work>(worker);
@@ -18,7 +19,6 @@ void napi_delete_async_work(napi_work w) {
     worker = NULL;
   }
 }
-
 
 void napi_async_set_data(napi_work w, void* data) {
   napi_work_impl* worker = reinterpret_cast<napi_work_impl*>(w);
@@ -53,10 +53,8 @@ void napi_async_complete(uv_work_t* req) {
 
 void napi_async_queue_worker(napi_work w) {
   napi_work_impl* worker = reinterpret_cast<napi_work_impl*>(w);
-  uv_queue_work(
-      uv_default_loop(),
-      worker->work,
-      napi_async_execute,
-      reinterpret_cast<uv_after_work_cb>(
-          napi_async_complete));
+  uv_queue_work(uv_default_loop(),
+                worker->work,
+                napi_async_execute,
+                reinterpret_cast<uv_after_work_cb>(napi_async_complete));
 }

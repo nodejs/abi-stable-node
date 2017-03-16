@@ -21,8 +21,8 @@ void Get(napi_env env, napi_callback_info info) {
   if (status != napi_ok) return;
 
   if (valuetype0 != napi_object) {
-    napi_throw_type_error(env,
-        "Wrong type of argments. Expects an object as first argument.");
+    napi_throw_type_error(
+        env, "Wrong type of argments. Expects an object as first argument.");
     return;
   }
 
@@ -31,8 +31,8 @@ void Get(napi_env env, napi_callback_info info) {
   if (status != napi_ok) return;
 
   if (valuetype1 != napi_string) {
-    napi_throw_type_error(env,
-        "Wrong type of argments. Expects a string as second argument.");
+    napi_throw_type_error(
+        env, "Wrong type of argments. Expects a string as second argument.");
     return;
   }
 
@@ -40,7 +40,8 @@ void Get(napi_env env, napi_callback_info info) {
   char buffer[128];
   int buffer_size = 128;
 
-  status = napi_get_value_string_utf8(env, args[1], buffer, buffer_size, nullptr);
+  status =
+      napi_get_value_string_utf8(env, args[1], buffer, buffer_size, nullptr);
   if (status != napi_ok) return;
 
   napi_propertyname property_name;
@@ -76,8 +77,8 @@ void Has(napi_env env, napi_callback_info info) {
   if (status != napi_ok) return;
 
   if (valuetype0 != napi_object) {
-    napi_throw_type_error(env,
-        "Wrong type of argments. Expects an object as first argument.");
+    napi_throw_type_error(
+        env, "Wrong type of argments. Expects an object as first argument.");
     return;
   }
 
@@ -86,16 +87,17 @@ void Has(napi_env env, napi_callback_info info) {
   if (status != napi_ok) return;
 
   if (valuetype1 != napi_string) {
-    napi_throw_type_error(env,
-        "Wrong type of argments. Expects a string as second argument.");
+    napi_throw_type_error(
+        env, "Wrong type of argments. Expects a string as second argument.");
     return;
   }
 
   napi_value obj = args[0];
-  const int buffer_size = 128;
-  char buffer[buffer_size];
+  const int kBufferSize = 128;
+  char buffer[kBufferSize];
 
-  status = napi_get_value_string_utf8(env, args[1], buffer, buffer_size, nullptr);
+  status =
+      napi_get_value_string_utf8(env, args[1], buffer, kBufferSize, nullptr);
   if (status != napi_ok) return;
 
   napi_propertyname property_name;
@@ -167,8 +169,8 @@ void Inflate(napi_env env, napi_callback_info info) {
   if (status != napi_ok) return;
 
   if (valuetype != napi_object) {
-    napi_throw_type_error(env,
-        "Wrong type of argments. Expects an object as first argument.");
+    napi_throw_type_error(
+        env, "Wrong type of argments. Expects an object as first argument.");
     return;
   }
 
@@ -187,10 +189,11 @@ void Inflate(napi_env env, napi_callback_info info) {
     status = napi_get_element(env, propertynames, i, &property_str);
     if (status != napi_ok) return;
 
-    const int buffer_size = 128;
-    char buffer[buffer_size];
+    const int kBufferSize = 128;
+    char buffer[kBufferSize];
 
-    status = napi_get_value_string_utf8(env, property_str, buffer, buffer_size, nullptr);
+    status = napi_get_value_string_utf8(
+        env, property_str, buffer, kBufferSize, nullptr);
     if (status != napi_ok) return;
 
     napi_propertyname propertyname;
@@ -218,14 +221,11 @@ void Init(napi_env env, napi_value exports, napi_value module) {
   napi_status status;
 
   napi_property_descriptor descriptors[] = {
-    { "Get", Get },
-    { "Has", Has },
-    { "New", New },
-    { "Inflate", Inflate },
+      {"Get", Get}, {"Has", Has}, {"New", New}, {"Inflate", Inflate},
   };
 
   status = napi_define_properties(
-    env, exports, sizeof(descriptors) / sizeof(*descriptors), descriptors);
+      env, exports, sizeof(descriptors) / sizeof(*descriptors), descriptors);
   if (status != napi_ok) return;
 }
 

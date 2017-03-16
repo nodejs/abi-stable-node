@@ -40,6 +40,8 @@ struct napi_property_descriptor {
   void* data;
 };
 
+#define DEFAULT_ATTR 0, 0, 0, napi_default, 0
+
 enum napi_valuetype {
   // ES6 types (corresponds to typeof)
   napi_undefined,
