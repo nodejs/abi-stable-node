@@ -126,11 +126,15 @@ void External(napi_env env, napi_callback_info info) {
   if (status != napi_ok) return;
 }
 
+#define DECLARE_NAPI_METHOD(name, func)                          \
+  { name, func, 0, 0, 0, napi_default, 0 }
+
 void Init(napi_env env, napi_value exports, napi_value module) {
   napi_status status;
 
   napi_property_descriptor descriptors[] = {
-      {"Multiply", Multiply}, {"External", External},
+      DECLARE_NAPI_METHOD("Multiply", Multiply),
+      DECLARE_NAPI_METHOD("External", External),
   };
 
   status = napi_define_properties(

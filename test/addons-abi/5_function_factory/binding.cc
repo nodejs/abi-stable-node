@@ -22,18 +22,13 @@ void CreateFunction(napi_env env, napi_callback_info info) {
   if (status != napi_ok) return;
 }
 
+#define DECLARE_NAPI_METHOD(name, func)                          \
+  { name, func, 0, 0, 0, napi_default, 0 }
+
 void Init(napi_env env, napi_value exports, napi_value module) {
   napi_status status;
-  napi_property_descriptor desc = {
-      "exports",
-      CreateFunction,
-      nullptr,
-      nullptr,
-      nullptr,
-      napi_default,
-      nullptr
-  };
-
+  napi_property_descriptor desc =
+      DECLARE_NAPI_METHOD("exports", CreateFunction);
   status = napi_define_properties(env, module, 1, &desc);
   if (status != napi_ok) return;
 }

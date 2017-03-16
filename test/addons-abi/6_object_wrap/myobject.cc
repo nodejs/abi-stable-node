@@ -11,12 +11,15 @@ void MyObject::Destructor(void* nativeObject, void* /*finalize_hint*/) {
   reinterpret_cast<MyObject*>(nativeObject)->~MyObject();
 }
 
+#define DECLARE_NAPI_METHOD(name, func)                          \
+  { name, func, 0, 0, 0, napi_default, 0 }
+
 void MyObject::Init(napi_env env, napi_value exports) {
   napi_status status;
   napi_property_descriptor properties[] = {
-      {"value", nullptr, GetValue, SetValue},
-      {"plusOne", PlusOne},
-      {"multiply", Multiply},
+      { "value", nullptr, GetValue, SetValue, 0, napi_default, 0 },
+      DECLARE_NAPI_METHOD("plusOne", PlusOne),
+      DECLARE_NAPI_METHOD("multiply", Multiply),
   };
 
   napi_value cons;

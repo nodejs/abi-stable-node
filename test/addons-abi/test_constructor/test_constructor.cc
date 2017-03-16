@@ -82,12 +82,12 @@ void Init(napi_env env, napi_value exports, napi_value module) {
   if (status != napi_ok) return;
 
   napi_property_descriptor properties[] = {
-    { "echo", Echo },
-    { "accessorValue", nullptr, GetValue, SetValue },
-    { "readwriteValue", nullptr, nullptr, nullptr, number },
-    { "readonlyValue", nullptr, nullptr, nullptr, number, napi_read_only },
-    { "hiddenValue", nullptr, nullptr, nullptr, number,
-      static_cast<napi_property_attributes>(napi_read_only | napi_dont_enum) },
+      { "echo", Echo, 0, 0, 0, napi_default, 0 },
+      { "accessorValue", 0, GetValue, SetValue, 0, napi_default, 0},
+      { "readwriteValue", 0, 0, 0, number, napi_default, 0 },
+      { "readonlyValue", 0, 0, 0, number, napi_read_only, 0},
+      { "hiddenValue", 0, 0, 0, number, static_cast<napi_property_attributes>(
+          napi_read_only | napi_dont_enum), 0},
   };
 
   napi_value cons;
