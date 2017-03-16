@@ -16,17 +16,17 @@
 
 namespace node {
 
-NODE_EXTERN typedef void (*addon_abi_register_func)(napi_env env,
-                                                    napi_value exports,
-                                                    napi_value module,
-                                                    void* priv);
+NODE_EXTERN typedef void (*napi_addon_register_func)(napi_env env,
+                                                     napi_value exports,
+                                                     napi_value module,
+                                                     void* priv);
 }  // namespace node
 
 struct napi_module {
   int nm_version;
   unsigned int nm_flags;
   const char* nm_filename;
-  node::addon_abi_register_func nm_register_func;
+  node::napi_addon_register_func nm_register_func;
   const char* nm_modname;
   void* nm_priv;
   void* reserved[4];
@@ -54,7 +54,7 @@ struct napi_module {
       NAPI_MODULE_VERSION,                                            \
       flags,                                                          \
       __FILE__,                                                       \
-      (node::addon_abi_register_func)regfunc,                         \
+      (node::napi_addon_register_func)regfunc,                        \
       #modname,                                                       \
       priv,                                                           \
       {0},                                                            \
