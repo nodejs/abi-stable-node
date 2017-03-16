@@ -1,16 +1,15 @@
-#ifndef TEST_ADDONS_ABI_8_PASSING_WRAPPED_MYOBJECT_H_
-#define TEST_ADDONS_ABI_8_PASSING_WRAPPED_MYOBJECT_H_
+#ifndef TEST_ADDONS_NAPI_7_FACTORY_WRAP_MYOBJECT_H_
+#define TEST_ADDONS_NAPI_7_FACTORY_WRAP_MYOBJECT_H_
 
 #include <node_jsvmapi.h>
 
 class MyObject {
  public:
   static napi_status Init(napi_env env);
-  static void Destructor(void* nativeObject, void* finalize_hint);
+  static void Destructor(void* nativeObject, void* /*finalize_hint*/);
   static napi_status NewInstance(napi_env env,
                                  napi_value arg,
                                  napi_value* instance);
-  double Val() const { return val_; }
 
  private:
   MyObject();
@@ -18,9 +17,10 @@ class MyObject {
 
   static napi_ref constructor;
   static void New(napi_env env, napi_callback_info info);
-  double val_;
+  static void PlusOne(napi_env env, napi_callback_info info);
+  double counter_;
   napi_env env_;
   napi_ref wrapper_;
 };
 
-#endif  // TEST_ADDONS_ABI_8_PASSING_WRAPPED_MYOBJECT_H_
+#endif  // TEST_ADDONS_NAPI_7_FACTORY_WRAP_MYOBJECT_H_
