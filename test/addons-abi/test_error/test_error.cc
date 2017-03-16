@@ -23,11 +23,14 @@ void checkError(napi_env e, napi_callback_info info) {
   if (status != napi_ok) return;
 }
 
+#define DECLARE_NAPI_METHOD(name, func)                          \
+  { name, func, 0, 0, 0, napi_default, 0 }
+
 void Init(napi_env env, napi_value exports, napi_value module) {
   napi_status status;
 
   napi_property_descriptor descriptors[] = {
-    { "checkError", checkError }
+      DECLARE_NAPI_METHOD("checkError", checkError),
   };
 
   status = napi_define_properties(

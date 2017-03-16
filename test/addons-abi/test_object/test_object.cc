@@ -224,15 +224,18 @@ void Inflate(napi_env env, napi_callback_info info) {
   status = napi_set_return_value(env, info, obj);
 }
 
+#define DECLARE_NAPI_METHOD(name, func)                          \
+  { name, func, 0, 0, 0, napi_default, 0 }
+
 void Init(napi_env env, napi_value exports, napi_value module) {
   napi_status status;
 
   napi_property_descriptor descriptors[] = {
-    { "Get", Get },
-    { "Set", Set },
-    { "Has", Has },
-    { "New", New },
-    { "Inflate", Inflate },
+      DECLARE_NAPI_METHOD("Get", Get),
+      DECLARE_NAPI_METHOD("Set", Set),
+      DECLARE_NAPI_METHOD("Has", Has),
+      DECLARE_NAPI_METHOD("New", New),
+      DECLARE_NAPI_METHOD("Inflate", Inflate),
   };
 
   status = napi_define_properties(

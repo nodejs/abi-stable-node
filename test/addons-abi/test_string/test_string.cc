@@ -114,11 +114,16 @@ void Utf8Length(napi_env env, napi_callback_info info) {
   if (status != napi_ok) return;
 }
 
+#define DECLARE_NAPI_METHOD(name, func)                          \
+  { name, func, 0, 0, 0, napi_default, 0 }
+
 void Init(napi_env env, napi_value exports, napi_value module) {
   napi_status status;
 
   napi_property_descriptor properties[] = {
-      {"Copy", Copy}, {"Length", Length}, {"Utf8Length", Utf8Length},
+      DECLARE_NAPI_METHOD("Copy", Copy),
+      DECLARE_NAPI_METHOD("Length", Length),
+      DECLARE_NAPI_METHOD("Utf8Length", Utf8Length),
   };
 
   status = napi_define_properties(

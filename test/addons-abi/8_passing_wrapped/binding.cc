@@ -37,13 +37,17 @@ void Add(napi_env env, napi_callback_info info) {
   if (status != napi_ok) return;
 }
 
+#define DECLARE_NAPI_METHOD(name, func)                          \
+  { name, func, 0, 0, 0, napi_default, 0 }
+
 void Init(napi_env env, napi_value exports, napi_value module) {
   napi_status status;
 
   MyObject::Init(env);
 
   napi_property_descriptor desc[] = {
-      {"createObject", CreateObject}, {"add", Add},
+      DECLARE_NAPI_METHOD("createObject", CreateObject),
+      DECLARE_NAPI_METHOD("add", Add),
   };
   status =
       napi_define_properties(env, exports, sizeof(desc) / sizeof(*desc), desc);

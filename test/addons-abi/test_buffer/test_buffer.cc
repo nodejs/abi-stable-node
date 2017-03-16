@@ -126,6 +126,9 @@ void staticBuffer(napi_env env, napi_callback_info info) {
   NAPI_CALL(env, napi_set_return_value(env, info, theBuffer));
 }
 
+#define DECLARE_NAPI_METHOD(name, func)                          \
+  { name, func, 0, 0, 0, napi_default, 0 }
+
 void Init(napi_env env, napi_value exports, napi_value module) {
   napi_value theValue;
 
@@ -134,14 +137,14 @@ void Init(napi_env env, napi_value exports, napi_value module) {
   NAPI_CALL(env, napi_set_named_property(env, exports, "theText", theValue));
 
   napi_property_descriptor methods[] = {
-      {"newBuffer", newBuffer},
-      {"newExternalBuffer", newExternalBuffer},
-      {"getDeleterCallCount", getDeleterCallCount},
-      {"copyBuffer", copyBuffer},
-      {"bufferHasInstance", bufferHasInstance},
-      {"bufferInfo", bufferInfo},
-      {"staticBuffer", staticBuffer}};
-
+      DECLARE_NAPI_METHOD("newBuffer", newBuffer),
+      DECLARE_NAPI_METHOD("newExternalBuffer", newExternalBuffer),
+      DECLARE_NAPI_METHOD("getDeleterCallCount", getDeleterCallCount),
+      DECLARE_NAPI_METHOD("copyBuffer", copyBuffer),
+      DECLARE_NAPI_METHOD("bufferHasInstance", bufferHasInstance),
+      DECLARE_NAPI_METHOD("bufferInfo", bufferInfo),
+      DECLARE_NAPI_METHOD("staticBuffer", staticBuffer),
+  };
   NAPI_CALL(env,
             napi_define_properties(
                 env, exports, sizeof(methods) / sizeof(methods[0]), methods));
