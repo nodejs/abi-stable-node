@@ -6,7 +6,7 @@
 class MyObject {
  public:
   static void Init(napi_env env, napi_value exports);
-  static void Destructor(void* nativeObject);
+  static void Destructor(void* nativeObject, void* finalize_hint);
 
  private:
   explicit MyObject(double value_ = 0);

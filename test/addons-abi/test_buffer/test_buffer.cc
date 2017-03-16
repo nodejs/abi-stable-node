@@ -23,12 +23,12 @@ static const char theText[] =
     "Lorem ipsum dolor sit amet, consectetur adipiscing elit.";
 
 static int deleterCallCount = 0;
-static void deleteTheText(void *data) {
+static void deleteTheText(void *data, void* /*finalize_hint*/) {
   delete reinterpret_cast<char *>(data);
   deleterCallCount++;
 }
 
-static void noopDeleter(void *data) { deleterCallCount++; }
+static void noopDeleter(void *data, void* /*finalize_hint*/) { deleterCallCount++; }
 
 void newBuffer(napi_env env, napi_callback_info info) {
   napi_value theBuffer;
@@ -52,7 +52,12 @@ void newExternalBuffer(napi_env env, napi_callback_info info) {
   JS_ASSERT(env, theCopy, "Failed to copy static text for newExternalBuffer");
   NAPI_CALL(env,
             napi_create_external_buffer(
-                env, sizeof(theText), theCopy, deleteTheText, &theBuffer));
+                env,
+                sizeof(theText),
+                theCopy,
+                deleteTheText,
+                nullptr,  // finalize_hint
+                &theBuffer));
   NAPI_CALL(env, napi_set_return_value(env, info, theBuffer));
 }
 
@@ -116,6 +121,7 @@ void staticBuffer(napi_env env, napi_callback_info info) {
                                   sizeof(theText),
                                   const_cast<char *>(theText),
                                   noopDeleter,
+                                  nullptr,  // finalize_hint
                                   &theBuffer));
   NAPI_CALL(env, napi_set_return_value(env, info, theBuffer));
 }
