@@ -44,15 +44,11 @@ void Test(napi_env env, napi_callback_info info) {
 void Init(napi_env env, napi_value exports, napi_value module) {
   napi_status status;
 
-  napi_propertyname name;
-  status = napi_property_name(env, "Test", &name);
-  if (status != napi_ok) return;
-
   napi_value fn;
   status =  napi_create_function(env, nullptr, Test, nullptr, &fn);
   if (status != napi_ok) return;
 
-  status = napi_set_property(env, exports, name, fn);
+  status = napi_set_named_property(env, exports, "Test", fn);
   if (status != napi_ok) return;
 }
 

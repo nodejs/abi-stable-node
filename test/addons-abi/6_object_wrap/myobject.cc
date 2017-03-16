@@ -27,11 +27,7 @@ void MyObject::Init(napi_env env, napi_value exports) {
   status = napi_create_reference(env, cons, 1, &constructor);
   if (status != napi_ok) return;
 
-  napi_propertyname name;
-  status = napi_property_name(env, "MyObject", &name);
-  if (status != napi_ok) return;
-
-  status = napi_set_property(env, exports, name, cons);
+  status = napi_set_named_property(env, exports, "MyObject", cons);
   if (status != napi_ok) return;
 }
 
