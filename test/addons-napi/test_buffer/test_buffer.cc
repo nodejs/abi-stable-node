@@ -150,4 +150,4 @@ void Init(napi_env env, napi_value exports, napi_value module) {
                 env, exports, sizeof(methods) / sizeof(methods[0]), methods));
 }
 
-NODE_MODULE_ABI(addon, Init)
+NAPI_MODULE(addon, Init)

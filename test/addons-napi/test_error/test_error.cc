@@ -38,4 +38,4 @@ void Init(napi_env env, napi_value exports, napi_value module) {
   if (status != napi_ok) return;
 }
 
-NODE_MODULE_ABI(addon, Init)
+NAPI_MODULE(addon, Init)

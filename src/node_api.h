@@ -36,18 +36,18 @@ struct napi_module {
 
 #if defined(_MSC_VER)
 #pragma section(".CRT$XCU", read)
-#define NODE_ABI_CTOR(fn)                                                   \
+#define NAPI_C_CTOR(fn)                                                     \
   static void __cdecl fn(void);                                             \
   __declspec(dllexport, allocate(".CRT$XCU")) void(__cdecl * fn##_)(void) = \
       fn;                                                                   \
   static void __cdecl fn(void)
 #else
-#define NODE_ABI_CTOR(fn)                            \
+#define NAPI_C_CTOR(fn)                              \
   static void fn(void) __attribute__((constructor)); \
   static void fn(void)
 #endif
 
-#define NODE_MODULE_ABI_X(modname, regfunc, priv, flags)              \
+#define NAPI_MODULE_X(modname, regfunc, priv, flags)                  \
   extern "C" {                                                        \
     static napi_module _module =                                      \
     {                                                                 \
@@ -59,13 +59,13 @@ struct napi_module {
       priv,                                                           \
       {0},                                                            \
     };                                                                \
-    NODE_ABI_CTOR(_register_ ## modname) {                            \
+    NAPI_C_CTOR(_register_ ## modname) {                              \
       napi_module_register(&_module);                                 \
     }                                                                 \
   }
 
-#define NODE_MODULE_ABI(modname, regfunc) \
-  NODE_MODULE_ABI_X(modname, regfunc, NULL, 0)
+#define NAPI_MODULE(modname, regfunc) \
+  NAPI_MODULE_X(modname, regfunc, NULL, 0)
 
 extern "C" {
 
