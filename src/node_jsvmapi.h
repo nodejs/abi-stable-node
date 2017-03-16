@@ -1,4 +1,4 @@
-﻿/*******************************************************************************
+/******************************************************************************
  * Experimental prototype for demonstrating VM agnostic and ABI stable API
  * for native modules to use instead of using Nan and V8 APIs directly.
  *
@@ -11,16 +11,15 @@
 #define SRC_NODE_JSVMAPI_H_
 
 #include <stddef.h>
-#include "node_macros.h"
 #include "node_jsvmapi_types.h"
+#include "node_macros.h"
 
 namespace node {
 
-NODE_EXTERN typedef void (*addon_abi_register_func)(
-  napi_env env,
-  napi_value exports,
-  napi_value module,
-  void* priv);
+NODE_EXTERN typedef void (*addon_abi_register_func)(napi_env env,
+                                                    napi_value exports,
+                                                    napi_value module,
+                                                    void* priv);
 }  // namespace node
 
 struct napi_module {
@@ -37,14 +36,14 @@ struct napi_module {
 
 #if defined(_MSC_VER)
 #pragma section(".CRT$XCU", read)
-#define NODE_ABI_CTOR(fn)                                             \
-  static void __cdecl fn(void);                                       \
-  __declspec(dllexport, allocate(".CRT$XCU"))                         \
-      void (__cdecl*fn ## _)(void) = fn;                              \
+#define NODE_ABI_CTOR(fn)                                                   \
+  static void __cdecl fn(void);                                             \
+  __declspec(dllexport, allocate(".CRT$XCU")) void(__cdecl * fn##_)(void) = \
+      fn;                                                                   \
   static void __cdecl fn(void)
 #else
-#define NODE_ABI_CTOR(fn)                                             \
-  static void fn(void) __attribute__((constructor));                  \
+#define NODE_ABI_CTOR(fn)                            \
+  static void fn(void) __attribute__((constructor)); \
   static void fn(void)
 #endif
 
@@ -65,9 +64,8 @@ struct napi_module {
     }                                                                 \
   }
 
-#define NODE_MODULE_ABI(modname, regfunc)                             \
+#define NODE_MODULE_ABI(modname, regfunc) \
   NODE_MODULE_ABI_X(modname, regfunc, NULL, 0)
-
 
 extern "C" {
 
@@ -85,7 +83,8 @@ NODE_EXTERN napi_status napi_get_global(napi_env e, napi_value* result);
 // Methods to create Primitive types/Objects
 NODE_EXTERN napi_status napi_create_object(napi_env e, napi_value* result);
 NODE_EXTERN napi_status napi_create_array(napi_env e, napi_value* result);
-NODE_EXTERN napi_status napi_create_array_with_length(napi_env e, int length,
+NODE_EXTERN napi_status napi_create_array_with_length(napi_env e,
+                                                      int length,
                                                       napi_value* result);
 NODE_EXTERN napi_status napi_create_number(napi_env e,
                                            double val,
@@ -172,8 +171,8 @@ NODE_EXTERN napi_status napi_get_value_string_utf16(napi_env e,
 // Methods to coerce values
 // These APIs may execute user script
 NODE_EXTERN napi_status napi_coerce_to_bool(napi_env e,
-                                           napi_value v,
-                                           napi_value* result);
+                                            napi_value v,
+                                            napi_value* result);
 NODE_EXTERN napi_status napi_coerce_to_number(napi_env e,
                                               napi_value v,
                                               napi_value* result);
@@ -209,7 +208,7 @@ NODE_EXTERN napi_status napi_get_property(napi_env e,
 NODE_EXTERN napi_status napi_set_element(napi_env e,
                                          napi_value object,
                                          uint32_t i,
-                                          napi_value v);
+                                         napi_value v);
 NODE_EXTERN napi_status napi_has_element(napi_env e,
                                          napi_value object,
                                          uint32_t i,
@@ -218,11 +217,11 @@ NODE_EXTERN napi_status napi_get_element(napi_env e,
                                          napi_value object,
                                          uint32_t i,
                                          napi_value* result);
-NODE_EXTERN napi_status napi_define_properties(
-                                   napi_env e,
-                                   napi_value object,
-                                   int property_count,
-                                   const napi_property_descriptor* properties);
+NODE_EXTERN napi_status
+napi_define_properties(napi_env e,
+                       napi_value object,
+                       int property_count,
+                       const napi_property_descriptor* properties);
 
 // Methods to work with Arrays
 NODE_EXTERN napi_status napi_is_array(napi_env e, napi_value v, bool* result);
@@ -248,8 +247,10 @@ NODE_EXTERN napi_status napi_new_instance(napi_env e,
                                           int argc,
                                           const napi_value* argv,
                                           napi_value* result);
-NODE_EXTERN napi_status napi_instanceof(napi_env e, napi_value obj,
-                                        napi_value cons, bool* result);
+NODE_EXTERN napi_status napi_instanceof(napi_env e,
+                                        napi_value obj,
+                                        napi_value cons,
+                                        bool* result);
 
 // Napi version of node::MakeCallback(...)
 NODE_EXTERN napi_status napi_make_callback(napi_env e,
@@ -263,13 +264,13 @@ NODE_EXTERN napi_status napi_make_callback(napi_env e,
 
 // Gets all callback info in a single call. (Ugly, but faster.)
 NODE_EXTERN napi_status napi_get_cb_info(
-  napi_env e,                // [in] NAPI environment handle
-  napi_callback_info cbinfo, // [in] Opaque callback-info handle
-  int* argc,                 // [in-out] Specifies the size of the provided argv array
-                             // and receives the actual count of args.
-  napi_value* argv,          // [out] Array of values
-  napi_value* thisArg,       // [out] Receives the JS 'this' arg for the call
-  void** data);              // [out] Receives the data pointer for the callback.
+    napi_env e,                 // [in] NAPI environment handle
+    napi_callback_info cbinfo,  // [in] Opaque callback-info handle
+    int* argc,         // [in-out] Specifies the size of the provided argv array
+                       // and receives the actual count of args.
+    napi_value* argv,  // [out] Array of values
+    napi_value* thisArg,  // [out] Receives the JS 'this' arg for the call
+    void** data);         // [out] Receives the data pointer for the callback.
 
 NODE_EXTERN napi_status napi_get_cb_args_length(napi_env e,
                                                 napi_callback_info cbinfo,
@@ -293,15 +294,16 @@ NODE_EXTERN napi_status napi_is_construct_call(napi_env e,
                                                napi_callback_info cbinfo,
                                                bool* result);
 NODE_EXTERN napi_status napi_set_return_value(napi_env e,
-                                  napi_callback_info cbinfo, napi_value v);
-NODE_EXTERN napi_status napi_define_class(
-                                napi_env e,
-                                const char* utf8name,
-                                napi_callback constructor,
-                                void* data,
-                                int property_count,
-                                const napi_property_descriptor* properties,
-                                napi_value* result);
+                                              napi_callback_info cbinfo,
+                                              napi_value v);
+NODE_EXTERN napi_status
+napi_define_class(napi_env e,
+                  const char* utf8name,
+                  napi_callback constructor,
+                  void* data,
+                  int property_count,
+                  const napi_property_descriptor* properties,
+                  napi_value* result);
 
 // Methods to work with external data objects
 NODE_EXTERN napi_status napi_wrap(napi_env e,
@@ -360,12 +362,11 @@ NODE_EXTERN napi_status napi_open_handle_scope(napi_env e,
                                                napi_handle_scope* result);
 NODE_EXTERN napi_status napi_close_handle_scope(napi_env e,
                                                 napi_handle_scope s);
-NODE_EXTERN napi_status napi_open_escapable_handle_scope(
-                                         napi_env e,
-                                         napi_escapable_handle_scope* result);
-NODE_EXTERN napi_status napi_close_escapable_handle_scope(
-                                         napi_env e,
-                                         napi_escapable_handle_scope s);
+NODE_EXTERN napi_status
+napi_open_escapable_handle_scope(napi_env e,
+                                 napi_escapable_handle_scope* result);
+NODE_EXTERN napi_status
+napi_close_escapable_handle_scope(napi_env e, napi_escapable_handle_scope s);
 NODE_EXTERN napi_status napi_escape_handle(napi_env e,
                                            napi_escapable_handle_scope s,
                                            napi_value v,
@@ -409,14 +410,14 @@ NODE_EXTERN napi_status napi_is_arraybuffer(napi_env env,
                                             bool* result);
 NODE_EXTERN napi_status napi_create_arraybuffer(napi_env env,
                                                 size_t byte_length,
-                                                 void** data,
+                                                void** data,
                                                 napi_value* result);
-NODE_EXTERN napi_status napi_create_external_arraybuffer(
-                                               napi_env env,
-                                               void* external_data,
-                                               size_t byte_length,
-                                               napi_finalize finalize_cb,
-                                               napi_value* result);
+NODE_EXTERN napi_status
+napi_create_external_arraybuffer(napi_env env,
+                                 void* external_data,
+                                 size_t byte_length,
+                                 napi_finalize finalize_cb,
+                                 napi_value* result);
 NODE_EXTERN napi_status napi_get_arraybuffer_info(napi_env env,
                                                   napi_value arraybuffer,
                                                   void** data,

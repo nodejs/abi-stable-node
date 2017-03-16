@@ -2,12 +2,10 @@
 
 napi_ref MyObject::constructor;
 
-MyObject::MyObject(double value) : value_(value), env_(nullptr), wrapper_(nullptr) {
-}
+MyObject::MyObject(double value)
+    : value_(value), env_(nullptr), wrapper_(nullptr) {}
 
-MyObject::~MyObject() {
-  napi_delete_reference(env_, wrapper_);
-}
+MyObject::~MyObject() { napi_delete_reference(env_, wrapper_); }
 
 void MyObject::Destructor(void* nativeObject) {
   reinterpret_cast<MyObject*>(nativeObject)->~MyObject();
@@ -16,13 +14,14 @@ void MyObject::Destructor(void* nativeObject) {
 void MyObject::Init(napi_env env, napi_value exports) {
   napi_status status;
   napi_property_descriptor properties[] = {
-    { "value", nullptr, GetValue, SetValue },
-    { "plusOne", PlusOne },
-    { "multiply", Multiply },
+      {"value", nullptr, GetValue, SetValue},
+      {"plusOne", PlusOne},
+      {"multiply", Multiply},
   };
 
   napi_value cons;
-  status = napi_define_class(env, "MyObject", New, nullptr, 3, properties, &cons);
+  status =
+      napi_define_class(env, "MyObject", New, nullptr, 3, properties, &cons);
   if (status != napi_ok) return;
 
   status = napi_create_reference(env, cons, 1, &constructor);
@@ -67,8 +66,11 @@ void MyObject::New(napi_env env, napi_callback_info info) {
     if (status != napi_ok) return;
 
     obj->env_ = env;
-    status = napi_wrap(env, jsthis, reinterpret_cast<void*>(obj),
-                       MyObject::Destructor, &obj->wrapper_);
+    status = napi_wrap(env,
+                       jsthis,
+                       reinterpret_cast<void*>(obj),
+                       MyObject::Destructor,
+                       &obj->wrapper_);
     if (status != napi_ok) return;
 
     status = napi_set_return_value(env, info, jsthis);
@@ -80,7 +82,7 @@ void MyObject::New(napi_env env, napi_callback_info info) {
     if (status != napi_ok) return;
 
     const int argc = 1;
-    napi_value argv[argc] = { args[0] };
+    napi_value argv[argc] = {args[0]};
 
     napi_value cons;
     status = napi_get_reference_value(env, constructor, &cons);
@@ -183,13 +185,13 @@ void MyObject::Multiply(napi_env env, napi_callback_info info) {
   status = napi_get_reference_value(env, constructor, &cons);
   if (status != napi_ok) return;
 
-  const int argc = 1;
-  napi_value argv[argc];
+  const int kArgCount = 1;
+  napi_value argv[kArgCount];
   status = napi_create_number(env, obj->value_ * multiple, argv);
   if (status != napi_ok) return;
 
   napi_value instance;
-  status = napi_new_instance(env, cons, argc, argv, &instance);
+  status = napi_new_instance(env, cons, kArgCount, argv, &instance);
   if (status != napi_ok) return;
 
   status = napi_set_return_value(env, info, instance);

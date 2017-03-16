@@ -28,7 +28,8 @@ void Test(napi_env env, napi_callback_info info) {
   char buffer[128];
   int buffer_size = 128;
 
-  status = napi_get_value_string_utf8(env, args[0], buffer, buffer_size, nullptr);
+  status =
+      napi_get_value_string_utf8(env, args[0], buffer, buffer_size, nullptr);
   if (status != napi_ok) return;
 
   napi_value output;
@@ -61,7 +62,8 @@ void New(napi_env env, napi_callback_info info) {
 
     char buffer[128];
     int buffer_size = 128;
-    status = napi_get_value_string_utf8(env, args[0], buffer, buffer_size, nullptr);
+    status =
+        napi_get_value_string_utf8(env, args[0], buffer, buffer_size, nullptr);
     if (status != napi_ok) return;
 
     napi_value symbol;
@@ -84,11 +86,11 @@ void Init(napi_env env, napi_value exports, napi_value module) {
   napi_status status;
 
   napi_property_descriptor properties[] = {
-    { "New", New },
+      {"New", New},
   };
 
   status = napi_define_properties(
-    env, exports, sizeof(properties) / sizeof(*properties), properties);
+      env, exports, sizeof(properties) / sizeof(*properties), properties);
   if (status != napi_ok) return;
 }
 

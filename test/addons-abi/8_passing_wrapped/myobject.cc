@@ -3,9 +3,7 @@
 
 MyObject::MyObject() : env_(nullptr), wrapper_(nullptr) {}
 
-MyObject::~MyObject() {
-  napi_delete_reference(env_, wrapper_);
-}
+MyObject::~MyObject() { napi_delete_reference(env_, wrapper_); }
 
 void MyObject::Destructor(void* nativeObject) {
   reinterpret_cast<MyObject*>(nativeObject)->~MyObject();
@@ -41,8 +39,7 @@ void MyObject::New(napi_env env, napi_callback_info info) {
 
   if (valuetype == napi_undefined) {
     obj->val_ = 0;
-  }
-  else {
+  } else {
     status = napi_get_value_double(env, args[0], &obj->val_);
     if (status != napi_ok) return;
   }
@@ -52,19 +49,24 @@ void MyObject::New(napi_env env, napi_callback_info info) {
   if (status != napi_ok) return;
 
   obj->env_ = env;
-  status = napi_wrap(env, jsthis, reinterpret_cast<void*>(obj),
-                     MyObject::Destructor, &obj->wrapper_);
+  status = napi_wrap(env,
+                     jsthis,
+                     reinterpret_cast<void*>(obj),
+                     MyObject::Destructor,
+                     &obj->wrapper_);
   if (status != napi_ok) return;
 
   status = napi_set_return_value(env, info, jsthis);
   if (status != napi_ok) return;
 }
 
-napi_status MyObject::NewInstance(napi_env env, napi_value arg, napi_value* instance) {
+napi_status MyObject::NewInstance(napi_env env,
+                                  napi_value arg,
+                                  napi_value* instance) {
   napi_status status;
 
   const int argc = 1;
-  napi_value argv[argc] = { arg };
+  napi_value argv[argc] = {arg};
 
   napi_value cons;
   status = napi_get_reference_value(env, constructor, &cons);

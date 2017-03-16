@@ -43,12 +43,11 @@ void Init(napi_env env, napi_value exports, napi_value module) {
   MyObject::Init(env);
 
   napi_property_descriptor desc[] = {
-    { "createObject", CreateObject },
-    { "add", Add },
+      {"createObject", CreateObject}, {"add", Add},
   };
-  status = napi_define_properties(env, exports, sizeof(desc) / sizeof(*desc), desc);
+  status =
+      napi_define_properties(env, exports, sizeof(desc) / sizeof(*desc), desc);
   if (status != napi_ok) return;
 }
-
 
 NODE_MODULE_ABI(addon, Init)

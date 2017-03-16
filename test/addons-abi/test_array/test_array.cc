@@ -22,8 +22,8 @@ void Test(napi_env env, napi_callback_info info) {
   if (status != napi_ok) return;
 
   if (valuetype0 != napi_object) {
-    napi_throw_type_error(env,
-        "Wrong type of argments. Expects an array as first argument.");
+    napi_throw_type_error(
+        env, "Wrong type of argments. Expects an array as first argument.");
     return;
   }
 
@@ -32,8 +32,8 @@ void Test(napi_env env, napi_callback_info info) {
   if (status != napi_ok) return;
 
   if (valuetype1 != napi_number) {
-    napi_throw_type_error(env,
-        "Wrong type of argments. Expects an integer as second argument.");
+    napi_throw_type_error(
+        env, "Wrong type of argments. Expects an integer as second argument.");
     return;
   }
 
@@ -58,11 +58,9 @@ void Test(napi_env env, napi_callback_info info) {
 
       status = napi_set_return_value(env, info, str);
       if (status != napi_ok) return;
-    }
-    else if (index < 0) {
+    } else if (index < 0) {
       napi_throw_type_error(env, "Invalid index. Expects a positive integer.");
-    }
-    else {
+    } else {
       napi_value ret;
       status = napi_get_element(env, array, index, &ret);
       if (status != napi_ok) return;
@@ -94,8 +92,8 @@ void New(napi_env env, napi_callback_info info) {
   if (status != napi_ok) return;
 
   if (valuetype != napi_object) {
-    napi_throw_type_error(env,
-        "Wrong type of argments. Expects an array as first argument.");
+    napi_throw_type_error(
+        env, "Wrong type of argments. Expects an array as first argument.");
     return;
   }
 
@@ -124,12 +122,11 @@ void Init(napi_env env, napi_value exports, napi_value module) {
   napi_status status;
 
   napi_property_descriptor descriptors[] = {
-    { "Test", Test },
-    { "New", New },
+      {"Test", Test}, {"New", New},
   };
 
   status = napi_define_properties(
-    env, exports, sizeof(descriptors) / sizeof(*descriptors), descriptors);
+      env, exports, sizeof(descriptors) / sizeof(*descriptors), descriptors);
   if (status != napi_ok) return;
 }
 
