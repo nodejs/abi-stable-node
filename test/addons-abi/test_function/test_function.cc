@@ -49,7 +49,7 @@ void Init(napi_env env, napi_value exports, napi_value module) {
   if (status != napi_ok) return;
 
   napi_value fn;
-  status =  napi_create_function(env, Test, nullptr, nullptr, &fn);
+  status =  napi_create_function(env, nullptr, Test, nullptr, &fn);
   if (status != napi_ok) return;
 
   status = napi_set_property(env, exports, name, fn);
