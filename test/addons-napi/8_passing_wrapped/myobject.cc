@@ -1,5 +1,4 @@
 #include "myobject.h"
-#include <node.h>
 
 MyObject::MyObject() : env_(nullptr), wrapper_(nullptr) {}
 
