@@ -3682,10 +3682,9 @@ static void ParseArgs(int* argc,
       force_repl = true;
     } else if (strcmp(arg, "--no-deprecation") == 0) {
       no_deprecation = true;
-    } else if (strcmp(arg, "--napi-modules") == 0 ||
-               strcmp(arg, "--napi-modules=yes") == 0) {
-      fprintf(stderr, "Warning: N-API is an experimental feature "
-        "and could change at any time.\n");
+    } else if (strcmp(arg, "--napi-modules") == 0) {
+      load_napi_modules = true;
+    } else if (strcmp(arg, "--napi-modules=yes") == 0) {
       load_napi_modules = true;
     } else if (strcmp(arg, "--napi-modules=no") == 0) {
       load_napi_modules = false;
@@ -4438,6 +4437,11 @@ inline int Start(Isolate* isolate, IsolateData* isolate_data,
   // Enable debugger
   if (debug_enabled)
     EnableDebug(&env);
+
+  if (load_napi_modules) {
+    ProcessEmitWarning(&env, "N-API is an experimental feature "
+        "and could change at any time.");
+  }
 
   {
     SealHandleScope seal(isolate);
