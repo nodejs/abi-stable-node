@@ -38,7 +38,7 @@ void RunCallbackWithRecv(napi_env env, const napi_callback_info info) {
 #define DECLARE_NAPI_METHOD(name, func)                          \
   { name, func, 0, 0, 0, napi_default, 0 }
 
-void Init(napi_env env, napi_value exports, napi_value module) {
+void Init(napi_env env, napi_value exports, napi_value module, void* priv) {
   napi_status status;
   napi_property_descriptor desc[2] = {
       DECLARE_NAPI_METHOD("RunCallback", RunCallback),
