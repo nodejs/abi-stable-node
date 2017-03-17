@@ -7,16 +7,7 @@ const doesNotExist = path.join(common.tmpDir, '__this_should_not_exist');
 const readOnlyFile = path.join(common.tmpDir, 'read_only_file');
 const readWriteFile = path.join(common.tmpDir, 'read_write_file');
 
-const removeFile = function(file) {
-  try {
-    fs.unlinkSync(file);
-  } catch (err) {
-    // Ignore error
-  }
-};
-
 const createFileWithPerms = function(file, mode) {
-  removeFile(file);
   fs.writeFileSync(file, '');
   fs.chmodSync(file, mode);
 };
@@ -41,11 +32,11 @@ createFileWithPerms(readWriteFile, 0o666);
  *
  * There's not really any point in resetting the process' user id to 0 after
  * changing it to 'nobody', since in the case that the test runs without
- * superuser priviledge, it is not possible to change its process user id to
+ * superuser privilege, it is not possible to change its process user id to
  * superuser.
  *
  * It can prevent the test from removing files created before the change of user
- * id, but that's fine. In this case, it is the responsability of the
+ * id, but that's fine. In this case, it is the responsibility of the
  * continuous integration platform to take care of that.
  */
 let hasWriteAccessForReadonlyFile = false;
@@ -91,16 +82,16 @@ fs.access(readOnlyFile, fs.W_OK, common.mustCall((err) => {
 }));
 
 assert.throws(() => {
-  fs.access(100, fs.F_OK, (err) => {});
-}, /path must be a string or Buffer/);
+  fs.access(100, fs.F_OK, common.mustNotCall());
+}, /^TypeError: path must be a string or Buffer$/);
 
 assert.throws(() => {
   fs.access(__filename, fs.F_OK);
-}, /"callback" argument must be a function/);
+}, /^TypeError: "callback" argument must be a function$/);
 
 assert.throws(() => {
   fs.access(__filename, fs.F_OK, {});
-}, /"callback" argument must be a function/);
+}, /^TypeError: "callback" argument must be a function$/);
 
 assert.doesNotThrow(() => {
   fs.accessSync(__filename);
@@ -112,13 +103,16 @@ assert.doesNotThrow(() => {
   fs.accessSync(readWriteFile, mode);
 });
 
-assert.throws(() => {
-  fs.accessSync(doesNotExist);
-}, (err) => {
-  return err.code === 'ENOENT' && err.path === doesNotExist;
-});
-
-process.on('exit', () => {
-  removeFile(readOnlyFile);
-  removeFile(readWriteFile);
-});
+assert.throws(
+  () => { fs.accessSync(doesNotExist); },
+  (err) => {
+    assert.strictEqual(err.code, 'ENOENT');
+    assert.strictEqual(err.path, doesNotExist);
+    assert.strictEqual(
+      err.message,
+      `ENOENT: no such file or directory, access '${doesNotExist}'`
+    );
+    assert.strictEqual(err.constructor, Error);
+    return true;
+  }
+);

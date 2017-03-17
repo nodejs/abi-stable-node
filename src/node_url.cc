@@ -15,10 +15,7 @@
 #include <stdio.h>
 #include <cmath>
 
-#if defined(NODE_HAVE_I18N_SUPPORT)
-#include <unicode/utf8.h>
-#include <unicode/utf.h>
-#endif
+#define UNICODE_REPLACEMENT_CHARACTER 0xFFFD
 
 namespace node {
 
@@ -111,21 +108,6 @@ namespace url {
     output->assign(*buf, buf.length());
     return true;
   }
-
-  // Unfortunately there's not really a better way to do this.
-  // Iterate through each encoded codepoint and verify that
-  // it is a valid unicode codepoint.
-  static bool IsValidUTF8(std::string* input) {
-    const char* p = input->c_str();
-    int32_t len = input->length();
-    for (int32_t i = 0; i < len;) {
-      UChar32 c;
-      U8_NEXT_UNSAFE(p, i, c);
-      if (!U_IS_UNICODE_CHAR(c))
-        return false;
-    }
-    return true;
-  }
 #else
   // Intentional non-ops if ICU is not present.
   static bool ToUnicode(std::string* input, std::string* output) {
@@ -137,11 +119,22 @@ namespace url {
     *output = *input;
     return true;
   }
-
-  static bool IsValidUTF8(std::string* input) {
-    return true;
-  }
 #endif
+
+  // If a UTF-16 character is a low/trailing surrogate.
+  static inline bool IsUnicodeTrail(uint16_t c) {
+    return (c & 0xFC00) == 0xDC00;
+  }
+
+  // If a UTF-16 character is a surrogate.
+  static inline bool IsUnicodeSurrogate(uint16_t c) {
+    return (c & 0xF800) == 0xD800;
+  }
+
+  // If a UTF-16 surrogate is a low/trailing one.
+  static inline bool IsUnicodeSurrogateTrail(uint16_t c) {
+    return (c & 0x400) != 0;
+  }
 
   static url_host_type ParseIPv6Host(url_host* host,
                                      const char* input,
@@ -376,12 +369,6 @@ namespace url {
 
     // First, we have to percent decode
     if (PercentDecode(input, length, &decoded) < 0)
-      goto end;
-
-    // If there are any invalid UTF8 byte sequences, we have to fail.
-    // Unfortunately this means iterating through the string and checking
-    // each decoded codepoint.
-    if (!IsValidUTF8(&decoded))
       goto end;
 
     // Then we have to punycode toASCII
@@ -1074,8 +1061,10 @@ namespace url {
                   SET_HAVE_QUERY()
                   url.query = base.query;
                 }
+                break;
               }
-              break;
+              state = kPath;
+              continue;
             case '\\':
             case '/':
               state = kFileSlash;
@@ -1092,8 +1081,8 @@ namespace url {
                 }
                 SET_HAVE_QUERY()
                 state = kQuery;
+                break;
               }
-              break;
             case '#':
               if (base_is_file) {
                 if (DOES_HAVE_HOST(base)) {
@@ -1109,8 +1098,8 @@ namespace url {
                   url.query = base.query;
                 }
                 state = kFragment;
+                break;
               }
-              break;
             default:
               if (base_is_file &&
                   (!WINDOWS_DRIVE_LETTER(ch, p[1]) ||
@@ -1349,6 +1338,41 @@ namespace url {
                             v8::NewStringType::kNormal).ToLocalChecked());
   }
 
+  static void ToUSVString(const FunctionCallbackInfo<Value>& args) {
+    Environment* env = Environment::GetCurrent(args);
+    CHECK_GE(args.Length(), 2);
+    CHECK(args[0]->IsString());
+    CHECK(args[1]->IsNumber());
+
+    TwoByteValue value(env->isolate(), args[0]);
+    const size_t n = value.length();
+
+    const int64_t start = args[1]->IntegerValue(env->context()).FromJust();
+    CHECK_GE(start, 0);
+
+    for (size_t i = start; i < n; i++) {
+      uint16_t c = value[i];
+      if (!IsUnicodeSurrogate(c)) {
+        continue;
+      } else if (IsUnicodeSurrogateTrail(c) || i == n - 1) {
+        value[i] = UNICODE_REPLACEMENT_CHARACTER;
+      } else {
+        uint16_t d = value[i + 1];
+        if (IsUnicodeTrail(d)) {
+          i++;
+        } else {
+          value[i] = UNICODE_REPLACEMENT_CHARACTER;
+        }
+      }
+    }
+
+    args.GetReturnValue().Set(
+        String::NewFromTwoByte(env->isolate(),
+                               *value,
+                               v8::NewStringType::kNormal,
+                               n).ToLocalChecked());
+  }
+
   static void DomainToASCII(const FunctionCallbackInfo<Value>& args) {
     Environment* env = Environment::GetCurrent(args);
     CHECK_GE(args.Length(), 1);
@@ -1396,6 +1420,7 @@ namespace url {
     Environment* env = Environment::GetCurrent(context);
     env->SetMethod(target, "parse", Parse);
     env->SetMethod(target, "encodeAuth", EncodeAuthSet);
+    env->SetMethod(target, "toUSVString", ToUSVString);
     env->SetMethod(target, "domainToASCII", DomainToASCII);
     env->SetMethod(target, "domainToUnicode", DomainToUnicode);
 

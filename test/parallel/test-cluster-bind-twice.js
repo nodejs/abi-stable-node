@@ -1,3 +1,24 @@
+// Copyright Joyent, Inc. and other Node contributors.
+//
+// Permission is hereby granted, free of charge, to any person obtaining a
+// copy of this software and associated documentation files (the
+// "Software"), to deal in the Software without restriction, including
+// without limitation the rights to use, copy, modify, merge, publish,
+// distribute, sublicense, and/or sell copies of the Software, and to permit
+// persons to whom the Software is furnished to do so, subject to the
+// following conditions:
+//
+// The above copyright notice and this permission notice shall be included
+// in all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+// OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+// MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN
+// NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+// DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+// OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
+// USE OR OTHER DEALINGS IN THE SOFTWARE.
+
 'use strict';
 // This test starts two clustered HTTP servers on the same port. It expects the
 // first cluster to succeed and the second cluster to fail with EADDRINUSE.
@@ -60,9 +81,10 @@ if (!id) {
 } else if (id === 'one') {
   if (cluster.isMaster) return startWorker();
 
-  http.createServer(common.fail).listen(common.PORT, common.mustCall(() => {
-    process.send('READY');
-  }));
+  http.createServer(common.mustNotCall())
+    .listen(common.PORT, common.mustCall(() => {
+      process.send('READY');
+    }));
 
   process.on('message', common.mustCall((m) => {
     if (m === 'QUIT') process.exit();
@@ -70,11 +92,11 @@ if (!id) {
 } else if (id === 'two') {
   if (cluster.isMaster) return startWorker();
 
-  const server = http.createServer(common.fail);
+  const server = http.createServer(common.mustNotCall());
   process.on('message', common.mustCall((m) => {
     if (m === 'QUIT') process.exit();
     assert.strictEqual(m, 'START');
-    server.listen(common.PORT, common.fail);
+    server.listen(common.PORT, common.mustNotCall());
     server.on('error', common.mustCall((e) => {
       assert.strictEqual(e.code, 'EADDRINUSE');
       process.send(e.code);

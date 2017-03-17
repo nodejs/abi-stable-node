@@ -1,3 +1,24 @@
+// Copyright Joyent, Inc. and other Node contributors.
+//
+// Permission is hereby granted, free of charge, to any person obtaining a
+// copy of this software and associated documentation files (the
+// "Software"), to deal in the Software without restriction, including
+// without limitation the rights to use, copy, modify, merge, publish,
+// distribute, sublicense, and/or sell copies of the Software, and to permit
+// persons to whom the Software is furnished to do so, subject to the
+// following conditions:
+//
+// The above copyright notice and this permission notice shall be included
+// in all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+// OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+// MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN
+// NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+// DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+// OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
+// USE OR OTHER DEALINGS IN THE SOFTWARE.
+
 #include "node.h"
 #include "node_buffer.h"
 #include "node_crypto.h"
@@ -17,6 +38,10 @@
 // https://hg.mozilla.org/mozilla-central/raw-file/98820360ab66/security/
 // certverifier/CNNICHashWhitelist.inc
 #include "CNNICHashWhitelist.inc"
+// StartCom and WoSign root CA list is taken from
+// https://hg.mozilla.org/mozilla-central/file/tip/security/certverifier/
+// StartComAndWoSignData.inc
+#include "StartComAndWoSignData.inc"
 
 #include <errno.h>
 #include <limits.h>  // INT_MAX
@@ -143,7 +168,7 @@ template void SSLWrap<TLSWrap>::OnClientHello(
     void* arg,
     const ClientHelloParser::ClientHello& hello);
 
-#ifdef OPENSSL_NPN_NEGOTIATED
+#ifndef OPENSSL_NO_NEXTPROTONEG
 template int SSLWrap<TLSWrap>::AdvertiseNextProtoCallback(
     SSL* s,
     const unsigned char** data,
@@ -909,7 +934,7 @@ void SecureContext::SetDHParam(const FunctionCallbackInfo<Value>& args) {
   (void) &clear_error_on_return;  // Silence compiler warning.
 
   // Auto DH is not supported in openssl 1.0.1, so dhparam needs
-  // to be specifed explicitly
+  // to be specified explicitly
   if (args.Length() != 1)
     return env->ThrowTypeError("DH argument is mandatory");
 
@@ -929,7 +954,7 @@ void SecureContext::SetDHParam(const FunctionCallbackInfo<Value>& args) {
     return env->ThrowError("DH parameter is less than 1024 bits");
   } else if (size < 2048) {
     args.GetReturnValue().Set(FIXED_ONE_BYTE_STRING(
-        env->isolate(), "WARNING: DH parameter is less than 2048 bits"));
+        env->isolate(), "DH parameter is less than 2048 bits"));
   }
 
   SSL_CTX_set_options(sc->ctx_, SSL_OP_SINGLE_DH_USE);
@@ -1310,11 +1335,11 @@ void SSLWrap<Base>::AddMethods(Environment* env, Local<FunctionTemplate> t) {
   env->SetProtoMethod(t, "setMaxSendFragment", SetMaxSendFragment);
 #endif  // SSL_set_max_send_fragment
 
-#ifdef OPENSSL_NPN_NEGOTIATED
+#ifndef OPENSSL_NO_NEXTPROTONEG
   env->SetProtoMethod(t, "getNegotiatedProtocol", GetNegotiatedProto);
-#endif  // OPENSSL_NPN_NEGOTIATED
+#endif  // OPENSSL_NO_NEXTPROTONEG
 
-#ifdef OPENSSL_NPN_NEGOTIATED
+#ifndef OPENSSL_NO_NEXTPROTONEG
   env->SetProtoMethod(t, "setNPNProtocols", SetNPNProtocols);
 #endif
 
@@ -1334,7 +1359,7 @@ void SSLWrap<Base>::AddMethods(Environment* env, Local<FunctionTemplate> t) {
 
 template <class Base>
 void SSLWrap<Base>::InitNPN(SecureContext* sc) {
-#ifdef OPENSSL_NPN_NEGOTIATED
+#ifndef OPENSSL_NO_NEXTPROTONEG
   // Server should advertise NPN protocols
   SSL_CTX_set_next_protos_advertised_cb(sc->ctx_,
                                         AdvertiseNextProtoCallback,
@@ -1342,7 +1367,7 @@ void SSLWrap<Base>::InitNPN(SecureContext* sc) {
   // Client should select protocol from list of advertised
   // If server supports NPN
   SSL_CTX_set_next_proto_select_cb(sc->ctx_, SelectNextProtoCallback, nullptr);
-#endif  // OPENSSL_NPN_NEGOTIATED
+#endif  // OPENSSL_NO_NEXTPROTONEG
 
 #ifdef NODE__HAVE_TLSEXT_STATUS_CB
   // OCSP stapling
@@ -1809,7 +1834,6 @@ template <class Base>
 void SSLWrap<Base>::LoadSession(const FunctionCallbackInfo<Value>& args) {
   Base* w;
   ASSIGN_OR_RETURN_UNWRAP(&w, args.Holder());
-  Environment* env = w->ssl_env();
 
   if (args.Length() >= 1 && Buffer::HasInstance(args[0])) {
     ssize_t slen = Buffer::Length(args[0]);
@@ -1822,17 +1846,6 @@ void SSLWrap<Base>::LoadSession(const FunctionCallbackInfo<Value>& args) {
     if (w->next_sess_ != nullptr)
       SSL_SESSION_free(w->next_sess_);
     w->next_sess_ = sess;
-
-    Local<Object> info = Object::New(env->isolate());
-#ifndef OPENSSL_NO_TLSEXT
-    if (sess->tlsext_hostname == nullptr) {
-      info->Set(env->servername_string(), False(args.GetIsolate()));
-    } else {
-      info->Set(env->servername_string(),
-                OneByteString(args.GetIsolate(), sess->tlsext_hostname));
-    }
-#endif
-    args.GetReturnValue().Set(info);
   }
 }
 
@@ -2099,7 +2112,7 @@ void SSLWrap<Base>::GetProtocol(const FunctionCallbackInfo<Value>& args) {
 }
 
 
-#ifdef OPENSSL_NPN_NEGOTIATED
+#ifndef OPENSSL_NO_NEXTPROTONEG
 template <class Base>
 int SSLWrap<Base>::AdvertiseNextProtoCallback(SSL* s,
                                               const unsigned char** data,
@@ -2239,7 +2252,7 @@ void SSLWrap<Base>::SetNPNProtocols(const FunctionCallbackInfo<Value>& args) {
           env->npn_buffer_private_symbol(),
           args[0]).FromJust());
 }
-#endif  // OPENSSL_NPN_NEGOTIATED
+#endif  // OPENSSL_NO_NEXTPROTONEG
 
 #ifdef TLSEXT_TYPE_application_layer_protocol_negotiation
 template <class Base>
@@ -2761,9 +2774,40 @@ inline X509* FindRoot(STACK_OF(X509)* sk) {
 }
 
 
-// Whitelist check for certs issued by CNNIC. See
+inline bool CertIsStartComOrWoSign(X509_NAME* name) {
+  const unsigned char* startcom_wosign_data;
+  X509_NAME* startcom_wosign_name;
+
+  for (const auto& dn : StartComAndWoSignDNs) {
+    startcom_wosign_data = dn.data;
+    startcom_wosign_name = d2i_X509_NAME(nullptr, &startcom_wosign_data,
+                                         dn.len);
+    if (X509_NAME_cmp(name, startcom_wosign_name) == 0)
+      return true;
+  }
+
+  return false;
+}
+
+// Revoke the certificates issued by StartCom or WoSign that has
+// notBefore after 00:00:00 on October 21, 2016 (1477008000 in epoch).
+inline bool CheckStartComOrWoSign(X509_NAME* root_name, X509* cert) {
+  if (!CertIsStartComOrWoSign(root_name))
+    return true;
+
+  time_t october_21_2016 = static_cast<time_t>(1477008000);
+  if (X509_cmp_time(X509_get_notBefore(cert), &october_21_2016) < 0)
+    return true;
+
+  return false;
+}
+
+
+// Whitelist check for certs issued by CNNIC, StartCom and WoSign. See
 // https://blog.mozilla.org/security/2015/04/02
-// /distrusting-new-cnnic-certificates/
+// /distrusting-new-cnnic-certificates/ and
+// https://blog.mozilla.org/security/2016/10/24/
+// distrusting-new-wosign-and-startcom-certificates
 inline CheckResult CheckWhitelistedServerCert(X509_STORE_CTX* ctx) {
   unsigned char hash[CNNIC_WHITELIST_HASH_LEN];
   unsigned int hashlen = CNNIC_WHITELIST_HASH_LEN;
@@ -2782,11 +2826,14 @@ inline CheckResult CheckWhitelistedServerCert(X509_STORE_CTX* ctx) {
     root_name = X509_get_subject_name(root_cert);
   }
 
+  X509* leaf_cert = sk_X509_value(chain, 0);
+  if (!CheckStartComOrWoSign(root_name, leaf_cert))
+    return CHECK_CERT_REVOKED;
+
   // When the cert is issued from either CNNNIC ROOT CA or CNNNIC EV
   // ROOT CA, check a hash of its leaf cert if it is in the whitelist.
   if (X509_NAME_cmp(root_name, cnnic_name) == 0 ||
       X509_NAME_cmp(root_name, cnnic_ev_name) == 0) {
-    X509* leaf_cert = sk_X509_value(chain, 0);
     int ret = X509_digest(leaf_cert, EVP_sha256(), hash,
                           &hashlen);
     CHECK(ret);
@@ -3560,9 +3607,13 @@ bool CipherBase::SetAutoPadding(bool auto_padding) {
 
 
 void CipherBase::SetAutoPadding(const FunctionCallbackInfo<Value>& args) {
+  Environment* env = Environment::GetCurrent(args);
+
   CipherBase* cipher;
   ASSIGN_OR_RETURN_UNWRAP(&cipher, args.Holder());
-  cipher->SetAutoPadding(args.Length() < 1 || args[0]->BooleanValue());
+
+  if (!cipher->SetAutoPadding(args.Length() < 1 || args[0]->BooleanValue()))
+    env->ThrowError("Attempting to set auto padding in unsupported state");
 }
 
 
@@ -5851,14 +5902,14 @@ void InitCryptoOnce() {
   OPENSSL_no_config();
 
   // --openssl-config=...
-  if (openssl_config != nullptr) {
+  if (!openssl_config.empty()) {
     OPENSSL_load_builtin_modules();
 #ifndef OPENSSL_NO_ENGINE
     ENGINE_load_builtin_engines();
 #endif
     ERR_clear_error();
     CONF_modules_load_file(
-        openssl_config,
+        openssl_config.c_str(),
         nullptr,
         CONF_MFLAGS_DEFAULT_SECTION);
     int err = ERR_get_error();
@@ -5969,7 +6020,6 @@ void SetFipsCrypto(const FunctionCallbackInfo<Value>& args) {
 #endif /* NODE_FIPS_MODE */
 }
 
-// FIXME(bnoordhuis) Handle global init correctly.
 void InitCrypto(Local<Object> target,
                 Local<Value> unused,
                 Local<Context> context,

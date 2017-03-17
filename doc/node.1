@@ -93,6 +93,17 @@ Preload the specified module at startup. Follows `require()`'s module resolution
 rules. \fImodule\fR may be either a path to a file, or a node module name.
 
 .TP
+.BR \-\-inspect \fI[=host:port]\fR
+Activate inspector on host:port. Default is 127.0.0.1:9229.
+
+V8 Inspector integration allows attaching Chrome DevTools and IDEs to Node.js
+instances for debugging and profiling. It uses the Chrome Debugging Protocol.
+
+.TP
+.BR \-\-inspect-brk \fI[=host:port]\fR
+Activate inspector on host:port and break at start of user script.
+
+.TP
 .BR \-\-no\-deprecation
 Silence deprecation warnings.
 
@@ -255,6 +266,16 @@ When set to \fI1\fR, writes to stdout and stderr will be non-blocking and
 asynchronous when outputting to a TTY on platforms which support async stdio.
 Setting this will void any guarantee that stdio will not be interleaved or
 dropped at program exit. \fBAvoid use.\fR
+
+.TP
+.BR OPENSSL_CONF = \fIfile\fR
+Load an OpenSSL configuration file on startup. Among other uses, this can be
+used to enable FIPS-compliant crypto if Node.js is built with
+\fB./configure \-\-openssl\-fips\fR.
+
+If the
+\fB\-\-openssl\-config\fR
+command line option is used, the environment variable is ignored.
 
 .TP
 .BR SSL_CERT_DIR = \fIdir\fR

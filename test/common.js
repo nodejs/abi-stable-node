@@ -1,3 +1,24 @@
+// Copyright Joyent, Inc. and other Node contributors.
+//
+// Permission is hereby granted, free of charge, to any person obtaining a
+// copy of this software and associated documentation files (the
+// "Software"), to deal in the Software without restriction, including
+// without limitation the rights to use, copy, modify, merge, publish,
+// distribute, sublicense, and/or sell copies of the Software, and to permit
+// persons to whom the Software is furnished to do so, subject to the
+// following conditions:
+//
+// The above copyright notice and this permission notice shall be included
+// in all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+// OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+// MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN
+// NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+// DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+// OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
+// USE OR OTHER DEALINGS IN THE SOFTWARE.
+
 /* eslint-disable required-modules */
 'use strict';
 const path = require('path');
@@ -287,6 +308,9 @@ exports.platformTimeout = function(ms) {
   if (process.config.target_defaults.default_configuration === 'Debug')
     ms = 2 * ms;
 
+  if (global.__coverage__)
+    ms = 4 * ms;
+
   if (exports.isAix)
     return 2 * ms; // default localhost speed is slower on AIX
 
@@ -384,7 +408,11 @@ function leakedGlobals() {
     if (!knownGlobals.includes(global[val]))
       leaked.push(val);
 
-  return leaked;
+  if (global.__coverage__) {
+    return leaked.filter((varname) => !/^(cov_|__cov)/.test(varname));
+  } else {
+    return leaked;
+  }
 }
 exports.leakedGlobals = leakedGlobals;
 
@@ -395,8 +423,7 @@ process.on('exit', function() {
   if (!exports.globalCheck) return;
   const leaked = leakedGlobals();
   if (leaked.length > 0) {
-    console.error('Unknown globals: %s', leaked);
-    fail('Unknown global found');
+    fail(`Unexpected global(s) found: ${leaked.join(', ')}`);
   }
 });
 
@@ -497,6 +524,12 @@ function fail(msg) {
 }
 exports.fail = fail;
 
+exports.mustNotCall = function(msg) {
+  return function mustNotCall() {
+    fail(msg || 'function should not have been called');
+  };
+};
+
 exports.skip = function(msg) {
   console.log(`1..0 # Skipped: ${msg}`);
 };
@@ -585,3 +618,51 @@ Object.defineProperty(exports, 'hasIntl', {
     return process.binding('config').hasIntl;
   }
 });
+
+// https://github.com/w3c/testharness.js/blob/master/testharness.js
+exports.WPT = {
+  test: (fn, desc) => {
+    try {
+      fn();
+    } catch (err) {
+      console.error(`In ${desc}:`);
+      throw err;
+    }
+  },
+  assert_equals: assert.strictEqual,
+  assert_true: (value, message) => assert.strictEqual(value, true, message),
+  assert_false: (value, message) => assert.strictEqual(value, false, message),
+  assert_throws: (code, func, desc) => {
+    assert.throws(func, (err) => {
+      return typeof err === 'object' && 'name' in err && err.name === code.name;
+    }, desc);
+  },
+  assert_array_equals: assert.deepStrictEqual,
+  assert_unreached(desc) {
+    assert.fail(undefined, undefined, `Reached unreachable code: ${desc}`);
+  }
+};
+
+// Useful for testing expected internal/error objects
+exports.expectsError = function expectsError({code, type, message}) {
+  return function(error) {
+    assert.strictEqual(error.code, code);
+    if (type !== undefined)
+      assert(error instanceof type,
+             `${error} is not the expected type ${type}`);
+    if (message instanceof RegExp) {
+      assert(message.test(error.message),
+             `${error.message} does not match ${message}`);
+    } else if (typeof message === 'string') {
+      assert.strictEqual(error.message, message);
+    }
+    return true;
+  };
+};
+
+exports.skipIfInspectorDisabled = function skipIfInspectorDisabled() {
+  if (!exports.hasCrypto) {
+    exports.skip('missing ssl support so inspector is disabled');
+    process.exit(0);
+  }
+};

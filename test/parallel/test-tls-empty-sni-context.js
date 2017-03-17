@@ -3,16 +3,14 @@
 const common = require('../common');
 
 if (!process.features.tls_sni) {
-  console.log('1..0 # Skipped: node compiled without OpenSSL or ' +
-              'with old OpenSSL version.');
+  common.skip('node compiled without OpenSSL or with old OpenSSL version.');
   return;
 }
 
 const assert = require('assert');
 
 if (!common.hasCrypto) {
-  console.log('1..0 # Skipped: missing crypto');
-  return;
+  return common.skip('missing crypto');
 }
 
 const tls = require('tls');
@@ -33,9 +31,7 @@ const server = tls.createServer(options, (c) => {
     port: server.address().port,
     rejectUnauthorized: false,
     servername: 'any.name'
-  }, () => {
-    common.fail('Should not be called');
-  });
+  }, common.mustNotCall());
 
   c.on('error', common.mustCall((err) => {
     assert(/socket hang up/.test(err.message));

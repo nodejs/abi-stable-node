@@ -1,3 +1,24 @@
+// Copyright Joyent, Inc. and other Node contributors.
+//
+// Permission is hereby granted, free of charge, to any person obtaining a
+// copy of this software and associated documentation files (the
+// "Software"), to deal in the Software without restriction, including
+// without limitation the rights to use, copy, modify, merge, publish,
+// distribute, sublicense, and/or sell copies of the Software, and to permit
+// persons to whom the Software is furnished to do so, subject to the
+// following conditions:
+//
+// The above copyright notice and this permission notice shall be included
+// in all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+// OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+// MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN
+// NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+// DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+// OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
+// USE OR OTHER DEALINGS IN THE SOFTWARE.
+
 #include "node.h"
 #include "node_buffer.h"
 #include "node_constants.h"
@@ -156,7 +177,7 @@ static const char* trace_enabled_categories = nullptr;
 
 #if defined(NODE_HAVE_I18N_SUPPORT)
 // Path to ICU data (for i18n / Intl)
-static const char* icu_data_dir = nullptr;
+std::string icu_data_dir;  // NOLINT(runtime/string)
 #endif
 
 // By default we accept N-API addons
@@ -179,7 +200,7 @@ bool ssl_openssl_cert_store =
 bool enable_fips_crypto = false;
 bool force_fips_crypto = false;
 # endif  // NODE_FIPS_MODE
-const char* openssl_config = nullptr;
+std::string openssl_config;  // NOLINT(runtime/string)
 #endif  // HAVE_OPENSSL
 
 // true if process warnings should be suppressed
@@ -192,7 +213,7 @@ bool trace_warnings = false;
 bool config_preserve_symlinks = false;
 
 // Set in node.cc by ParseArgs when --redirect-warnings= is used.
-const char* config_warning_file;
+std::string config_warning_file;  // NOLINT(runtime/string)
 
 bool v8_initialized = false;
 
@@ -203,7 +224,6 @@ static uv_async_t dispatch_debug_messages_async;
 
 static Mutex node_isolate_mutex;
 static v8::Isolate* node_isolate;
-static tracing::Agent* tracing_agent;
 
 static node::DebugOptions debug_options;
 
@@ -231,16 +251,33 @@ static struct {
   }
 #endif  // HAVE_INSPECTOR
 
+  void StartTracingAgent() {
+    CHECK(tracing_agent_ == nullptr);
+    tracing_agent_ = new tracing::Agent();
+    tracing_agent_->Start(platform_, trace_enabled_categories);
+  }
+
+  void StopTracingAgent() {
+    tracing_agent_->Stop();
+  }
+
   v8::Platform* platform_;
+  tracing::Agent* tracing_agent_;
 #else  // !NODE_USE_V8_PLATFORM
   void Initialize(int thread_pool_size) {}
   void PumpMessageLoop(Isolate* isolate) {}
   void Dispose() {}
   bool StartInspector(Environment *env, const char* script_path,
-                      int port, bool wait) {
+                      const node::DebugOptions& options) {
     env->ThrowError("Node compiled with NODE_USE_V8_PLATFORM=0");
     return false;  // make compiler happy
   }
+
+  void StartTracingAgent() {
+    fprintf(stderr, "Node compiled with NODE_USE_V8_PLATFORM=0, "
+                    "so event tracing is not available.\n");
+  }
+  void StopTracingAgent() {}
 #endif  // !NODE_USE_V8_PLATFORM
 } v8_platform;
 
@@ -911,12 +948,21 @@ Local<Value> UVException(Isolate* isolate,
 
 
 // Look up environment variable unless running as setuid root.
-inline const char* secure_getenv(const char* key) {
+bool SafeGetenv(const char* key, std::string* text) {
 #ifndef _WIN32
-  if (getuid() != geteuid() || getgid() != getegid())
-    return nullptr;
+  // TODO(bnoordhuis) Should perhaps also check whether getauxval(AT_SECURE)
+  // is non-zero on Linux.
+  if (getuid() != geteuid() || getgid() != getegid()) {
+    text->clear();
+    return false;
+  }
 #endif
-  return getenv(key);
+  if (const char* value = getenv(key)) {
+    *text = value;
+    return true;
+  }
+  text->clear();
+  return false;
 }
 
 
@@ -2248,25 +2294,22 @@ void MemoryUsage(const FunctionCallbackInfo<Value>& args) {
     return env->ThrowUVException(err, "uv_resident_set_memory");
   }
 
+  Isolate* isolate = env->isolate();
   // V8 memory usage
   HeapStatistics v8_heap_stats;
-  env->isolate()->GetHeapStatistics(&v8_heap_stats);
+  isolate->GetHeapStatistics(&v8_heap_stats);
 
-  Local<Number> heap_total =
-      Number::New(env->isolate(), v8_heap_stats.total_heap_size());
-  Local<Number> heap_used =
-      Number::New(env->isolate(), v8_heap_stats.used_heap_size());
-  Local<Number> external_mem =
-      Number::New(env->isolate(),
-                  env->isolate()->AdjustAmountOfExternalAllocatedMemory(0));
+  // Get the double array pointer from the Float64Array argument.
+  CHECK(args[0]->IsFloat64Array());
+  Local<Float64Array> array = args[0].As<Float64Array>();
+  CHECK_EQ(array->Length(), 4);
+  Local<ArrayBuffer> ab = array->Buffer();
+  double* fields = static_cast<double*>(ab->GetContents().Data());
 
-  Local<Object> info = Object::New(env->isolate());
-  info->Set(env->rss_string(), Number::New(env->isolate(), rss));
-  info->Set(env->heap_total_string(), heap_total);
-  info->Set(env->heap_used_string(), heap_used);
-  info->Set(env->external_string(), external_mem);
-
-  args.GetReturnValue().Set(info);
+  fields[0] = rss;
+  fields[1] = v8_heap_stats.total_heap_size();
+  fields[2] = v8_heap_stats.used_heap_size();
+  fields[3] = isolate->AdjustAmountOfExternalAllocatedMemory(0);
 }
 
 
@@ -2377,8 +2420,6 @@ struct node_module* get_linked_module(const char* name) {
   CHECK(mp == nullptr || (mp->nm_flags & NM_F_LINKED) != 0);
   return mp;
 }
-
-typedef void (UV_DYNAMIC* extInit)(Local<Object> exports);
 
 // DLOpen is process.dlopen(module, filename).
 // Used to load 'module.node' dynamically shared objects.
@@ -2780,24 +2821,26 @@ static void EnvSetter(Local<Name> property,
 static void EnvQuery(Local<Name> property,
                      const PropertyCallbackInfo<Integer>& info) {
   int32_t rc = -1;  // Not found unless proven otherwise.
+  if (property->IsString()) {
 #ifdef __POSIX__
-  node::Utf8Value key(info.GetIsolate(), property);
-  if (getenv(*key))
-    rc = 0;
+    node::Utf8Value key(info.GetIsolate(), property);
+    if (getenv(*key))
+      rc = 0;
 #else  // _WIN32
-  node::TwoByteValue key(info.GetIsolate(), property);
-  WCHAR* key_ptr = reinterpret_cast<WCHAR*>(*key);
-  if (GetEnvironmentVariableW(key_ptr, nullptr, 0) > 0 ||
-      GetLastError() == ERROR_SUCCESS) {
-    rc = 0;
-    if (key_ptr[0] == L'=') {
-      // Environment variables that start with '=' are hidden and read-only.
-      rc = static_cast<int32_t>(v8::ReadOnly) |
-           static_cast<int32_t>(v8::DontDelete) |
-           static_cast<int32_t>(v8::DontEnum);
+    node::TwoByteValue key(info.GetIsolate(), property);
+    WCHAR* key_ptr = reinterpret_cast<WCHAR*>(*key);
+    if (GetEnvironmentVariableW(key_ptr, nullptr, 0) > 0 ||
+        GetLastError() == ERROR_SUCCESS) {
+      rc = 0;
+      if (key_ptr[0] == L'=') {
+        // Environment variables that start with '=' are hidden and read-only.
+        rc = static_cast<int32_t>(v8::ReadOnly) |
+             static_cast<int32_t>(v8::DontDelete) |
+             static_cast<int32_t>(v8::DontEnum);
+      }
     }
-  }
 #endif
+  }
   if (rc != -1)
     info.GetReturnValue().Set(rc);
 }
@@ -2805,14 +2848,16 @@ static void EnvQuery(Local<Name> property,
 
 static void EnvDeleter(Local<Name> property,
                        const PropertyCallbackInfo<Boolean>& info) {
+  if (property->IsString()) {
 #ifdef __POSIX__
-  node::Utf8Value key(info.GetIsolate(), property);
-  unsetenv(*key);
+    node::Utf8Value key(info.GetIsolate(), property);
+    unsetenv(*key);
 #else
-  node::TwoByteValue key(info.GetIsolate(), property);
-  WCHAR* key_ptr = reinterpret_cast<WCHAR*>(*key);
-  SetEnvironmentVariableW(key_ptr, nullptr);
+    node::TwoByteValue key(info.GetIsolate(), property);
+    WCHAR* key_ptr = reinterpret_cast<WCHAR*>(*key);
+    SetEnvironmentVariableW(key_ptr, nullptr);
 #endif
+  }
 
   // process.env never has non-configurable properties, so always
   // return true like the tc39 delete operator.
@@ -2906,7 +2951,7 @@ static Local<Object> GetFeatures(Environment* env) {
   // TODO(bnoordhuis) ping libuv
   obj->Set(FIXED_ONE_BYTE_STRING(env->isolate(), "ipv6"), True(env->isolate()));
 
-#ifdef OPENSSL_NPN_NEGOTIATED
+#ifndef OPENSSL_NO_NEXTPROTONEG
   Local<Boolean> tls_npn = True(env->isolate());
 #else
   Local<Boolean> tls_npn = False(env->isolate());
@@ -3082,17 +3127,6 @@ void SetupProcessObject(Environment* env,
   READONLY_PROPERTY(versions,
                     "ares",
                     FIXED_ONE_BYTE_STRING(env->isolate(), ARES_VERSION_STR));
-
-#if defined(NODE_HAVE_I18N_SUPPORT) && defined(U_ICU_VERSION)
-  // ICU-related versions are now handled on the js side, see bootstrap_node.js
-
-  if (icu_data_dir != nullptr) {
-    // Did the user attempt (via env var or parameter) to set an ICU path?
-    READONLY_PROPERTY(process,
-                      "icu_data_dir",
-                      OneByteString(env->isolate(), icu_data_dir));
-  }
-#endif
 
   const char node_modules_version[] = NODE_STRINGIFY(NODE_MODULE_VERSION);
   READONLY_PROPERTY(
@@ -3399,7 +3433,7 @@ void SetupProcessObject(Environment* env,
 void SignalExit(int signo) {
   uv_tty_reset_mode();
   if (trace_enabled) {
-    tracing_agent->Stop();
+    v8_platform.StopTracingAgent();
   }
 #ifdef __FreeBSD__
   // FreeBSD has a nasty bug, see RegisterSignalHandler for details
@@ -3468,7 +3502,7 @@ void LoadEnvironment(Environment* env) {
   // (FatalException(), break on uncaught exception in debugger)
   //
   // This is not strictly necessary since it's almost impossible
-  // to attach the debugger fast enought to break on exception
+  // to attach the debugger fast enough to break on exception
   // thrown during process startup.
   try_catch.SetVerbose(true);
 
@@ -3550,8 +3584,9 @@ static void PrintHelp() {
          "  --enable-fips              enable FIPS crypto at startup\n"
          "  --force-fips               force FIPS crypto (cannot be disabled)\n"
 #endif  /* NODE_FIPS_MODE */
-         "  --openssl-config=path      load OpenSSL configuration file from\n"
-         "                             the specified path\n"
+         "  --openssl-config=file      load OpenSSL configuration from the\n"
+         "                             specified file (overrides\n"
+         "                             OPENSSL_CONF)\n"
 #endif /* HAVE_OPENSSL */
 #if defined(NODE_HAVE_I18N_SUPPORT)
          "  --icu-data-dir=dir         set ICU data load path to dir\n"
@@ -3586,6 +3621,8 @@ static void PrintHelp() {
          "                             file\n"
          "NODE_REDIRECT_WARNINGS       write warnings to path instead of\n"
          "                             stderr\n"
+         "OPENSSL_CONF                 load OpenSSL configuration from file\n"
+         "\n"
          "Documentation can be found at https://nodejs.org/\n");
 }
 
@@ -3741,11 +3778,11 @@ static void ParseArgs(int* argc,
       force_fips_crypto = true;
 #endif /* NODE_FIPS_MODE */
     } else if (strncmp(arg, "--openssl-config=", 17) == 0) {
-      openssl_config = arg + 17;
+      openssl_config.assign(arg + 17);
 #endif /* HAVE_OPENSSL */
 #if defined(NODE_HAVE_I18N_SUPPORT)
     } else if (strncmp(arg, "--icu-data-dir=", 15) == 0) {
-      icu_data_dir = arg + 15;
+      icu_data_dir.assign(arg + 15);
 #endif
     } else if (strcmp(arg, "--expose-internals") == 0 ||
                strcmp(arg, "--expose_internals") == 0) {
@@ -4232,13 +4269,19 @@ void Init(int* argc,
 #endif
 
   // Allow for environment set preserving symlinks.
-  if (auto preserve_symlinks = secure_getenv("NODE_PRESERVE_SYMLINKS")) {
-    config_preserve_symlinks = (*preserve_symlinks == '1');
+  {
+    std::string text;
+    config_preserve_symlinks =
+        SafeGetenv("NODE_PRESERVE_SYMLINKS", &text) && text[0] == '1';
   }
 
-  if (auto redirect_warnings = secure_getenv("NODE_REDIRECT_WARNINGS")) {
-    config_warning_file = redirect_warnings;
-  }
+  if (config_warning_file.empty())
+    SafeGetenv("NODE_REDIRECT_WARNINGS", &config_warning_file);
+
+#if HAVE_OPENSSL
+  if (openssl_config.empty())
+    SafeGetenv("OPENSSL_CONF", &openssl_config);
+#endif
 
   // Parse a few arguments which are specific to Node.
   int v8_argc;
@@ -4266,12 +4309,11 @@ void Init(int* argc,
 #endif
 
 #if defined(NODE_HAVE_I18N_SUPPORT)
-  if (icu_data_dir == nullptr) {
-    // if the parameter isn't given, use the env variable.
-    icu_data_dir = secure_getenv("NODE_ICU_DATA");
-  }
+  // If the parameter isn't given, use the env variable.
+  if (icu_data_dir.empty())
+    SafeGetenv("NODE_ICU_DATA", &icu_data_dir);
   // Initialize ICU.
-  // If icu_data_dir is nullptr here, it will load the 'minimal' data.
+  // If icu_data_dir is empty here, it will load the 'minimal' data.
   if (!i18n::InitializeICUDirectory(icu_data_dir)) {
     FatalError(nullptr, "Could not initialize ICU "
                      "(check NODE_ICU_DATA or --icu-data-dir parameters)");
@@ -4536,8 +4578,11 @@ int Start(int argc, char** argv) {
   Init(&argc, const_cast<const char**>(argv), &exec_argc, &exec_argv);
 
 #if HAVE_OPENSSL
-  if (const char* extra = secure_getenv("NODE_EXTRA_CA_CERTS"))
-    crypto::UseExtraCaCerts(extra);
+  {
+    std::string extra_ca_certs;
+    if (SafeGetenv("NODE_EXTRA_CA_CERTS", &extra_ca_certs))
+      crypto::UseExtraCaCerts(extra_ca_certs);
+  }
 #ifdef NODE_FIPS_MODE
   // In the case of FIPS builds we should make sure
   // the random source is properly initialized first.
@@ -4546,22 +4591,21 @@ int Start(int argc, char** argv) {
   // V8 on Windows doesn't have a good source of entropy. Seed it from
   // OpenSSL's pool.
   V8::SetEntropySource(crypto::EntropySource);
-#endif
+#endif  // HAVE_OPENSSL
 
   v8_platform.Initialize(v8_thread_pool_size);
   // Enable tracing when argv has --trace-events-enabled.
   if (trace_enabled) {
     fprintf(stderr, "Warning: Trace event is an experimental feature "
             "and could change at any time.\n");
-    tracing_agent = new tracing::Agent();
-    tracing_agent->Start(v8_platform.platform_, trace_enabled_categories);
+    v8_platform.StartTracingAgent();
   }
   V8::Initialize();
   v8_initialized = true;
   const int exit_code =
       Start(uv_default_loop(), argc, argv, exec_argc, exec_argv);
   if (trace_enabled) {
-    tracing_agent->Stop();
+    v8_platform.StopTracingAgent();
   }
   v8_initialized = false;
   V8::Dispose();

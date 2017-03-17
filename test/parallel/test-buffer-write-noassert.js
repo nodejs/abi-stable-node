@@ -20,6 +20,13 @@ function write(funx, args, result, res) {
     );
   }
 
+  if (!/Int/.test(funx)) {
+    assert.throws(
+      () => Buffer.alloc(9)[funx].apply(new Uint32Array(1), args),
+      /^TypeError: argument should be a Buffer$/
+    );
+  }
+
   {
     const buf2 = Buffer.alloc(9);
     assert.strictEqual(buf2[funx](...args, true), result);
