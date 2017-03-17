@@ -41,7 +41,7 @@ void Test(napi_env env, napi_callback_info info) {
   if (status != napi_ok) return;
 }
 
-void Init(napi_env env, napi_value exports, napi_value module) {
+void Init(napi_env env, napi_value exports, napi_value module, void* priv) {
   napi_status status;
 
   napi_value fn;

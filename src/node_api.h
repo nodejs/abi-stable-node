@@ -54,7 +54,7 @@ struct napi_module {
       NAPI_MODULE_VERSION,                                            \
       flags,                                                          \
       __FILE__,                                                       \
-      (node::napi_addon_register_func)regfunc,                        \
+      regfunc,                                                        \
       #modname,                                                       \
       priv,                                                           \
       {0},                                                            \
