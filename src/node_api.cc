@@ -129,12 +129,8 @@ class Reference {
         _finalizeData(finalizeData),
         _finalizeHint(finalizeHint) {
     if (initialRefcount == 0) {
-      if (_finalizeCallback != nullptr || _deleteSelf) {
-        _persistent.SetWeak(
-            this, FinalizeCallback, v8::WeakCallbackType::kParameter);
-      } else {
-        _persistent.SetWeak();
-      }
+      _persistent.SetWeak(
+          this, FinalizeCallback, v8::WeakCallbackType::kParameter);
       _persistent.MarkIndependent();
     }
   }
@@ -159,12 +155,8 @@ class Reference {
 
   int Release() {
     if (--_refcount == 0) {
-      if (_finalizeCallback != nullptr || _deleteSelf) {
-        _persistent.SetWeak(
-            this, FinalizeCallback, v8::WeakCallbackType::kParameter);
-      } else {
-        _persistent.SetWeak();
-      }
+      _persistent.SetWeak(
+          this, FinalizeCallback, v8::WeakCallbackType::kParameter);
       _persistent.MarkIndependent();
     }
 
@@ -175,7 +167,7 @@ class Reference {
     if (_persistent.IsEmpty()) {
       return v8::Local<v8::Value>();
     } else {
-      return _persistent.Get(_isolate);
+      return v8::Local<v8::Value>::New(_isolate, _persistent);
     }
   }
 
@@ -293,7 +285,8 @@ class CallbackWrapperBase : public CallbackWrapper {
     cb(v8impl::JsEnvFromV8Isolate(isolate), cbinfo_wrapper);
 
     if (!TryCatch::lastException().IsEmpty()) {
-      isolate->ThrowException(TryCatch::lastException().Get(isolate));
+      isolate->ThrowException(
+          v8::Local<v8::Value>::New(isolate, TryCatch::lastException()));
       TryCatch::lastException().Reset();
     }
   }
@@ -491,21 +484,25 @@ void napi_module_register_cb(v8::Local<v8::Object> exports,
     mod->nm_priv);
 }
 
+#ifndef EXTERNAL_NAPI
 namespace node {
   // Indicates whether NAPI was enabled/disabled via the node command-line.
   extern bool load_napi_modules;
 }
+#endif  // EXTERNAL_NAPI
 
 // Registers a NAPI module.
 void napi_module_register(napi_module* mod) {
   // NAPI modules always work with the current node version.
   int moduleVersion = NODE_MODULE_VERSION;
 
+#ifndef EXTERNAL_NAPI
   if (!node::load_napi_modules) {
     // NAPI is disabled, so set the module version to -1 to cause the module
     // to be unloaded.
     moduleVersion = -1;
   }
+#endif  // EXTERNAL_NAPI
 
   node::node_module* nm = new node::node_module {
     moduleVersion,
@@ -1802,28 +1799,19 @@ napi_status napi_wrap(napi_env e,
 
   obj->SetAlignedPointerInInternalField(0, nativeObj);
 
-  if (finalize_cb != nullptr) {
-    // Create a separate self-deleting reference for the finalizer callback.
-    // This ensures the finalizer is not dependent on the lifetime of the
-    // returned reference.
-    new v8impl::Reference(isolate,
-        obj,
-        0,
-        true,
-        finalize_cb,
-        nativeObj,
-        finalize_hint);
-  }
-
   if (result != nullptr) {
-    // If a reference result was requested, create one that is separate from the
-    // reference
-    // that holds the finalizer callback. The returned reference should be
-    // deleted via
-    // napi_delete_reference() when it is no longer needed.
-    v8impl::Reference* reference =
-        new v8impl::Reference(isolate, obj, 0, false);
+    // The returned reference should be deleted via napi_delete_reference()
+    // ONLY in response to the finalize callback invocation. (If it is deleted
+    // before then, then the finalize callback will never be invoked.)
+    // Therefore a finalize callback is required when returning a reference.
+    CHECK_ARG(finalize_cb);
+    v8impl::Reference* reference = new v8impl::Reference(
+        isolate, obj, 0, false, finalize_cb, nativeObj, finalize_hint);
     *result = reinterpret_cast<napi_ref>(reference);
+  } else if (finalize_cb != nullptr) {
+    // Create a self-deleting reference just for the finalize callback.
+    new v8impl::Reference(
+        isolate, obj, 0, true, finalize_cb, nativeObj, finalize_hint);
   }
 
   return GET_RETURN_STATUS();
@@ -2164,8 +2152,8 @@ napi_status napi_get_and_clear_last_exception(napi_env e, napi_value* result) {
   if (v8impl::TryCatch::lastException().IsEmpty()) {
     return napi_get_undefined(e, result);
   } else {
-    *result = v8impl::JsValueFromV8LocalValue(
-        v8impl::TryCatch::lastException().Get(v8impl::V8IsolateFromJsEnv(e)));
+    *result = v8impl::JsValueFromV8LocalValue(v8::Local<v8::Value>::New(
+        v8impl::V8IsolateFromJsEnv(e), v8impl::TryCatch::lastException()));
     v8impl::TryCatch::lastException().Reset();
   }
 
