@@ -4480,6 +4480,11 @@ inline int Start(Isolate* isolate, IsolateData* isolate_data,
   if (debug_enabled)
     EnableDebug(&env);
 
+  if (load_napi_modules) {
+    ProcessEmitWarning(&env, "N-API is an experimental feature "
+        "and could change at any time.");
+  }
+
   {
     SealHandleScope seal(isolate);
     bool more;
