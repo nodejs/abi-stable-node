@@ -181,7 +181,7 @@ std::string icu_data_dir;  // NOLINT(runtime/string)
 #endif
 
 // By default we accept N-API addons
-bool load_napi_modules = true;
+bool load_napi_modules = false;
 
 // used by C++ modules as well
 bool no_deprecation = false;
