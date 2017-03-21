@@ -1411,22 +1411,6 @@ napi_status napi_get_cb_this(napi_env e,
   return napi_ok;
 }
 
-// Holder is a V8 concept.  Is not clear if this can be emulated with other VMs
-// AFAIK Holder should be the owner of the JS function, which should be in the
-// prototype chain of This, so maybe it is possible to emulate.
-napi_status napi_get_cb_holder(napi_env e,
-                               napi_callback_info cbinfo,
-                               napi_value* result) {
-  // Omit NAPI_PREAMBLE and GET_RETURN_STATUS because no V8 APIs are called.
-  CHECK_ARG(result);
-
-  v8impl::CallbackWrapper* info =
-      reinterpret_cast<v8impl::CallbackWrapper*>(cbinfo);
-
-  *result = info->Holder();
-  return napi_ok;
-}
-
 napi_status napi_get_cb_data(napi_env e,
                              napi_callback_info cbinfo,
                              void** result) {
