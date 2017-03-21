@@ -152,7 +152,6 @@ def headers(action):
     'src/node_api_types.h',
     'src/node_api_async.h',
     'src/node_api_async_types.h',
-    'src/node_macros.h',
     'src/node_buffer.h',
     'src/node_object_wrap.h',
     'src/node_version.h',
