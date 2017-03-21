@@ -267,14 +267,23 @@ ADDONS_NAPI_BINDING_GYPS := \
 	$(filter-out test/addons-napi/??_*/binding.gyp, \
 		$(wildcard test/addons-napi/*/binding.gyp))
 
+ADDONS_NAPI_BINDING_SOURCES := \
+	$(filter-out test/addons-napi/??_*/*.cc, $(wildcard test/addons-napi/*/*.cc)) \
+	$(filter-out test/addons-napi/??_*/*.h, $(wildcard test/addons-napi/*/*.h))
+
 # Implicitly depends on $(NODE_EXE), see the build-addons-napi rule for rationale.
-test/addons-napi/.buildstamp: $(ADDONS_NAPI_BINDING_GYPS) \
+test/addons-napi/.buildstamp: config.gypi \
+	deps/npm/node_modules/node-gyp/package.json \
+	$(ADDONS_NAPI_BINDING_GYPS) $(ADDONS_NAPI_BINDING_SOURCES) \
 	deps/uv/include/*.h deps/v8/include/*.h \
-	src/node.h src/node_buffer.h src/node_object_wrap.h
-	# Cannot use $(wildcard test/addons-napi/*/) here, it's evaluated before
-	# embedded addons have been generated from the documentation.
-	for dirname in test/addons-napi/*/; do \
-		$(NODE) deps/npm/node_modules/node-gyp/bin/node-gyp rebuild \
+	src/node.h src/node_buffer.h src/node_object_wrap.h src/node_version.h \
+	src/node_api.h src/node_api_async.h
+#	Cannot use $(wildcard test/addons/*/) here, it's evaluated before
+#	embedded addons have been generated from the documentation.
+	@for dirname in test/addons-napi/*/; do \
+		printf "\nBuilding addon $$PWD/$$dirname\n" ; \
+		env MAKEFLAGS="-j1" $(NODE) deps/npm/node_modules/node-gyp/bin/node-gyp \
+		        --loglevel=$(LOGLEVEL) rebuild \
 			--python="$(PYTHON)" \
 			--directory="$$PWD/$$dirname" \
 			--nodedir="$$PWD" || exit 1 ; \
@@ -316,7 +325,7 @@ CI_JS_SUITES := doctool inspector known_issues message parallel pseudo-tty seque
 
 # Build and test addons without building anything else
 test-ci-native: LOGLEVEL := info
-test-ci-native: | test/addons/.buildstamp
+test-ci-native: | test/addons/.buildstamp test/addons-napi/.buildstamp
 	$(PYTHON) tools/test.py $(PARALLEL_ARGS) -p tap --logfile test.tap \
 		--mode=release --flaky-tests=$(FLAKY_TESTS) \
 		$(TEST_CI_ARGS) $(CI_NATIVE_SUITES)
@@ -337,7 +346,7 @@ test-ci: | clear-stalled build-addons build-addons-napi
 	out/Release/cctest --gtest_output=tap:cctest.tap
 	$(PYTHON) tools/test.py $(PARALLEL_ARGS) -p tap --logfile test.tap \
 		--mode=release --flaky-tests=$(FLAKY_TESTS) \
-		$(TEST_CI_ARGS) $(CI_NATIVE_SUITES) addons-napi $(CI_JS_SUITES)
+		$(TEST_CI_ARGS) $(CI_NATIVE_SUITES) $(CI_JS_SUITES)
 	# Clean up any leftover processes
 	PS_OUT=`ps awwx | grep Release/node | grep -v grep | awk '{print $$1}'`; \
 	if [ "$${PS_OUT}" ]; then \
