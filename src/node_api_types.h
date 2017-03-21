@@ -5,7 +5,7 @@
 #include <stdint.h>
 
 #if !defined __cplusplus || (defined(_MSC_VER) && _MSC_VER < 1900)
-    typedef unsigned short char16_t;
+    typedef uint16_t char16_t;
 #endif
 
 // JSVM API types are all opaque pointers for ABI stability
