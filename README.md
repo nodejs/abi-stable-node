@@ -31,14 +31,14 @@ There is also a header-only [C++ API](https://github.com/nodejs/node-api/blob/ma
 
 **N-API enabled modules**
 
-|Module|Converted By|Location|Performance Assesment|
-|------|------------|--------|-----------|
-|leveldown|[boingoing](https://github.com/boingoing) / [ianwjhalliday](https://github.com/ianwjhalliday) / [jasongin](https://github.com/jasongin) | https://github.com/jasongin/leveldown/tree/napi | [#55](https://github.com/nodejs/abi-stable-node/issues/55)|
-|nanomsg|[sampsongao](https://github.com/sampsongao) | https://github.com/sampsongao/node-nanomsg/tree/api-opaque-prototype | [#57](https://github.com/nodejs/abi-stable-node/issues/57)|
-|canvas|[jasongin](https://github.com/jasongin) | https://github.com/jasongin/node-canvas/tree/napi | [#77](https://github.com/nodejs/abi-stable-node/issues/77)|
-|node-sass|[boingoing](https://github.com/boingoing) / [jasongin](https://github.com/jasongin) | https://github.com/boingoing/node-sass/tree/napi | [#82](https://github.com/nodejs/abi-stable-node/issues/82)|
-|iotivity|[gabrielschulhof](https://github.com/gabrielschulhof) | https://github.com/gabrielschulhof/iotivity-node/tree/abi-stable | N/A|
-
+|Module|Converted By|Location|Conversion Status|Performance Assesment|
+|------|------------|--------|---|-----------|
+|leveldown|[boingoing](https://github.com/boingoing) / [ianwjhalliday](https://github.com/ianwjhalliday) / [jasongin](https://github.com/jasongin) | https://github.com/jasongin/leveldown/tree/napi | Completed | [#55](https://github.com/nodejs/abi-stable-node/issues/55) |
+|nanomsg|[sampsongao](https://github.com/sampsongao) | https://github.com/sampsongao/node-nanomsg/tree/api-opaque-prototype | Completed | [#57](https://github.com/nodejs/abi-stable-node/issues/57)|
+|canvas|[jasongin](https://github.com/jasongin) | https://github.com/jasongin/node-canvas/tree/napi | Completed | [#77](https://github.com/nodejs/abi-stable-node/issues/77)|
+|node-sass|[boingoing](https://github.com/boingoing) / [jasongin](https://github.com/jasongin) | https://github.com/boingoing/node-sass/tree/napi | Completed | [#82](https://github.com/nodejs/abi-stable-node/issues/82)|
+|iotivity|[gabrielschulhof](https://github.com/gabrielschulhof) | https://github.com/gabrielschulhof/iotivity-node/tree/abi-stable | Completed |N/A|
+|node-sqlite3 |[sampsongao](https://github.com/sampsongao) / [mhdawson](https://github.com/mhdawson)|https://github.com/mhdawson/node-sqlite3/tree/v3.1.4-abi | Started | |
 
 **Testing**
 
