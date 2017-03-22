@@ -57,7 +57,7 @@ void Multiply(napi_env env, napi_callback_info info) {
   napi_typedarray_type type;
   napi_value input_buffer;
   size_t byte_offset;
-  size_t length;
+  size_t i, length;
   status = napi_get_typedarray_info(
       env, input_array, &type, &length, NULL, &input_buffer, &byte_offset);
   if (status != napi_ok) return;
@@ -81,13 +81,13 @@ void Multiply(napi_env env, napi_callback_info info) {
   if (type == napi_uint8) {
     uint8_t* input_bytes = (uint8_t*)(data) + byte_offset;
     uint8_t* output_bytes = (uint8_t*)(output_ptr);
-    for (size_t i = 0; i < length; i++) {
+    for (i = 0; i < length; i++) {
       output_bytes[i] = (uint8_t)(input_bytes[i] * multiplier);
     }
   } else if (type == napi_float64) {
     double* input_doubles = (double*)((uint8_t*)(data) + byte_offset);
     double* output_doubles = (double*)(output_ptr);
-    for (size_t i = 0; i < length; i++) {
+    for (i = 0; i < length; i++) {
       output_doubles[i] = input_doubles[i] * multiplier;
     }
   } else {

@@ -101,11 +101,11 @@ void New(napi_env env, napi_callback_info info) {
   status = napi_create_array(env, &ret);
   if (status != napi_ok) return;
 
-  uint32_t length;
+  uint32_t i, length;
   status = napi_get_array_length(env, args[0], &length);
   if (status != napi_ok) return;
 
-  for (uint32_t i = 0; i < length; i++) {
+  for (i = 0; i < length; i++) {
     napi_value e;
     status = napi_get_element(env, args[0], i, &e);
     if (status != napi_ok) return;
