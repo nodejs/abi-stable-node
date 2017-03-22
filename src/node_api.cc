@@ -1150,6 +1150,25 @@ napi_status napi_create_array_with_length(napi_env env,
   return GET_RETURN_STATUS();
 }
 
+napi_status napi_create_string_latin1(napi_env env,
+                                      const char* str,
+                                      size_t length,
+                                      napi_value* result) {
+  NAPI_PREAMBLE(env);
+  CHECK_ARG(result);
+
+  auto isolate = v8impl::V8IsolateFromJsEnv(env);
+  auto str_maybe =
+      v8::String::NewFromOneByte(isolate,
+                                 reinterpret_cast<const uint8_t*>(str),
+                                 v8::NewStringType::kInternalized,
+                                 length);
+  CHECK_MAYBE_EMPTY(str_maybe, napi_generic_failure);
+
+  *result = v8impl::JsValueFromV8LocalValue(str_maybe.ToLocalChecked());
+  return GET_RETURN_STATUS();
+}
+
 napi_status napi_create_string_utf8(napi_env env,
                                     const char* str,
                                     size_t length,
@@ -1623,6 +1642,52 @@ napi_status napi_get_value_string_length(napi_env env,
   RETURN_STATUS_IF_FALSE(val->IsString(), napi_string_expected);
 
   *result = val.As<v8::String>()->Length();
+
+  return GET_RETURN_STATUS();
+}
+
+// Gets the number of BYTES in the LATIN-1 encoded representation of the string.
+napi_status napi_get_value_string_latin1_length(napi_env e,
+                                                napi_value value,
+                                                size_t* result) {
+  NAPI_PREAMBLE(e);
+  CHECK_ARG(result);
+
+  v8::Local<v8::Value> val = v8impl::V8LocalValueFromJsValue(value);
+  RETURN_STATUS_IF_FALSE(val->IsString(), napi_string_expected);
+
+  *result = val.As<v8::String>()->Length();
+
+  return GET_RETURN_STATUS();
+}
+
+// Copies a JavaScript string into a LATIN-1 string buffer. The result is the
+// number of bytes copied into buf, including the null terminator. If bufsize
+// is insufficient, the string will be truncated, including a null terminator.
+// If buf is NULL, this method returns the length of the string (in bytes)
+// via the result parameter.
+// The result argument is optional unless buf is NULL.
+napi_status napi_get_value_string_latin1(napi_env env,
+                                         napi_value value,
+                                         char* buf,
+                                         size_t bufsize,
+                                         size_t* result) {
+  NAPI_PREAMBLE(e);
+
+  v8::Local<v8::Value> val = v8impl::V8LocalValueFromJsValue(value);
+  RETURN_STATUS_IF_FALSE(val->IsString(), napi_string_expected);
+
+  if (!buf) {
+    CHECK_ARG(result);
+    *result = val.As<v8::String>()->Utf8Length();
+  } else {
+    int copied = val.As<v8::String>()->WriteOneByte(
+      reinterpret_cast<uint8_t*>(buf), 0, bufsize, v8::String::NO_OPTIONS);
+
+    if (result != nullptr) {
+      *result = copied;
+    }
+  }
 
   return GET_RETURN_STATUS();
 }
