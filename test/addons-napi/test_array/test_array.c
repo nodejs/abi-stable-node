@@ -51,7 +51,7 @@ void Test(napi_env env, napi_callback_info info) {
     status = napi_get_array_length(env, array, &size);
     if (status != napi_ok) return;
 
-    if (index >= static_cast<int>(size)) {
+    if (index >= (int)(size)) {
       napi_value str;
       status = napi_create_string_utf8(env, "Index out of bound!", -1, &str);
       if (status != napi_ok) return;
