@@ -279,12 +279,12 @@ NAPI_EXTERN napi_status napi_strict_equals(napi_env env,
 NAPI_EXTERN napi_status napi_call_function(napi_env env,
                                            napi_value recv,
                                            napi_value func,
-                                           int argc,
+                                           size_t argc,
                                            const napi_value* argv,
                                            napi_value* result);
 NAPI_EXTERN napi_status napi_new_instance(napi_env env,
                                           napi_value constructor,
-                                          int argc,
+                                          size_t argc,
                                           const napi_value* argv,
                                           napi_value* result);
 NAPI_EXTERN napi_status napi_instanceof(napi_env env,
@@ -296,7 +296,7 @@ NAPI_EXTERN napi_status napi_instanceof(napi_env env,
 NAPI_EXTERN napi_status napi_make_callback(napi_env env,
                                            napi_value recv,
                                            napi_value func,
-                                           int argc,
+                                           size_t argc,
                                            const napi_value* argv,
                                            napi_value* result);
 
@@ -306,7 +306,7 @@ NAPI_EXTERN napi_status napi_make_callback(napi_env env,
 NAPI_EXTERN napi_status napi_get_cb_info(
     napi_env env,               // [in] NAPI environment handle
     napi_callback_info cbinfo,  // [in] Opaque callback-info handle
-    int* argc,         // [in-out] Specifies the size of the provided argv array
+    size_t* argc,      // [in-out] Specifies the size of the provided argv array
                        // and receives the actual count of args.
     napi_value* argv,  // [out] Array of values
     napi_value* thisArg,  // [out] Receives the JS 'this' arg for the call
@@ -314,11 +314,11 @@ NAPI_EXTERN napi_status napi_get_cb_info(
 
 NAPI_EXTERN napi_status napi_get_cb_args_length(napi_env env,
                                                 napi_callback_info cbinfo,
-                                                int* result);
+                                                size_t* result);
 NAPI_EXTERN napi_status napi_get_cb_args(napi_env env,
                                          napi_callback_info cbinfo,
                                          napi_value* buffer,
-                                         int bufferlength);
+                                         size_t bufferlength);
 NAPI_EXTERN napi_status napi_get_cb_this(napi_env env,
                                          napi_callback_info cbinfo,
                                          napi_value* result);
