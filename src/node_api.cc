@@ -659,7 +659,7 @@ napi_status napi_define_class(napi_env e,
                               const char* utf8name,
                               napi_callback constructor,
                               void* data,
-                              int property_count,
+                              size_t property_count,
                               const napi_property_descriptor* properties,
                               napi_value* result) {
   NAPI_PREAMBLE(e);
@@ -683,8 +683,8 @@ napi_status napi_define_class(napi_env e,
   CHECK_NEW_FROM_UTF8(isolate, namestring, utf8name);
   tpl->SetClassName(namestring);
 
-  int staticPropertyCount = 0;
-  for (int i = 0; i < property_count; i++) {
+  size_t staticPropertyCount = 0;
+  for (size_t i = 0; i < property_count; i++) {
     const napi_property_descriptor* p = properties + i;
 
     if ((p->attributes & napi_static_property) != 0) {
@@ -738,7 +738,7 @@ napi_status napi_define_class(napi_env e,
     std::vector<napi_property_descriptor> staticDescriptors;
     staticDescriptors.reserve(staticPropertyCount);
 
-    for (int i = 0; i < property_count; i++) {
+    for (size_t i = 0; i < property_count; i++) {
       const napi_property_descriptor* p = properties + i;
       if ((p->attributes & napi_static_property) != 0) {
         staticDescriptors.push_back(*p);
@@ -991,7 +991,7 @@ napi_status napi_get_element(napi_env e,
 
 napi_status napi_define_properties(napi_env e,
                                    napi_value object,
-                                   int property_count,
+                                   size_t property_count,
                                    const napi_property_descriptor* properties) {
   NAPI_PREAMBLE(e);
 
@@ -1000,7 +1000,7 @@ napi_status napi_define_properties(napi_env e,
   v8::Local<v8::Object> obj =
       v8impl::V8LocalValueFromJsValue(object).As<v8::Object>();
 
-  for (int i = 0; i < property_count; i++) {
+  for (size_t i = 0; i < property_count; i++) {
     const napi_property_descriptor* p = &properties[i];
 
     v8::Local<v8::Name> name;
@@ -1138,7 +1138,7 @@ napi_status napi_create_array(napi_env e, napi_value* result) {
 }
 
 napi_status napi_create_array_with_length(napi_env e,
-                                          int length,
+                                          size_t length,
                                           napi_value* result) {
   NAPI_PREAMBLE(e);
   CHECK_ARG(result);
@@ -1151,7 +1151,7 @@ napi_status napi_create_array_with_length(napi_env e,
 
 napi_status napi_create_string_utf8(napi_env e,
                                     const char* s,
-                                    int length,
+                                    size_t length,
                                     napi_value* result) {
   NAPI_PREAMBLE(e);
   CHECK_ARG(result);
@@ -1166,7 +1166,7 @@ napi_status napi_create_string_utf8(napi_env e,
 
 napi_status napi_create_string_utf16(napi_env e,
                                      const char16_t* s,
-                                     int length,
+                                     size_t length,
                                      napi_value* result) {
   NAPI_PREAMBLE(e);
   CHECK_ARG(result);
@@ -1606,7 +1606,7 @@ napi_status napi_get_value_bool(napi_env e, napi_value value, bool* result) {
 // Gets the number of CHARACTERS in the string.
 napi_status napi_get_value_string_length(napi_env e,
                                          napi_value value,
-                                         int* result) {
+                                         size_t* result) {
   NAPI_PREAMBLE(e);
   CHECK_ARG(result);
 
@@ -1621,7 +1621,7 @@ napi_status napi_get_value_string_length(napi_env e,
 // Gets the number of BYTES in the UTF-8 encoded representation of the string.
 napi_status napi_get_value_string_utf8_length(napi_env e,
                                               napi_value value,
-                                              int* result) {
+                                              size_t* result) {
   NAPI_PREAMBLE(e);
   CHECK_ARG(result);
 
@@ -1640,8 +1640,8 @@ napi_status napi_get_value_string_utf8_length(napi_env e,
 napi_status napi_get_value_string_utf8(napi_env e,
                                        napi_value value,
                                        char* buf,
-                                       int bufsize,
-                                       int* result) {
+                                       size_t bufsize,
+                                       size_t* result) {
   NAPI_PREAMBLE(e);
 
   v8::Local<v8::Value> val = v8impl::V8LocalValueFromJsValue(value);
@@ -1661,7 +1661,7 @@ napi_status napi_get_value_string_utf8(napi_env e,
 // the string.
 napi_status napi_get_value_string_utf16_length(napi_env e,
                                                napi_value value,
-                                               int* result) {
+                                               size_t* result) {
   NAPI_PREAMBLE(e);
   CHECK_ARG(result);
 
@@ -1683,8 +1683,8 @@ napi_status napi_get_value_string_utf16_length(napi_env e,
 napi_status napi_get_value_string_utf16(napi_env e,
                                         napi_value value,
                                         char16_t* buf,
-                                        int bufsize,
-                                        int* result) {
+                                        size_t bufsize,
+                                        size_t* result) {
   NAPI_PREAMBLE(e);
   CHECK_ARG(result);
 
