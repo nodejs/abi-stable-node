@@ -1,4 +1,4 @@
-﻿/******************************************************************************
+/******************************************************************************
  * Experimental prototype for demonstrating VM agnostic and ABI stable API
  * for native modules to use instead of using Nan and V8 APIs directly.
  *
@@ -362,7 +362,7 @@ NAPI_EXTERN napi_status napi_delete_reference(napi_env env, napi_ref ref);
 // Increments the reference count, optionally returning the resulting count.
 // After this call the  reference will be a strong reference because its
 // refcount is >0, and the referenced object is effectively "pinned".
-// Calling this when the refcount is 0 and the object isunavailable
+// Calling this when the refcount is 0 and the object is unavailable
 // results in an error.
 NAPI_EXTERN napi_status napi_reference_ref(napi_env env,
                                            napi_ref ref,
@@ -371,14 +371,14 @@ NAPI_EXTERN napi_status napi_reference_ref(napi_env env,
 // Decrements the reference count, optionally returning the resulting count.
 // If the result is 0 the reference is now weak and the object may be GC'd
 // at any time if there are no other references. Calling this when the
-// refcount is already 0 results in an error.
+// refcount is already 0 results in an error.
 NAPI_EXTERN napi_status napi_reference_unref(napi_env env,
                                              napi_ref ref,
                                              int* result);
 
 // Attempts to get a referenced value. If the reference is weak,
 // the value might no longer be available, in that case the call
-// is still successful but the result is NULL.
+// is still successful but the result is NULL.
 NAPI_EXTERN napi_status napi_get_reference_value(napi_env env,
                                                  napi_ref ref,
                                                  napi_value* result);

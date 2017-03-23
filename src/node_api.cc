@@ -1,4 +1,4 @@
-﻿/******************************************************************************
+/******************************************************************************
  * Experimental prototype for demonstrating VM agnostic and ABI stable API
  * for native modules to use instead of using Nan and V8 APIs directly.
  *
@@ -280,8 +280,8 @@ class CallbackWrapperBase : public CallbackWrapper {
  public:
   CallbackWrapperBase(const T& cbinfo, const size_t args_length)
       : CallbackWrapper(JsValueFromV8LocalValue(cbinfo.This()),
-          args_length,
-          nullptr),
+                        args_length,
+                        nullptr),
         _cbinfo(cbinfo),
         _cbdata(v8::Local<v8::Object>::Cast(cbinfo.Data())) {
     _data = v8::Local<v8::External>::Cast(_cbdata->GetInternalField(kDataIndex))
@@ -1830,7 +1830,7 @@ napi_status napi_create_external(napi_env env,
   // The Reference object will delete itself after invoking the finalizer
   // callback.
   v8impl::Reference::New(isolate,
-    external_value,
+      external_value,
       0,
       true,
       finalize_cb,
@@ -1891,7 +1891,7 @@ napi_status napi_delete_reference(napi_env env, napi_ref ref) {
 // Increments the reference count, optionally returning the resulting count.
 // After this call the reference will be a strong reference because its
 // refcount is >0, and the referenced object is effectively "pinned".
-// Calling this when the refcount is 0 and the object is unavailable
+// Calling this when the refcount is 0 and the object is unavailable
 // results in an error.
 napi_status napi_reference_ref(napi_env env, napi_ref ref, int* result) {
   NAPI_PREAMBLE(env);
@@ -1909,7 +1909,7 @@ napi_status napi_reference_ref(napi_env env, napi_ref ref, int* result) {
 
 // Decrements the reference count, optionally returning the resulting count. If
 // the result is 0 the reference is now weak and the object may be GC'd at any
-// time if there are no other references. Calling this when the refcount is
+// time if there are no other references. Calling this when the refcount is
 // already 0 results in an error.
 napi_status napi_reference_unref(napi_env env, napi_ref ref, int* result) {
   NAPI_PREAMBLE(env);
@@ -1930,7 +1930,7 @@ napi_status napi_reference_unref(napi_env env, napi_ref ref, int* result) {
 
 // Attempts to get a referenced value. If the reference is weak, the value might
 // no longer be available, in that case the call is still successful but the
-// result is NULL.
+// result is NULL.
 napi_status napi_get_reference_value(napi_env env,
                                      napi_ref ref,
                                      napi_value* result) {
