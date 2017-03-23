@@ -120,12 +120,12 @@ NAPI_EXTERN napi_status napi_create_number(napi_env env,
                                            double value,
                                            napi_value* result);
 NAPI_EXTERN napi_status napi_create_string_utf8(napi_env env,
-                                                const char* buf,
-                                                size_t bufsize,
+                                                const char* str,
+                                                size_t length,
                                                 napi_value* result);
 NAPI_EXTERN napi_status napi_create_string_utf16(napi_env env,
-                                                 const char16_t* buf,
-                                                 size_t bufsize,
+                                                 const char16_t* str,
+                                                 size_t length,
                                                  napi_value* result);
 NAPI_EXTERN napi_status napi_create_symbol(napi_env env,
                                            napi_value description,

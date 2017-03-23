@@ -113,7 +113,7 @@ static v8::Local<v8::Function> V8LocalFunctionFromJsValue(napi_value v) {
 
 // Wrapper around v8::Persistent that implements reference counting.
 class Reference {
- protected:
+ private:
   Reference(v8::Isolate* isolate,
             v8::Local<v8::Value> value,
             int initial_refcount,
@@ -1173,23 +1173,23 @@ napi_status napi_create_array_with_length(napi_env env,
 }
 
 napi_status napi_create_string_utf8(napi_env env,
-                                    const char* buf,
-                                    size_t bufsize,
+                                    const char* str,
+                                    size_t length,
                                     napi_value* result) {
   NAPI_PREAMBLE(env);
   CHECK_ARG(result);
 
   auto isolate = v8impl::V8IsolateFromJsEnv(env);
-  v8::Local<v8::String> str;
-  CHECK_NEW_FROM_UTF8_LEN(isolate, str, buf, bufsize);
+  v8::Local<v8::String> s;
+  CHECK_NEW_FROM_UTF8_LEN(isolate, s, str, length);
 
-  *result = v8impl::JsValueFromV8LocalValue(str);
+  *result = v8impl::JsValueFromV8LocalValue(s);
   return GET_RETURN_STATUS();
 }
 
 napi_status napi_create_string_utf16(napi_env env,
-                                     const char16_t* buf,
-                                     size_t bufsize,
+                                     const char16_t* str,
+                                     size_t length,
                                      napi_value* result) {
   NAPI_PREAMBLE(env);
   CHECK_ARG(result);
@@ -1197,13 +1197,12 @@ napi_status napi_create_string_utf16(napi_env env,
   auto isolate = v8impl::V8IsolateFromJsEnv(env);
   auto str_maybe =
       v8::String::NewFromTwoByte(isolate,
-                                 reinterpret_cast<const uint16_t*>(buf),
+                                 reinterpret_cast<const uint16_t*>(str),
                                  v8::NewStringType::kInternalized,
-                                 bufsize);
+                                 length);
   CHECK_MAYBE_EMPTY(str_maybe, napi_generic_failure);
-  v8::Local<v8::String> str = str_maybe.ToLocalChecked();
 
-  *result = v8impl::JsValueFromV8LocalValue(str);
+  *result = v8impl::JsValueFromV8LocalValue(str_maybe.ToLocalChecked());
   return GET_RETURN_STATUS();
 }
 
@@ -1220,7 +1219,7 @@ napi_status napi_create_number(napi_env env,
 }
 
 napi_status napi_get_boolean(napi_env env, bool value, napi_value* result) {
-  NAPI_PREAMBLE(env);
+  CHECK_ARG(env);
   CHECK_ARG(result);
 
   v8::Isolate* isolate = v8impl::V8IsolateFromJsEnv(env);
@@ -1231,7 +1230,7 @@ napi_status napi_get_boolean(napi_env env, bool value, napi_value* result) {
     *result = v8impl::JsValueFromV8LocalValue(v8::False(isolate));
   }
 
-  return GET_RETURN_STATUS();
+  return napi_ok;
 }
 
 napi_status napi_create_symbol(napi_env env,
@@ -1328,23 +1327,23 @@ napi_status napi_typeof(napi_env env,
 }
 
 napi_status napi_get_undefined(napi_env env, napi_value* result) {
-  NAPI_PREAMBLE(env);
+  CHECK_ARG(env);
   CHECK_ARG(result);
 
   *result = v8impl::JsValueFromV8LocalValue(
       v8::Undefined(v8impl::V8IsolateFromJsEnv(env)));
 
-  return GET_RETURN_STATUS();
+  return napi_ok;
 }
 
 napi_status napi_get_null(napi_env env, napi_value* result) {
-  NAPI_PREAMBLE(env);
+  CHECK_ARG(env);
   CHECK_ARG(result);
 
   *result = v8impl::JsValueFromV8LocalValue(
         v8::Null(v8impl::V8IsolateFromJsEnv(env)));
 
-  return GET_RETURN_STATUS();
+  return napi_ok;
 }
 
 // Gets all callback info in a single call. (Ugly, but faster.)
@@ -1472,7 +1471,7 @@ napi_status napi_call_function(napi_env env,
 }
 
 napi_status napi_get_global(napi_env env, napi_value* result) {
-  NAPI_PREAMBLE(env);
+  CHECK_ARG(env);
   CHECK_ARG(result);
 
   v8::Isolate* isolate = v8impl::V8IsolateFromJsEnv(env);
@@ -1482,7 +1481,7 @@ napi_status napi_get_global(napi_env env, napi_value* result) {
   v8::Local<v8::Context> context = isolate->GetCurrentContext();
   *result = v8impl::JsValueFromV8LocalValue(context->Global());
 
-  return GET_RETURN_STATUS();
+  return napi_ok;
 }
 
 napi_status napi_throw(napi_env env, napi_value error) {
