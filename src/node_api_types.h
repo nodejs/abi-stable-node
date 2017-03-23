@@ -1,4 +1,4 @@
-#ifndef SRC_NODE_API_TYPES_H_
+﻿#ifndef SRC_NODE_API_TYPES_H_
 #define SRC_NODE_API_TYPES_H_
 
 #include <stddef.h>
@@ -78,6 +78,7 @@ typedef enum {
   napi_function_expected,
   napi_number_expected,
   napi_boolean_expected,
+  napi_array_expected,
   napi_generic_failure,
   napi_pending_exception,
   napi_status_last
