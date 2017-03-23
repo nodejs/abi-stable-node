@@ -153,8 +153,8 @@ class Reference {
                         napi_finalize finalize_callback = nullptr,
                         void* finalize_data = nullptr,
                         void* finalize_hint = nullptr) {
-    return new Reference(isolate, 
-      value, 
+    return new Reference(isolate,
+      value,
       initial_refcount,
       delete_self,
       finalize_callback,
@@ -554,7 +554,7 @@ void napi_module_register(napi_module* mod) {
 #define CHECK_MAYBE_NOTHING(maybe, status) \
   RETURN_STATUS_IF_FALSE(!((maybe).IsNothing()), (status))
 
-// NAPI_PREAMBLE is not wrapped in do..while: try_catch must have function scope.
+// NAPI_PREAMBLE is not wrapped in do..while: try_catch must have function scope
 #define NAPI_PREAMBLE(env)                                            \
   CHECK_ARG(env);                                                     \
   RETURN_STATUS_IF_FALSE(v8impl::TryCatch::LastException().IsEmpty(), \
@@ -736,8 +736,8 @@ napi_status napi_define_class(napi_env env,
 
       tpl->PrototypeTemplate()->Set(property_name, t, attributes);
     } else if (p->getter || p->setter) {
-      v8::Local<v8::Object> cbdata =
-          v8impl::CreateAccessorCallbackData(env, p->getter, p->setter, p->data);
+      v8::Local<v8::Object> cbdata = v8impl::CreateAccessorCallbackData(
+        env, p->getter, p->setter, p->data);
 
       tpl->PrototypeTemplate()->SetAccessor(
         property_name,
@@ -1206,8 +1206,8 @@ napi_status napi_create_string_utf16(napi_env env,
   return GET_RETURN_STATUS();
 }
 
-napi_status napi_create_number(napi_env env, 
-                               double value, 
+napi_status napi_create_number(napi_env env,
+                               double value,
                                napi_value* result) {
   NAPI_PREAMBLE(env);
   CHECK_ARG(result);
@@ -1353,8 +1353,8 @@ napi_status napi_get_cb_info(
     size_t* argc,      // [in-out] Specifies the size of the provided argv array
                        // and receives the actual count of args.
     napi_value* argv,  // [out] Array of values
-    napi_value* this_arg, // [out] Receives the JS 'this' arg for the call
-    void** data) {        // [out] Receives the data pointer for the callback.
+    napi_value* this_arg,  // [out] Receives the JS 'this' arg for the call
+    void** data) {         // [out] Receives the data pointer for the callback.
   CHECK_ARG(argc);
   CHECK_ARG(argv);
   CHECK_ARG(this_arg);
@@ -1636,7 +1636,7 @@ napi_status napi_get_value_string_length(napi_env env,
 // Copies a JavaScript string into a UTF-8 string buffer. The result is the
 // number of bytes copied into buf, including the null terminator. If bufsize
 // is insufficient, the string will be truncated, including a null terminator.
-// If buf is NULL, this method returns the length of the string (in bytes) 
+// If buf is NULL, this method returns the length of the string (in bytes)
 // via the result parameter.
 // The result argument is optional unless buf is NULL.
 napi_status napi_get_value_string_utf8(napi_env env,
@@ -2071,7 +2071,8 @@ napi_status napi_instanceof(napi_env env,
         break;
       }
       v8::Local<v8::Object> obj;
-      CHECK_TO_OBJECT(context, obj, v8impl::JsValueFromV8LocalValue(current_obj));
+      CHECK_TO_OBJECT(context, obj, v8impl::JsValueFromV8LocalValue(
+        current_obj));
       current_obj = obj->GetPrototype();
     }
   }
