@@ -1646,21 +1646,6 @@ napi_status napi_get_value_string_length(napi_env env,
   return GET_RETURN_STATUS();
 }
 
-// Gets the number of BYTES in the LATIN-1 encoded representation of the string.
-napi_status napi_get_value_string_latin1_length(napi_env e,
-                                                napi_value value,
-                                                size_t* result) {
-  NAPI_PREAMBLE(e);
-  CHECK_ARG(result);
-
-  v8::Local<v8::Value> val = v8impl::V8LocalValueFromJsValue(value);
-  RETURN_STATUS_IF_FALSE(val->IsString(), napi_string_expected);
-
-  *result = val.As<v8::String>()->Length();
-
-  return GET_RETURN_STATUS();
-}
-
 // Copies a JavaScript string into a LATIN-1 string buffer. The result is the
 // number of bytes copied into buf, including the null terminator. If bufsize
 // is insufficient, the string will be truncated, including a null terminator.

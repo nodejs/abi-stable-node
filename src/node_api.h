@@ -174,22 +174,12 @@ NAPI_EXTERN napi_status napi_get_value_string_length(napi_env env,
                                                      napi_value value,
                                                      size_t* result);
 
-// Gets the number of BYTES in the LATIN-1 encoded representation of the string.
-NAPI_EXTERN napi_status napi_get_value_string_latin1_length(napi_env env,
-                                                            napi_value value,
-                                                            size_t* result);
-
 // Copies LATIN-1 encoded bytes from a string into a buffer.
 NAPI_EXTERN napi_status napi_get_value_string_latin1(napi_env env,
                                                      napi_value value,
                                                      char* buf,
                                                      size_t bufsize,
                                                      size_t* result);
-
-// Gets the number of BYTES in the UTF-8 encoded representation of the string.
-NAPI_EXTERN napi_status napi_get_value_string_utf8_length(napi_env env,
-                                                          napi_value value,
-                                                          int* result);
 
 // Copies UTF-8 encoded bytes from a string into a buffer.
 NAPI_EXTERN napi_status napi_get_value_string_utf8(napi_env env,
