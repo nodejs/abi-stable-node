@@ -3,7 +3,7 @@
 N-API uses both return values and exceptions for error handling.  The sections
 which follow explain the approach for each case.
 
-## return values
+## Return values
 
 All of the N-API functions share the same error handling pattern.  The
 return type of all API functions is ```napi_status```.
@@ -19,13 +19,13 @@ In cases were a return value other than ```napi_ok``` or
 ```napi_is_exception_pending()``` to check if an exception is pending.
 See the section on exceptions for more details.
 
-The full set of possible napi_status values are defined
+The full set of possible napi_status values is defined
 in ```napi_api_types.h``.
 
-The napi_status return value provides an vm independent representation of
+The 'napi_status' return value provides an vm-independent representation of
 the error which occured.  In some cases it is useful to be able to get
 more detailed information, including a string representing the error as well as
-vm(engine) specific information.  **NOTE:**  you should not rely on the
+vm(engine)-specific information.  **NOTE:**  you should not rely on the
 content or format of any of the extended information as it is
 not subject to SemVer and may change at any time. It is intended
 only for logging purposes.
@@ -35,7 +35,7 @@ In order to retrieve this information, the following method is provided:
 ```C
 NODE_EXTERN const napi_extended_error_info* napi_get_last_error_info();
 ```
-and the format of napi_extended_error_info structure is as follows:
+and the format of the ```napi_extended_error_info``` structure is as follows:
 
 ```C
 struct napi_extended_error_info {
@@ -54,7 +54,7 @@ be a textual representation of the error that occurred.
 ## Exceptions
 
 Any N-API function may result in a pending JavaScript exception.  This is
-obviotusly the case for any function that may cause the execution of JavaScript
+obviously the case for any function that may cause the execution of JavaScript
 but N-API specifies that an exception may be pending on return from any
 of the API functions.
 
@@ -75,10 +75,10 @@ When an exception is pending you will generally follow one of two approaches.
 The first appoach is to do any appropriate cleanup and then return so that
 execution will return to JavaScript.  As part of the transition back to
 JavaScript the exception will be thrown at the point in the JavaScript
-code were the native method was invoked.  The behviour of most N-API calls
+code were the native method was invoked.  The behavior of most N-API calls
 is unspecified while an exception is pending, and many will simply return
 ```napi_pending_exception```, so it is important to do as little as possible
-and then return to JavaScript where the exeption can be handled.
+and then return to JavaScript where the exception can be handled.
 
 The second approach is to try to handle the exception. There will be cases
 were the native code can 'catch' the exception, take the appropriate action,
@@ -99,10 +99,10 @@ you can re-throw it with the following function:
 NODE_EXTERN napi_status napi_throw(napi_env e, napi_value error);
 ```
 
-were error, is the exception to be thrown.
+were error is the exception to be thrown.
 
 The following utility functions are also available in case your native code
-needs to throw an exception or determine in an napi_value represents an
+needs to throw an exception or determine if a ```napi_value``` represents an
 exception.
 
 ```C
