@@ -1657,7 +1657,7 @@ napi_status napi_get_value_string_latin1(napi_env env,
                                          char* buf,
                                          size_t bufsize,
                                          size_t* result) {
-  NAPI_PREAMBLE(e);
+  NAPI_PREAMBLE(env);
 
   v8::Local<v8::Value> val = v8impl::V8LocalValueFromJsValue(value);
   RETURN_STATUS_IF_FALSE(val->IsString(), napi_string_expected);
