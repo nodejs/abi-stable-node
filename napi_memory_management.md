@@ -81,6 +81,34 @@ for (int i = 0; i < 1000000; i++) {napi_
 }
 ```
 
+When nesting scopes, there are cases where you want a reference from an
+inner scope to live beyond the lifespan of that scope.  N-API supports an
+'escapable scope' in order to support this case.  An escapable scope
+allows one or more references to be 'promoted' so that they  'escape' the
+current scope and the lifespan of the reference(s) changes from the current
+scope to that of the outer scope.
+
+The methods available to open/close escapable scopes are:
+
+```C
+NAPI_EXTERN napi_status
+napi_open_escapable_handle_scope(napi_env env,
+                                 napi_escapable_handle_scope* result);
+NAPI_EXTERN napi_status
+napi_close_escapable_handle_scope(napi_env env,
+                                  napi_escapable_handle_scope scope);
+```
+
+The request to promote a reference is made through the ```napi_escape_handle```
+function:
+
+```
+NAPI_EXTERN napi_status napi_escape_handle(napi_env env,
+                                           napi_escapable_handle_scope scope,
+                                           napi_value escapee,
+                                           napi_value* result);
+```
+
 ## Making reference lifespan longer than that of native method
 
 In some cases an addon will need to be able to create and reference objects
