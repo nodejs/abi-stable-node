@@ -12,12 +12,12 @@ void MyObject::Destructor(void* nativeObject, void* /*finalize_hint*/) {
 }
 
 #define DECLARE_NAPI_METHOD(name, func)                          \
-  { name, func, 0, 0, 0, napi_default, 0 }
+  { name, 0, func, 0, 0, 0, napi_default, 0 }
 
 void MyObject::Init(napi_env env, napi_value exports) {
   napi_status status;
   napi_property_descriptor properties[] = {
-      { "value", nullptr, GetValue, SetValue, 0, napi_default, 0 },
+      { "value", nullptr, nullptr, GetValue, SetValue, 0, napi_default, 0 },
       DECLARE_NAPI_METHOD("plusOne", PlusOne),
       DECLARE_NAPI_METHOD("multiply", Multiply),
   };
@@ -34,166 +34,182 @@ void MyObject::Init(napi_env env, napi_value exports) {
   if (status != napi_ok) return;
 }
 
-void MyObject::New(napi_env env, napi_callback_info info) {
+napi_value MyObject::New(napi_env env, napi_callback_info info) {
   napi_status status;
 
   bool is_constructor;
   status = napi_is_construct_call(env, info, &is_constructor);
-  if (status != napi_ok) return;
+  if (status != napi_ok) return NULL;
+
+  size_t argc = 1;
+  napi_value args[1];
+  napi_value _this;
+  status = napi_get_cb_info(
+    env,
+    info,
+    &argc,
+    args,
+    &_this,
+    NULL);
+  if (status != napi_ok) return NULL;
 
   if (is_constructor) {
     // Invoked as constructor: `new MyObject(...)`
-    napi_value args[1];
-    status = napi_get_cb_args(env, info, args, 1);
-    if (status != napi_ok) return;
-
     double value = 0;
 
     napi_valuetype valuetype;
     status = napi_typeof(env, args[0], &valuetype);
-    if (status != napi_ok) return;
+    if (status != napi_ok) return NULL;
 
     if (valuetype != napi_undefined) {
       status = napi_get_value_double(env, args[0], &value);
-      if (status != napi_ok) return;
+      if (status != napi_ok) return NULL;
     }
 
     MyObject* obj = new MyObject(value);
 
-    napi_value jsthis;
-    status = napi_get_cb_this(env, info, &jsthis);
-    if (status != napi_ok) return;
-
     obj->env_ = env;
     status = napi_wrap(env,
-                       jsthis,
+                       _this,
                        reinterpret_cast<void*>(obj),
                        MyObject::Destructor,
                        nullptr,  // finalize_hint
                        &obj->wrapper_);
-    if (status != napi_ok) return;
+    if (status != napi_ok) return NULL;
 
-    status = napi_set_return_value(env, info, jsthis);
-    if (status != napi_ok) return;
+    return _this;
   } else {
     // Invoked as plain function `MyObject(...)`, turn into construct call.
-    napi_value args[1];
-    status = napi_get_cb_args(env, info, args, 1);
-    if (status != napi_ok) return;
-
-    const int argc = 1;
-    napi_value argv[argc] = {args[0]};
+    argc = 1;
+    napi_value argv[1] = {args[0]};
 
     napi_value cons;
     status = napi_get_reference_value(env, constructor, &cons);
-    if (status != napi_ok) return;
+    if (status != napi_ok) return NULL;
 
     napi_value instance;
     status = napi_new_instance(env, cons, argc, argv, &instance);
-    if (status != napi_ok) return;
+    if (status != napi_ok) return NULL;
 
-    status = napi_set_return_value(env, info, instance);
-    if (status != napi_ok) return;
+    return instance;
   }
+
+  return NULL;
 }
 
-void MyObject::GetValue(napi_env env, napi_callback_info info) {
+napi_value MyObject::GetValue(napi_env env, napi_callback_info info) {
   napi_status status;
 
-  napi_value jsthis;
-  status = napi_get_cb_this(env, info, &jsthis);
-  if (status != napi_ok) return;
+  size_t argc = 0;
+  napi_value _this;
+  status = napi_get_cb_info(
+    env,
+    info,
+    &argc,
+    NULL,
+    &_this,
+    NULL);
+  if (status != napi_ok) return NULL;
 
   MyObject* obj;
-  status = napi_unwrap(env, jsthis, reinterpret_cast<void**>(&obj));
-  if (status != napi_ok) return;
+  status = napi_unwrap(env, _this, reinterpret_cast<void**>(&obj));
+  if (status != napi_ok) return NULL;
 
   napi_value num;
   status = napi_create_number(env, obj->value_, &num);
-  if (status != napi_ok) return;
+  if (status != napi_ok) return NULL;
 
-  status = napi_set_return_value(env, info, num);
-  if (status != napi_ok) return;
+  return num;
 }
 
-void MyObject::SetValue(napi_env env, napi_callback_info info) {
+napi_value MyObject::SetValue(napi_env env, napi_callback_info info) {
   napi_status status;
 
-  napi_value value;
-  status = napi_get_cb_args(env, info, &value, 1);
-  if (status != napi_ok) return;
-
-  napi_value jsthis;
-  status = napi_get_cb_this(env, info, &jsthis);
-  if (status != napi_ok) return;
+  size_t argc = 1;
+  napi_value args[1];
+  napi_value _this;
+  status = napi_get_cb_info(
+    env,
+    info,
+    &argc,
+    args,
+    &_this,
+    NULL);
+  if (status != napi_ok) return NULL;
 
   MyObject* obj;
-  status = napi_unwrap(env, jsthis, reinterpret_cast<void**>(&obj));
-  if (status != napi_ok) return;
+  status = napi_unwrap(env, _this, reinterpret_cast<void**>(&obj));
+  if (status != napi_ok) return NULL;
 
-  status = napi_get_value_double(env, value, &obj->value_);
-  if (status != napi_ok) return;
+  status = napi_get_value_double(env, args[0], &obj->value_);
+  if (status != napi_ok) return NULL;
+  return NULL;
 }
 
-void MyObject::PlusOne(napi_env env, napi_callback_info info) {
+napi_value MyObject::PlusOne(napi_env env, napi_callback_info info) {
   napi_status status;
 
-  napi_value jsthis;
-  status = napi_get_cb_this(env, info, &jsthis);
-  if (status != napi_ok) return;
+  size_t argc = 0;
+  napi_value _this;
+  status = napi_get_cb_info(
+    env,
+    info,
+    &argc,
+    NULL,
+    &_this,
+    NULL);
+  if (status != napi_ok) return NULL;
 
   MyObject* obj;
-  status = napi_unwrap(env, jsthis, reinterpret_cast<void**>(&obj));
-  if (status != napi_ok) return;
+  status = napi_unwrap(env, _this, reinterpret_cast<void**>(&obj));
+  if (status != napi_ok) return NULL;
 
   obj->value_ += 1;
 
   napi_value num;
   status = napi_create_number(env, obj->value_, &num);
-  if (status != napi_ok) return;
+  if (status != napi_ok) return NULL;
 
-  status = napi_set_return_value(env, info, num);
-  if (status != napi_ok) return;
+  return num;
 }
 
-void MyObject::Multiply(napi_env env, napi_callback_info info) {
+napi_value MyObject::Multiply(napi_env env, napi_callback_info info) {
   napi_status status;
 
+  size_t argc = 1;
   napi_value args[1];
-  status = napi_get_cb_args(env, info, args, 1);
-  if (status != napi_ok) return;
-
-  napi_valuetype valuetype;
-  status = napi_typeof(env, args[0], &valuetype);
-  if (status != napi_ok) return;
+  napi_value _this;
+  status = napi_get_cb_info(
+    env,
+    info,
+    &argc,
+    args,
+    &_this,
+    NULL);
+  if (status != napi_ok) return NULL;
 
   double multiple = 1;
-  if (valuetype != napi_undefined) {
+  if (argc >= 1) {
     status = napi_get_value_double(env, args[0], &multiple);
-    if (status != napi_ok) return;
+    if (status != napi_ok) return NULL;
   }
 
-  napi_value jsthis;
-  status = napi_get_cb_this(env, info, &jsthis);
-  if (status != napi_ok) return;
-
   MyObject* obj;
-  status = napi_unwrap(env, jsthis, reinterpret_cast<void**>(&obj));
-  if (status != napi_ok) return;
+  status = napi_unwrap(env, _this, reinterpret_cast<void**>(&obj));
+  if (status != napi_ok) return NULL;
 
   napi_value cons;
   status = napi_get_reference_value(env, constructor, &cons);
-  if (status != napi_ok) return;
+  if (status != napi_ok) return NULL;
 
   const int kArgCount = 1;
   napi_value argv[kArgCount];
   status = napi_create_number(env, obj->value_ * multiple, argv);
-  if (status != napi_ok) return;
+  if (status != napi_ok) return NULL;
 
   napi_value instance;
   status = napi_new_instance(env, cons, kArgCount, argv, &instance);
-  if (status != napi_ok) return;
+  if (status != napi_ok) return NULL;
 
-  status = napi_set_return_value(env, info, instance);
-  if (status != napi_ok) return;
+  return instance;
 }

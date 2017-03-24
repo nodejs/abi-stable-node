@@ -2,64 +2,75 @@
 
 static double value_ = 1;
 
-void GetValue(napi_env env, napi_callback_info info) {
+napi_value GetValue(napi_env env, napi_callback_info info) {
   napi_status status;
 
-  size_t argc;
-  status = napi_get_cb_args_length(env, info, &argc);
-  if (status != napi_ok) return;
+  size_t argc = 0;
+  status = napi_get_cb_info(
+    env,
+    info,
+    &argc,
+    NULL,
+    NULL,
+    NULL);
+  if (status != napi_ok) return NULL;
 
   if (argc != 0) {
     napi_throw_type_error(env, "Wrong number of arguments");
-    return;
+    return NULL;
   }
 
   napi_value number;
   status = napi_create_number(env, value_, &number);
-  if (status != napi_ok) return;
+  if (status != napi_ok) return NULL;
 
-  status = napi_set_return_value(env, info, number);
-  if (status != napi_ok) return;
+  return number;
 }
 
-void SetValue(napi_env env, napi_callback_info info) {
+napi_value SetValue(napi_env env, napi_callback_info info) {
   napi_status status;
 
-  size_t argc;
-  status = napi_get_cb_args_length(env, info, &argc);
-  if (status != napi_ok) return;
+  size_t argc = 1;
+  napi_value args[1];
+  status = napi_get_cb_info(
+    env,
+    info,
+    &argc,
+    args,
+    NULL,
+    NULL);
+  if (status != napi_ok) return NULL;
 
   if (argc != 1) {
     napi_throw_type_error(env, "Wrong number of arguments");
-    return;
+    return NULL;
   }
 
-  napi_value arg;
-  status = napi_get_cb_args(env, info, &arg, 1);
-  if (status != napi_ok) return;
-
-  status = napi_get_value_double(env, arg, &value_);
-  if (status != napi_ok) return;
+  status = napi_get_value_double(env, args[0], &value_);
+  if (status != napi_ok) return NULL;
+  return NULL;
 }
 
-void Echo(napi_env env, napi_callback_info info) {
+napi_value Echo(napi_env env, napi_callback_info info) {
   napi_status status;
 
-  size_t argc;
-  status = napi_get_cb_args_length(env, info, &argc);
-  if (status != napi_ok) return;
+  size_t argc = 1;
+  napi_value args[1];
+  status = napi_get_cb_info(
+    env,
+    info,
+    &argc,
+    args,
+    NULL,
+    NULL);
+  if (status != napi_ok) return NULL;
 
   if (argc != 1) {
     napi_throw_type_error(env, "Wrong number of arguments");
-    return;
+    return NULL;
   }
 
-  napi_value arg;
-  status = napi_get_cb_args(env, info, &arg, 1);
-  if (status != napi_ok) return;
-
-  status = napi_set_return_value(env, info, arg);
-  if (status != napi_ok) return;
+  return args[0];
 }
 
 void Init(napi_env env, napi_value exports, napi_value module, void* priv) {
@@ -70,11 +81,11 @@ void Init(napi_env env, napi_value exports, napi_value module, void* priv) {
   if (status != napi_ok) return;
 
   napi_property_descriptor properties[] = {
-      { "echo", Echo, 0, 0, 0, napi_default, 0 },
-      { "accessorValue", 0, GetValue, SetValue, 0, napi_default, 0 },
-      { "readwriteValue", 0, 0, 0, number, napi_default, 0 },
-      { "readonlyValue", 0, 0, 0, number, napi_read_only, 0 },
-      { "hiddenValue", 0, 0, 0, number, napi_read_only | napi_dont_enum, 0 },
+      { "echo", 0, Echo, 0, 0, 0, napi_default, 0 },
+      { "accessorValue", 0, 0, GetValue, SetValue, 0, napi_default, 0 },
+      { "readwriteValue", 0, 0, 0, 0, number, napi_default, 0 },
+      { "readonlyValue", 0, 0, 0, 0, number, napi_read_only, 0 },
+      { "hiddenValue", 0, 0, 0, 0, number, napi_read_only | napi_dont_enum, 0 },
   };
 
   status = napi_define_properties(

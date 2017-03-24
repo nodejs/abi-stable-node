@@ -1,28 +1,31 @@
 #include <node_api.h>
 
-void Test(napi_env env, napi_callback_info info) {
+napi_value Test(napi_env env, napi_callback_info info) {
   napi_status status;
 
-  size_t argc;
-  status = napi_get_cb_args_length(env, info, &argc);
-  if (status != napi_ok) return;
+  size_t argc = 10;
+  napi_value args[10];
+  status = napi_get_cb_info(
+    env,
+    info,
+    &argc,
+    args,
+    NULL,
+    NULL);
+  if (status != napi_ok) return NULL;
 
   if (argc < 1) {
     napi_throw_type_error(env, "Wrong number of arguments");
-    return;
+    return NULL;
   }
-
-  napi_value args[10];
-  status = napi_get_cb_args(env, info, args, 10);
-  if (status != napi_ok) return;
 
   napi_valuetype valuetype;
   status = napi_typeof(env, args[0], &valuetype);
-  if (status != napi_ok) return;
+  if (status != napi_ok) return NULL;
 
   if (valuetype != napi_function) {
     napi_throw_type_error(env, "Wrong type of argments. Expects a function.");
-    return;
+    return NULL;
   }
 
   napi_value function = args[0];
@@ -31,14 +34,13 @@ void Test(napi_env env, napi_callback_info info) {
 
   napi_value global;
   status = napi_get_global(env, &global);
-  if (status != napi_ok) return;
+  if (status != napi_ok) return NULL;
 
   napi_value result;
   status = napi_call_function(env, global, function, argc, argv, &result);
-  if (status != napi_ok) return;
+  if (status != napi_ok) return NULL;
 
-  status = napi_set_return_value(env, info, result);
-  if (status != napi_ok) return;
+  return result;
 }
 
 void Init(napi_env env, napi_value exports, napi_value module, void* priv) {

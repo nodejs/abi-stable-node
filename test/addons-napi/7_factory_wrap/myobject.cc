@@ -9,7 +9,7 @@ void MyObject::Destructor(void* nativeObject, void* /*finalize_hint*/) {
 }
 
 #define DECLARE_NAPI_METHOD(name, func)                          \
-  { name, func, 0, 0, 0, napi_default, 0 }
+  { name, 0, func, 0, 0, 0, napi_default, 0 }
 
 napi_ref MyObject::constructor;
 
@@ -30,16 +30,24 @@ napi_status MyObject::Init(napi_env env) {
   return napi_ok;
 }
 
-void MyObject::New(napi_env env, napi_callback_info info) {
+napi_value MyObject::New(napi_env env, napi_callback_info info) {
   napi_status status;
 
+  size_t argc = 1;
   napi_value args[1];
-  status = napi_get_cb_args(env, info, args, 1);
-  if (status != napi_ok) return;
+  napi_value _this;
+  status = napi_get_cb_info(
+    env,
+    info,
+    &argc,
+    args,
+    &_this,
+    NULL);
+  if (status != napi_ok) return NULL;
 
   napi_valuetype valuetype;
   status = napi_typeof(env, args[0], &valuetype);
-  if (status != napi_ok) return;
+  if (status != napi_ok) return NULL;
 
   MyObject* obj = new MyObject();
 
@@ -47,24 +55,19 @@ void MyObject::New(napi_env env, napi_callback_info info) {
     obj->counter_ = 0;
   } else {
     status = napi_get_value_double(env, args[0], &obj->counter_);
-    if (status != napi_ok) return;
+    if (status != napi_ok) return NULL;
   }
-
-  napi_value jsthis;
-  status = napi_get_cb_this(env, info, &jsthis);
-  if (status != napi_ok) return;
 
   obj->env_ = env;
   status = napi_wrap(env,
-                     jsthis,
+                     _this,
                      reinterpret_cast<void*>(obj),
                      MyObject::Destructor,
                      nullptr, /* finalize_hint */
                      &obj->wrapper_);
-  if (status != napi_ok) return;
+  if (status != napi_ok) return NULL;
 
-  status = napi_set_return_value(env, info, jsthis);
-  if (status != napi_ok) return;
+  return _this;
 }
 
 napi_status MyObject::NewInstance(napi_env env,
@@ -85,23 +88,29 @@ napi_status MyObject::NewInstance(napi_env env,
   return napi_ok;
 }
 
-void MyObject::PlusOne(napi_env env, napi_callback_info info) {
+napi_value MyObject::PlusOne(napi_env env, napi_callback_info info) {
   napi_status status;
 
-  napi_value jsthis;
-  status = napi_get_cb_this(env, info, &jsthis);
-  if (status != napi_ok) return;
+  size_t argc = 0;
+  napi_value _this;
+  status = napi_get_cb_info(
+    env,
+    info,
+    &argc,
+    NULL,
+    &_this,
+    NULL);
+  if (status != napi_ok) return NULL;
 
   MyObject* obj;
-  status = napi_unwrap(env, jsthis, reinterpret_cast<void**>(&obj));
-  if (status != napi_ok) return;
+  status = napi_unwrap(env, _this, reinterpret_cast<void**>(&obj));
+  if (status != napi_ok) return NULL;
 
   obj->counter_ += 1;
 
   napi_value num;
   status = napi_create_number(env, obj->counter_, &num);
-  if (status != napi_ok) return;
+  if (status != napi_ok) return NULL;
 
-  status = napi_set_return_value(env, info, num);
-  if (status != napi_ok) return;
+  return num;
 }
