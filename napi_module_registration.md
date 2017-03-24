@@ -7,7 +7,7 @@ except that instead of using the NODE_MODULE macro you use:
 NAPI_MODULE(addon, Init)
 ```
 
-The next difference is that the signature for the 'Init'.  For a N-API
+The next difference is the signature for the 'Init' method.  For a N-API
 based module it is as follows:
 
 ```C
@@ -17,8 +17,8 @@ void Init(napi_env env, napi_value exports, napi_value module, void* priv);
 As with any other module, functions are exported by either adding them to
 the exports or module objects passed to the Init method.
 
-For example, to add the method 'hello' as a function so that can be called as a
-method provided by the addon:
+For example, to add the method 'hello' as a function so that it can be called
+as a method provided by the addon:
 
 ```C
 void Init(napi_env env, napi_value exports, napi_value module, void* priv) {
@@ -29,7 +29,7 @@ void Init(napi_env env, napi_value exports, napi_value module, void* priv) {
 }
 ```
 
-For example, to set a function to be returned by the require for the addon:
+For example, to set a function to be returned by the require() for the addon:
 
 ```C
 void Init(napi_env env, napi_value exports, napi_value module, void* priv) {
@@ -40,11 +40,36 @@ void Init(napi_env env, napi_value exports, napi_value module, void* priv) {
 }
 ```
 
-For more details on setting properties on either the exports or module objects,
-see the secton on setting, getting and defining properties.
+For example, to define your own class so that new instances can be created
+(often used with [object wrap]()):
 
-For more details on building Addon modules in general, refer to the existing API
-documentation in [addons.md](addons.md).  Most of that informatoin remains
+```
+  // NOTE: partial example, not all referenced code include
+
+  napi_status status;
+  napi_property_descriptor properties[] = {
+      { "value", nullptr, GetValue, SetValue, 0, napi_default, 0 },
+      DECLARE_NAPI_METHOD("plusOne", PlusOne),
+      DECLARE_NAPI_METHOD("multiply", Multiply),
+  };
+
+  napi_value cons;
+  status =
+      napi_define_class(env, "MyObject", New, nullptr, 3, properties, &cons);
+  if (status != napi_ok) return;
+
+  status = napi_create_reference(env, cons, 1, &constructor);
+  if (status != napi_ok) return;
+
+  status = napi_set_named_property(env, exports, "MyObject", cons);
+  if (status != napi_ok) return;
+```
+
+For more details on setting properties on either the exports or module objects,
+see the section on setting, getting and defining properties.
+
+For more details on building addon modules in general, refer to the existing API
+documentation in [addons.md](addons.md).  Most of that information remains
 accurate when building N-API modules,  except for references to the use
 of V8 functions which should be replaced by use of N-API methods. Once N-API
 is no longer experimental we'll look to more completely unify
