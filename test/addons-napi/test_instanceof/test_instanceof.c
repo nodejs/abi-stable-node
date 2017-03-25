@@ -1,28 +1,33 @@
 #include <node_api.h>
 #include <stdio.h>
 
-void doInstanceOf(napi_env env, napi_callback_info info) {
+napi_value doInstanceOf(napi_env env, napi_callback_info info) {
   napi_status status;
 
-  napi_value arguments[2];
-
-  status = napi_get_cb_args(env, info, arguments, 2);
-  if (status != napi_ok) return;
+  size_t argc = 2;
+  napi_value args[2];
+  status = napi_get_cb_info(
+    env,
+    info,
+    &argc,
+    args,
+    NULL,
+    NULL);
+  if (status != napi_ok) return NULL;
 
   bool instanceof;
-  status = napi_instanceof(env, arguments[0], arguments[1], &instanceof);
-  if (status != napi_ok) return;
+  status = napi_instanceof(env, args[0], args[1], &instanceof);
+  if (status != napi_ok) return NULL;
 
   napi_value result;
   status = napi_get_boolean(env, instanceof, &result);
-  if (status != napi_ok) return;
+  if (status != napi_ok) return NULL;
 
-  status = napi_set_return_value(env, info, result);
-  if (status != napi_ok) return;
+  return result;
 }
 
 #define DECLARE_NAPI_METHOD(name, func)                          \
-  { name, func, 0, 0, 0, napi_default, 0 }
+  { name, 0, func, 0, 0, 0, napi_default, 0 }
 
 void Init(napi_env env, napi_value exports, napi_value module, void* priv) {
   napi_status status;
