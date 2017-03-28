@@ -200,6 +200,9 @@ class Reference : private Finalizer {
   }
 
   uint32_t Unref() {
+    if (_refcount == 0) {
+        return 0;
+    }
     if (--_refcount == 0) {
       _persistent.SetWeak(
           this, FinalizeCallback, v8::WeakCallbackType::kParameter);
