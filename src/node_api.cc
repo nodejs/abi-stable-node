@@ -22,7 +22,12 @@ napi_status napi_set_last_error(napi_env env,
                                 void* engine_reserved = nullptr);
 void napi_clear_last_error(napi_env env);
 
-struct napi_env__ {
+class napi_env__ {
+ public:
+  explicit napi_env__(v8::Isolate* _isolate): isolate(_isolate), last_error() {}
+  ~napi_env__() {
+    last_exception.Reset();
+  }
   v8::Isolate* isolate;
   v8::Persistent<v8::Value> last_exception;
   napi_extended_error_info last_error;
@@ -533,9 +538,7 @@ void napi_module_register_cb(v8::Local<v8::Object> exports,
   // some other framework makes use of slot 0? There really seems to be a need
   // for a more robust way of assigning arbitrary data to the isolate.
   if (isolate->GetData(0) == nullptr) {
-    napi_env env = new napi_env__;
-    env->isolate = isolate;
-    napi_clear_last_error(env);
+    napi_env env = new napi_env__(isolate);
     isolate->SetData(0, env);
   }
 
