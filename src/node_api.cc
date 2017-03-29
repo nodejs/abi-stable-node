@@ -600,38 +600,39 @@ void napi_module_register(napi_module* mod) {
   RETURN_STATUS_IF_FALSE((env), !((maybe).IsNothing()), (status))
 
 // NAPI_PREAMBLE is not wrapped in do..while: try_catch must have function scope
-#define NAPI_PREAMBLE(env)                                            \
-  CHECK_ARG(env, env);                                                \
-  RETURN_STATUS_IF_FALSE(env, env->last_exception.IsEmpty(), \
-                         napi_pending_exception);                     \
-  napi_clear_last_error((env));                                       \
+#define NAPI_PREAMBLE(env)                                       \
+  CHECK_ARG((env), (env));                                       \
+  RETURN_STATUS_IF_FALSE((env), (env)->last_exception.IsEmpty(), \
+                         napi_pending_exception);                \
+  napi_clear_last_error((env));                                  \
   v8impl::TryCatch try_catch((env))
 
 #define CHECK_TO_TYPE(env, type, context, result, src, status)                \
   do {                                                                        \
     auto maybe = v8impl::V8LocalValueFromJsValue((src))->To##type((context)); \
-    CHECK_MAYBE_EMPTY(env, maybe, (status));                                  \
-    result = maybe.ToLocalChecked();                                          \
+    CHECK_MAYBE_EMPTY((env), maybe, (status));                                \
+    (result) = maybe.ToLocalChecked();                                        \
   } while (0)
 
 #define CHECK_TO_OBJECT(env, context, result, src) \
-  CHECK_TO_TYPE(env, Object, context, result, src, napi_object_expected)
+  CHECK_TO_TYPE((env), Object, (context), (result), (src), napi_object_expected)
 
 #define CHECK_TO_STRING(env, context, result, src) \
-  CHECK_TO_TYPE(env, String, context, result, src, napi_string_expected)
+  CHECK_TO_TYPE((env), String, (context), (result), (src), napi_string_expected)
 
 #define CHECK_TO_NUMBER(env, context, result, src) \
-  CHECK_TO_TYPE(env, Number, context, result, src, napi_number_expected)
+  CHECK_TO_TYPE((env), Number, (context), (result), (src), napi_number_expected)
 
-#define CHECK_TO_BOOL(env, context, result, src) \
-  CHECK_TO_TYPE(env, Boolean, context, result, src, napi_boolean_expected)
+#define CHECK_TO_BOOL(env, context, result, src)            \
+  CHECK_TO_TYPE((env), Boolean, (context), (result), (src), \
+    napi_boolean_expected)
 
-#define CHECK_NEW_FROM_UTF8_LEN(env, result, str, len)          \
-  do {                                                              \
-    auto str_maybe = v8::String::NewFromUtf8(                       \
+#define CHECK_NEW_FROM_UTF8_LEN(env, result, str, len)                   \
+  do {                                                                   \
+    auto str_maybe = v8::String::NewFromUtf8(                            \
         (env)->isolate, (str), v8::NewStringType::kInternalized, (len)); \
-    CHECK_MAYBE_EMPTY(env, str_maybe, napi_generic_failure);             \
-    result = str_maybe.ToLocalChecked();                            \
+    CHECK_MAYBE_EMPTY((env), str_maybe, napi_generic_failure);           \
+    result = str_maybe.ToLocalChecked();                                 \
   } while (0)
 
 #define CHECK_NEW_FROM_UTF8(env, result, str) \
