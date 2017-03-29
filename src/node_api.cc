@@ -637,7 +637,8 @@ void napi_clear_last_error() {
   static_last_error.engine_reserved = nullptr;
 }
 
-const napi_extended_error_info* napi_get_last_error_info() {
+const napi_extended_error_info* napi_get_last_error_info(napi_env env) {
+  (void)env;
   static_assert(node::arraysize(error_messages) == napi_status_last,
       "Count of error messages must match count of error values");
   assert(static_last_error.error_code < napi_status_last);
