@@ -1,4 +1,4 @@
-﻿#include <node_api.h>
+#include <node_api.h>
 #include <string.h>
 
 void Multiply(napi_env env, napi_callback_info info) {
