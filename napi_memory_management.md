@@ -37,7 +37,7 @@ that has a loop which iterates through the elements in a large array:
 This would result in a large number of handles being created, consuming
 substantial resources. In addition, even though the native code could only
 use the most recent handle, all of the associated objects would also be
-kept alive since they are share the same scope.
+kept alive since they all share the same scope.
 
 To handle this case, N-API provides the ability to establish a new 'scope' to
 which newly created handle will be associated.  Once those handles
@@ -109,7 +109,7 @@ NAPI_EXTERN napi_status napi_escape_handle(napi_env env,
                                            napi_value* result);
 ```
 
-## References to objects with a lifespan longer than that of native method
+## References to objects with a lifespan longer than that of the native method
 
 In some cases an addon will need to be able to create and reference objects
 with a lifespan longer than that of a single native method invocation. For
@@ -138,7 +138,7 @@ will return NULL for the returned `napi_value`.  An attempt to call
 `napi_reference_ref()` for a reference whose object has been collected,
 will result in an error.
 
-references must be deleted once they are no longer required by the addon. When
+References must be deleted once they are no longer required by the addon. When
 a reference is deleted it will no longer prevent the corresponding object from
 being collected.  Failure to delete a persistent reference will result in
 a 'memory leak' with both the native memory for the persistent reference and
