@@ -6,7 +6,7 @@ of the [ECMAScript Language Specification](https://tc39.github.io/ecma262/).
 
 Fundamentally, these APIs are used to do one of the following:
 1. Create a new JavaScript object
-2. Convert from a primitive C++ type to N-API value
+2. Convert from a primitive C++ type to an N-API value
 3. Convert from N-API value to a primitive C++ type
 
 N-API values are represented by the type `napi_value`.
@@ -17,7 +17,7 @@ the `napi_value` in question is of the JavaScript type expected by the API.
 
 ## Enum types
 
-### *napi_value_type*
+### *napi_valuetype*
 
 #### Definition
 ```
@@ -38,7 +38,7 @@ typedef enum {
 #### Description
 Describes the type of a `napi_value`. This generally corresponds to the types described
 in [Section 6.1 of the ECMAScript Language Specification](https://tc39.github.io/ecma262/#sec-ecmascript-language-types).
-In addition to types in that section, `napi_value_type` can also represent Functions and Objects with external data.
+In addition to types in that section, `napi_valuetype` can also represent Functions and Objects with external data.
 
 ### *napi_typedarray_type*
 
@@ -99,10 +99,8 @@ napi_status napi_create_array_with_length(napi_env env, size_t length, napi_valu
 #### Description
 This API returns an N-API value corresponding to a JavaScript Array type. 
 The Array's length property is set to the passed-in length parameter. 
-However, the underlying buffer is not guaranteed to be pre-allocated - that behavior
-is left to the underlying VM implementation. If you need the buffer to be  a
-contiguous block of memory that can be directly read and/or written via C++, 
-consider using `napi_create_external_arraybuffer`.
+However, the underlying buffer is not guaranteed to be pre-allocated by the VM when the array is created - that behavior is left to the underlying VM implementation. 
+If you need the buffer to be  a contiguous block of memory that can be directly read and/or written via C++, consider using `napi_create_external_arraybuffer`.
 
 JavaScript arrays are described in [Section 22.1](https://tc39.github.io/ecma262/#sec-array-objects) 
 of the ECMAScript Language Specification.
@@ -148,14 +146,13 @@ napi_status napi_create_buffer(napi_env env, size_t size, void** data, napi_valu
 - `[in]  env`: The environment that the API is invoked under
 - `[in]  size`: Size in bytes of the underlying buffer
 - `[out] data`: Raw pointer to the underlying buffer
-- `[out] result`: A `napi_value` representing a node::Buffer
+- `[out] result`: A `napi_value` representing a `node::Buffer`
 
 #### Return value
 - `napi_ok` if the API succeeded.
 
 #### Description
-This API allocates a node::Buffer object. It exists for compat with older Node versions.
-Consider using typed arrays instead.
+This API allocates a `node::Buffer` object. While this is still a fully-supported data structure, in most cases, using a TypedArray will suffice.
 
 ### *napi_create_buffer_copy*
 
@@ -169,15 +166,14 @@ napi_status napi_create_buffer_copy(napi_env env, size_t length, const void* dat
 - `[in]  size`: Size in bytes of the input buffer (should be the same as the size of the new buffer)
 - `[in]  data`: Raw pointer to the underlying buffer to copy from
 - `[out] result_data`: Pointer to the new Buffer's underlying data buffer
-- `[out] result`: A `napi_value` representing a node::Buffer
+- `[out] result`: A `napi_value` representing a `node::Buffer`
 
 #### Return value
 - `napi_ok` if the API succeeded.
 
 #### Description
-This API allocates a node::Buffer object, and initializes it with data copied from the 
-passed-in buffer. It exists for compatibility with older Node versions. Consider using typed 
-arrays instead.
+This API allocates a `node::Buffer` object and initializes it with data copied from the 
+passed-in buffer. While this is still a fully-supported data structure, in most cases, using a TypedArray will suffice.
 
 ### *napi_create_external*
 
@@ -220,7 +216,7 @@ napi_create_external_arraybuffer(napi_env env,
 - `[in]  external_data`: Pointer to the underlying byte buffer of the ArrayBuffer
 - `[in]  byte_length`: The length in bytes of the underlying buffer
 - `[in]  finalize_cb`: Optional callback to call when the ArrayBuffer is being collected
-- `[in]  finalize_hint`: Optional hint to pass to the finalize callback during collection.
+- `[in]  finalize_hint`: Optional hint to pass to the finalize callback during collection
 - `[out] result`: A `napi_value` representing a JavaScript ArrayBuffer
 
 #### Return value
@@ -229,7 +225,7 @@ napi_create_external_arraybuffer(napi_env env,
 #### Description
 This API returns an N-API value corresponding to a JavaScript ArrayBuffer.
 The underlying byte buffer of the ArrayBuffer is externally allocated and managed.
-The caller must ensure that the byte buffer must be valid until the finalize callback is called.
+The caller must ensure that the byte buffer remains valid until the finalize callback is called.
 
 JavaScript ArrayBuffers are described in [Section 24.1](https://tc39.github.io/ecma262/#sec-arraybuffer-objects) 
 of the ECMAScript Language Specification.
@@ -258,7 +254,7 @@ napi_status napi_create_external_buffer(napi_env env,
 - `napi_ok` if the API succeeded.
 
 #### Description
-This API allocates a node::Buffer object and initializes it with data backed by the 
+This API allocates a `node::Buffer` object and initializes it with data backed by the 
 passed in buffer. It exists for compat with older Node versions. Consider using typed 
 arrays instead.
 
@@ -306,7 +302,7 @@ napi_status napi_create_number(napi_env env, double value, napi_value* result)
 - `napi_ok` if the API succeeded.
 
 #### Description
-This API is used to convert from C++ doubles to JavaScript Number.
+This API is used to convert from the C++ double type to the JavaScript Number type.
 
 The JavaScript Number type is described in [Section 6.1.6](https://tc39.github.io/ecma262/#sec-ecmascript-language-types-number-type) 
 of the ECMAScript Language Specification.
@@ -506,15 +502,15 @@ napi_status napi_get_buffer_info(napi_env env,
 
 #### Parameters
 - `[in]  env`: The environment that the API is invoked under
-- `[in]  value`: napi_value representing the node::Buffer being queried
-- `[out] data`: The underlying data buffer of the node::Buffer
+- `[in]  value`: napi_value representing the `node::Buffer` being queried
+- `[out] data`: The underlying data buffer of the `node::Buffer`
 - `[out] length`: Length in bytes of the underlying data buffer
 
 #### Return value
 - `napi_ok` if the API succeeded.
 
 #### Description
-This API is used to retrieve the underlying data buffer of a node::Buffer and it's length.
+This API is used to retrieve the underlying data buffer of a `node::Buffer` and it's length.
 Warning: Use caution while using this API since the underlying data buffer's lifetime is not guaranteed if it's managed by the VM.
 
 ### *napi_get_global*
