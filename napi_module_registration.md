@@ -1,6 +1,6 @@
 # Module registration
 
-N-API based modules are registered in the same manner as other modules
+N-API modules are registered in the same manner as other modules
 except that instead of using the `NODE_MODULE` macro you use:
 
 ```C
@@ -8,14 +8,14 @@ NAPI_MODULE(addon, Init)
 ```
 
 The next difference is the signature for the `Init` method.  For a N-API
-based module it is as follows:
+module it is as follows:
 
 ```C
 void Init(napi_env env, napi_value exports, napi_value module, void* priv);
 ```
 
 As with any other module, functions are exported by either adding them to
-the exports or module objects passed to the Init method.
+the `exports` or `module` objects passed to the `Init` method.
 
 For example, to add the method `hello` as a function so that it can be called
 as a method provided by the addon:
@@ -65,8 +65,8 @@ For example, to define your own class so that new instances can be created
   if (status != napi_ok) return;
 ```
 
-For more details on setting properties on either the exports or module objects,
-see the section on setting, getting and defining properties.
+For more details on setting properties on either the `exports` or `module`
+objects, see the section on setting, getting, and defining properties.
 
 For more details on building addon modules in general, refer to the existing API
 documentation in [addons.md](addons.md).  Most of that information remains
