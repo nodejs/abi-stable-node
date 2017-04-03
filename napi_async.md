@@ -27,7 +27,7 @@ NAPI_EXTERN void napi_async_set_complete(napi_work w, void (*complete)(void*));
 NAPI_EXTERN void napi_async_set_destroy(napi_work w, void (*destroy)(void*));
 ```
 
-When these methods are invoked, the void* parameter passed will be the
+When these methods are invoked, the `void*` parameter passed will be the
 addon-provided data that can be set using the `napi_async_set_data`
 function:
 
