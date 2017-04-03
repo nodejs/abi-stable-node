@@ -92,7 +92,7 @@ NODE_EXTERN napi_status napi_get_and_clear_last_exception(napi_env e,
                                                           napi_value* result);
 ```
 
-On success, result will contain the reference to the JavaScript `Error` object.
+On success, result will contain the handle to the JavaScript `Error` object.
 If you determine after retrieving the exception that you cannot
 handle it after all, you can re-throw it with the following function:
 
@@ -100,7 +100,7 @@ handle it after all, you can re-throw it with the following function:
 NODE_EXTERN napi_status napi_throw(napi_env e, napi_value error);
 ```
 
-where error is the exception to be thrown.
+where error is the JavaScript Error object to be thrown.
 
 The following utility functions are also available in case your native code
 needs to throw an exception or determine if a `napi_value` is an instance
@@ -114,3 +114,21 @@ NODE_EXTERN napi_status napi_is_error(napi_env e,
                                       napi_value value,
                                       bool* result);
 ```
+
+The following utility functions are also available in case your native
+code needs to create an error object:
+
+```
+NAPI_EXTERN napi_status napi_create_error(napi_env env,
+                                          napi_value msg,
+                                          napi_value* result);
+NAPI_EXTERN napi_status napi_create_type_error(napi_env env,
+                                               napi_value msg,
+                                               napi_value* result);
+NAPI_EXTERN napi_status napi_create_range_error(napi_env env,
+                                                napi_value msg,
+                                                napi_value* result);
+```
+
+where result is the napi_value that refers to the newly created
+JavaScript Error object.
