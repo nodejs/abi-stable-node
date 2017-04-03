@@ -7,7 +7,7 @@ of the [ECMAScript Language Specification](https://tc39.github.io/ecma262/).
 Fundamentally, all properties in N-API can be represented in one of the following forms:
 - Named: a simple utf8 encoded string
 - Integer-Indexed: an index value represented by `uint32_t`
-- JavaScript Object: a complex JavaScript Object represented by `napi_value`. This is analagous to calling Object.keys on a particular object.
+- JavaScript Object: a complex JavaScript Object represented by `napi_value`. This is the case if the key for a particular property is not a String or Number.
 
 N-API values are represented by the type `napi_value`.
 Any N-API call that requires a JavaScript object takes in a `napi_value`.
