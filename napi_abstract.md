@@ -5,8 +5,8 @@ Some of these operations are documented under [Section 7](https://tc39.github.io
 of the [ECMAScript Language Specification](https://tc39.github.io/ecma262/).
 
 These APIs allow you to do one of the following:
-1. Coerce JavaScript objects to fundamental JavaScript types
-2. Check the type of a JavaScript object
+1. Coerce JavaScript values to specific JavaScript types (such as Number or String)
+2. Check the type of a JavaScript value
 3. Check for equality between two JavaScript Objects
 
 ## Functions
@@ -20,7 +20,7 @@ napi_status napi_coerce_to_bool(napi_env env, napi_value value, napi_value* resu
 
 #### Parameters
 - `[in]  env`: The environment that the API is invoked under
-- `[in]  value`: The JavaScript object to coerce
+- `[in]  value`: The JavaScript value to coerce
 - `[out] result`: `napi_value` representing the coerced JavaScript Boolean
 
 #### Return value
@@ -40,7 +40,7 @@ napi_status napi_coerce_to_number(napi_env env, napi_value value, napi_value* re
 
 #### Parameters
 - `[in]  env`: The environment that the API is invoked under
-- `[in]  value`: The JavaScript object to coerce
+- `[in]  value`: The JavaScript value to coerce
 - `[out] result`: `napi_value` representing the coerced JavaScript Number
 
 #### Return value
@@ -60,7 +60,7 @@ napi_status napi_coerce_to_object(napi_env env, napi_value value, napi_value* re
 
 #### Parameters
 - `[in]  env`: The environment that the API is invoked under
-- `[in]  value`: The JavaScript object to coerce
+- `[in]  value`: The JavaScript value to coerce
 - `[out] result`: `napi_value` representing the coerced JavaScript Object
 
 #### Return value
@@ -80,7 +80,7 @@ napi_status napi_coerce_to_string(napi_env env, napi_value value, napi_value* re
 
 #### Parameters
 - `[in]  env`: The environment that the API is invoked under
-- `[in]  value`: The JavaScript object to coerce
+- `[in]  value`: The JavaScript value to coerce
 - `[out] result`: `napi_value` representing the coerced JavaScript String
 
 #### Return value
@@ -100,17 +100,18 @@ napi_status napi_typeof(napi_env env, napi_value value, napi_valuetype* result)
 
 #### Parameters
 - `[in]  env`: The environment that the API is invoked under
-- `[in]  value`: The JavaScript object whose type to query
-- `[out] result`: The type of the JavaScript object
+- `[in]  value`: The JavaScript value whose type to query
+- `[out] result`: The type of the JavaScript value
 
 #### Return value
 - `napi_ok` if the API succeeded.
+- `napi_invalid_arg` if the type of `value` is not a known ECMAScript type and `value` is not an External value.
 
 #### Description
 This N-API API represents behavior similar to invoking `typeof` Operator on the object 
 as defined in [Section 12.5.5](https://tc39.github.io/ecma262/#sec-typeof-operator)
-of the ECMAScript Language Specification.
-However, it has support for detecting External objects, and also defaults to `napi_object`
+of the ECMAScript Language Specification. However, it has support for detecting External value.
+If `value` has a type that is invalid, an error is returned.
 
 ### *napi_instanceof*
 
@@ -121,7 +122,7 @@ napi_status napi_instanceof(napi_env env, napi_value object, napi_value construc
 
 #### Parameters
 - `[in]  env`: The environment that the API is invoked under
-- `[in]  object`: The JavaScript object to check
+- `[in]  object`: The JavaScript value to check
 - `[in]  constructor`: The JavaScript function object of the constructor function to check against
 - `[out] result`: Whether `object instanceof constructor` is true.
 
@@ -142,7 +143,7 @@ napi_status napi_is_array(napi_env env, napi_value value, bool* result)
 
 #### Parameters
 - `[in]  env`: The environment that the API is invoked under
-- `[in]  value`: The JavaScript object to check
+- `[in]  value`: The JavaScript value to check
 - `[out] result`: Whether the given object is an array
 
 #### Return value
@@ -162,7 +163,7 @@ napi_status napi_is_arraybuffer(napi_env env, napi_value value, bool* result)
 
 #### Parameters
 - `[in]  env`: The environment that the API is invoked under
-- `[in]  value`: The JavaScript object to check
+- `[in]  value`: The JavaScript value to check
 - `[out] result`: Whether the given object is an ArrayBuffer
 
 #### Return value
@@ -177,7 +178,7 @@ napi_status napi_is_buffer(napi_env env, napi_value value, bool* result)
 
 #### Parameters
 - `[in]  env`: The environment that the API is invoked under
-- `[in]  value`: The JavaScript object to check
+- `[in]  value`: The JavaScript value to check
 - `[out] result`: Whether the given object is an N-API representation of node-Buffer
 
 #### Return value
@@ -192,7 +193,7 @@ napi_status napi_is_error(napi_env env, napi_value value, bool* result)
 
 #### Parameters
 - `[in]  env`: The environment that the API is invoked under
-- `[in]  value`: The JavaScript object to check
+- `[in]  value`: The JavaScript value to check
 - `[out] result`: Whether the given `napi_value` represents an Error object
 
 #### Return value
@@ -207,7 +208,7 @@ napi_status napi_is_typedarray(napi_env env, napi_value value, bool* result)
 
 #### Parameters
 - `[in]  env`: The environment that the API is invoked under
-- `[in]  value`: The JavaScript object to check
+- `[in]  value`: The JavaScript value to check
 - `[out] result`: Whether the given `napi_value` represents an TypedArray
 
 #### Return value
@@ -225,8 +226,8 @@ napi_status napi_strict_equals(napi_env env,
 
 #### Parameters
 - `[in]  env`: The environment that the API is invoked under
-- `[in]  lhs`: The JavaScript object to check
-- `[in]  rhs`: The JavaScript object to check against
+- `[in]  lhs`: The JavaScript value to check
+- `[in]  rhs`: The JavaScript value to check against
 - `[out] result`: Whether the two `napi_value` objects are equal
 
 #### Return value
