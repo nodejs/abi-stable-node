@@ -12,7 +12,7 @@ SPecification. The APIs generally have the following properties:
 - All N-API APIs generally return a status code of type `napi_status`. This status 
 can be used to determine whether the API call succeeded or failed.
 - The actual value being returned by the API is returned in an out parameter.
-- All JavaScript objects are abstracted behind an opaque type named `napi_value`.
+- All JavaScript values are abstracted behind an opaque type named `napi_value`.
 - In case of an error status code, additional information can be obtained using 
 `napi_get_last_error_info`
 
@@ -29,11 +29,11 @@ to persist VM specific state.
 << REVIEW: What else can we say here? >>
 
 ### *napi_value*
-This is an opaque pointer that is used to represent a JavaScript object.
+This is an opaque pointer that is used to represent a JavaScript value.
 
 ### *napi_ref*
 This is the abstraction to use to reference a `napi_value`. This allows for users 
-to manage the lifetimes of JavaScript objects, including defining their minimum
+to manage the lifetimes of JavaScript values, including defining their minimum
 lifetimes explicitly, and also being notified when they are garbage-collected.
 
 ### *napi_handle_scope*
@@ -42,14 +42,16 @@ handles to GC pointers. napi_handle_scope allows the user to provide a variable 
 separate from the thread stack, in a manner that is efficient for scan in case 
 the underlying VM uses a garbage collector with precise-semantics.
 N-API values are created within the context of a handle scope- if the user does not 
-create a handle scope, they are created within the default handle scope.
+create a handle scope, they are created within the default handle scope. In the case of a 
+libuv callback, there is no default handle scope so the user is required to supply one.
 Handle scopes are created using `napi_open_handle_scope` and are destroyed using 
 `napi_close_handle_scope`. Calling close can indicate to the GC that all napi_values 
 created during the lifetime of the handle scope are no longer referenced from the
 current stack frame.
 
-Consider creating a `napi_handle_scope` per function with a non-trivial amount of 
-objects created.
+Consider creating a `napi_handle_scope` per function if you create any handle other than 
+just the return value. Otherwise, the handle created will leak to the parent handle scope
+which can lead to higher than expected (and necessary) memory usage.
 
 ### *napi_escapable_handle_scope*
 Escapable Handle Scopes are a special type of handle scope that are used to return
@@ -68,9 +70,7 @@ typedef void (*napi_callback)(napi_env, napi_callback_info);
 ```
 
 ### *napi_finalize*
-Function pointer type for N-API APIs that allow the user to be notified when an object 
-is garbage collected. The user must provide a function satisfying the following signature
-which would get called upon the object's collection.
+Function pointer type for N-API APIs that allows the user to be notified when externally-owned data is ready to be cleaned up becauuse the object that it was associated with is garbage collected. The user must provide a function satisfying the following signature which would get called upon the object's collection.
 ```
 typedef void (*napi_finalize)(void* finalize_data, void* finalize_hint);
 ```
@@ -106,7 +106,7 @@ struct napi_extended_error_info {
 
 #### Members
 - error_message: UTF8-encoded string containing a VM-neutral description of the error
-- engine_reserved: Do not use.
+- engine_reserved: Reserved for VM-specific error details. This is currently not implemented for any VM.
 - engine_error_code: VM-specific error code
 - error_code: the N-API status code that originated with the current error
 
