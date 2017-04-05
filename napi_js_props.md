@@ -23,12 +23,12 @@ get and set properties on arbitrary JavaScript objects represented by
 `napi_value`.
 
 For instance, consider the following JavaScript code snippet:
-```
+```js
 var obj = {};
 obj.myProp = 123;
 ```
 You can do the equivalent using N-API values with the following snippet:
-```
+```C
 napi_status status = napi_status_generic_failure;
 
 // var obj = {}
@@ -47,12 +47,12 @@ if (status != napi_ok) return status;
 
 You can also set index-properties in a similar manner. Consider the following
 JavaScript snippet:
-```
+```js
 var arr = [];
 arr[123] = 'hello';
 ```
 You can do the equivalent using N-API values with the following snippet:
-```
+```C
 napi_status status = napi_status_generic_failure;
 
 // var arr = [];
@@ -71,13 +71,13 @@ if (status != napi_ok) return status;
 
 You can also get properties using the APIs described in this section.
 Consider the following JavaScript snippet:
-```
+```js
 var arr = [];
 return arr[123];
 ```
 
 The following is the approximate equivalent of the N-API counterpart:
-```
+```C
 napi_status status = napi_status_generic_failure;
 
 // var arr = []
@@ -92,7 +92,7 @@ if (status != napi_ok) return status;
 
 Finally, you can also define multiple properties on an object for performance
 reasons. Consider the following JavaScript:
-```
+```js
 var obj = {};
 Object.defineProperties(obj, {
   'foo': { value: 123, writable: true, configurable: true, enumerable: true },
@@ -101,7 +101,7 @@ Object.defineProperties(obj, {
 ```
 
 The following is the approximate equivalent of the N-API counterpart:
-```
+```C
 napi_status status = napi_status_generic_failure;
 
 // var obj = {};
@@ -133,7 +133,7 @@ if (status != napi_ok) return status;
 ### *napi_property_attributes*
 
 #### Definition
-```
+```C
 typedef enum {
   napi_default = 0,
   napi_read_only = 1 << 0,
@@ -147,20 +147,21 @@ typedef enum {
 `napi_property_attributes` are flags used to control the behavior of properties 
 set on a JavaScript value. They roughly correspond to the attributes listed in
 [Section 6.1.7.1](https://tc39.github.io/ecma262/#table-2) of the
-[ECMAScript Language Specification](https://tc39.github.io/ecma262/).
+[ECMAScript Language Specification](https://tc39.github.io/ecma262/). They can
+be one or more of the following bitflags:
 
-`napi_default` - Used to indicate that no explicit attributes are set on the 
+- `napi_default` - Used to indicate that no explicit attributes are set on the 
 given property. By default, a property is Writable, Enumerable, and
  Configurable. Note that this is a deviation from the ECMAScript specification,
  where generally the values for a property descriptor attribute default to 
  false if they're not provided.
-`napi_read_only` - Used to indicate that a given property is not Writable
-`napi_dont_enum` - Used to indicate that a given property is not Enumerable
-`napi_dont_delete` - Used to indicate that a given property is not 
+- `napi_read_only` - Used to indicate that a given property is not Writable
+- `napi_dont_enum` - Used to indicate that a given property is not Enumerable
+- `napi_dont_delete` - Used to indicate that a given property is not 
 Configurable, as defined in 
 [Section 6.1.7.1](https://tc39.github.io/ecma262/#table-2) of the 
 [ECMAScript Language Specification](https://tc39.github.io/ecma262/).
-`napi_static_property` - Used to indicate that the property will be defined as
+- `napi_static_property` - Used to indicate that the property will be defined as
 a static property on a class as opposed to an instance property, which is the
 default. This is used only by `napi_define_class`. It is ignored by 
 `napi_define_properties`
@@ -168,7 +169,7 @@ default. This is used only by `napi_define_class`. It is ignored by
 ### *napi_property_descriptor*
 
 #### Definition
-```
+```C
 typedef struct {
   const char* utf8name;
 
@@ -211,7 +212,7 @@ See `napi_property_attributes`
 ### *napi_get_property_names*
 
 #### Signature
-```
+```C
 napi_status napi_get_property_names(napi_env env,
                                     napi_value object,
                                     napi_value* result);
@@ -230,7 +231,7 @@ using `napi_get_array_length` and `napi_get_element`.
 ### *napi_set_property*
 
 #### Signature
-```
+```C
 napi_status napi_set_property(napi_env env,
                               napi_value object,
                               napi_value key,
@@ -249,7 +250,7 @@ napi_status napi_set_property(napi_env env,
 ### *napi_get_property*
 
 #### Signature
-```
+```C
 napi_status napi_get_property(napi_env env,
                               napi_value object,
                               napi_value key,
@@ -268,7 +269,7 @@ napi_status napi_get_property(napi_env env,
 ### *napi_has_property*
 
 #### Signature
-```
+```C
 napi_status napi_has_property(napi_env env,
                               napi_value object,
                               napi_value key,
@@ -287,7 +288,7 @@ napi_status napi_has_property(napi_env env,
 ### *napi_set_named_property*
 
 #### Signature
-```
+```C
 napi_status napi_set_named_property(napi_env env,
                                     napi_value object,
                                     const char* utf8Name,
@@ -310,7 +311,7 @@ created from the string passed in as `utf8Name`
 ### *napi_get_named_property*
 
 #### Signature
-```
+```C
 napi_status napi_get_named_property(napi_env env,
                                     napi_value object,
                                     const char* utf8Name,
@@ -333,7 +334,7 @@ created from the string passed in as `utf8Name`
 ### *napi_has_named_property*
 
 #### Signature
-```
+```C
 napi_status napi_has_named_property(napi_env env,
                                     napi_value object,
                                     const char* utf8Name,
@@ -356,7 +357,7 @@ created from the string passed in as `utf8Name`
 ### *napi_set_element*
 
 #### Signature
-```
+```C
 napi_status napi_set_element(napi_env env,
                              napi_value object,
                              uint32_t index,
@@ -375,7 +376,7 @@ napi_status napi_set_element(napi_env env,
 ### *napi_get_element*
 
 #### Signature
-```
+```C
 napi_status napi_get_element(napi_env env,
                              napi_value object,
                              uint32_t index,
@@ -394,7 +395,7 @@ napi_status napi_get_element(napi_env env,
 ### *napi_has_element*
 
 #### Signature
-```
+```C
 napi_status napi_has_element(napi_env env,
                              napi_value object,
                              uint32_t index,
@@ -413,7 +414,7 @@ napi_status napi_has_element(napi_env env,
 ### *napi_define_properties*
 
 #### Signature
-```
+```C
 napi_status napi_define_properties(napi_env env,
                                    napi_value object,
                                    size_t property_count,
@@ -431,5 +432,6 @@ This method allows you to efficiently define multiple properties on a given
 object. The properties are defined using property descriptors (See 
 `napi_property_descriptor`). Given an array of such property descriptors, this
 API will set the properties on the object one at a time, as defined by
-DefineOwnProperty (described in [Section 9.1.6](https://tc39.github.io/ecma262/#sec-ordinary-object-internal-methods-and-internal-slots-defineownproperty-p-desc) 
+DefineOwnProperty (described in 
+[Section 9.1.6](https://tc39.github.io/ecma262/#sec-ordinary-object-internal-methods-and-internal-slots-defineownproperty-p-desc) 
 of the ECMA262 specification)
