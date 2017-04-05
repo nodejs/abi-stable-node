@@ -16,7 +16,7 @@ These APIs allow you to do one of the following:
 ### *napi_coerce_to_bool*
 
 #### Signature
-```
+```C
 napi_status napi_coerce_to_bool(napi_env env, 
                                 napi_value value, 
                                 napi_value* result)
@@ -39,7 +39,7 @@ This API can be re-entrant if getters are defined on the passed in Object.
 ### *napi_coerce_to_number*
 
 #### Signature
-```
+```C
 napi_status napi_coerce_to_number(napi_env env, 
                                   napi_value value, 
                                   napi_value* result)
@@ -62,7 +62,7 @@ This API can be re-entrant if getters are defined on the passed in Object.
 ### *napi_coerce_to_object*
 
 #### Signature
-```
+```C
 napi_status napi_coerce_to_object(napi_env env, 
                                   napi_value value,
                                   napi_value* result)
@@ -85,7 +85,7 @@ This API can be re-entrant if getters are defined on the passed in Object.
 ### *napi_coerce_to_string*
 
 #### Signature
-```
+```C
 napi_status napi_coerce_to_string(napi_env env, 
                                   napi_value value, 
                                   napi_value* result)
@@ -108,7 +108,7 @@ This API can be re-entrant if getters are defined on the passed-in Object.
 ### *napi_typeof*
 
 #### Signature
-```
+```C
 napi_status napi_typeof(napi_env env, napi_value value, napi_valuetype* result)
 ```
 
@@ -133,7 +133,7 @@ returned.
 ### *napi_instanceof*
 
 #### Signature
-```
+```C
 napi_status napi_instanceof(napi_env env, 
                             napi_value object, 
                             napi_value constructor, 
@@ -159,7 +159,7 @@ of the ECMAScript Language Specification.
 ### *napi_is_array*
 
 #### Signature
-```
+```C
 napi_status napi_is_array(napi_env env, napi_value value, bool* result)
 ```
 
@@ -179,7 +179,7 @@ of the ECMAScript Language Specification.
 ### *napi_is_arraybuffer*
 
 #### Signature
-```
+```C
 napi_status napi_is_arraybuffer(napi_env env, napi_value value, bool* result)
 ```
 
@@ -194,7 +194,7 @@ napi_status napi_is_arraybuffer(napi_env env, napi_value value, bool* result)
 ### *napi_is_buffer*
 
 #### Signature
-```
+```C
 napi_status napi_is_buffer(napi_env env, napi_value value, bool* result)
 ```
 
@@ -210,7 +210,7 @@ node-Buffer
 ### *napi_is_error*
 
 #### Signature
-```
+```C
 napi_status napi_is_error(napi_env env, napi_value value, bool* result)
 ```
 
@@ -225,7 +225,7 @@ napi_status napi_is_error(napi_env env, napi_value value, bool* result)
 ### *napi_is_typedarray*
 
 #### Signature
-```
+```C
 napi_status napi_is_typedarray(napi_env env, napi_value value, bool* result)
 ```
 
@@ -240,7 +240,7 @@ napi_status napi_is_typedarray(napi_env env, napi_value value, bool* result)
 ### *napi_strict_equals*
 
 #### Signature
-```
+```C
 napi_status napi_strict_equals(napi_env env,
                                napi_value lhs,
                                napi_value rhs,
@@ -257,7 +257,7 @@ napi_status napi_strict_equals(napi_env env,
 - `napi_ok` if the API succeeded.
 
 #### Description
-This N-API API represents the invocation of the strict equality algorithm as 
+This N-API API represents the invocation of the Strict Equality algorithm as 
 defined in 
 [Section 7.2.14](https://tc39.github.io/ecma262/#sec-strict-equality-comparison) 
 of the ECMAScript Language Specification.
