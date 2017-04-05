@@ -1,7 +1,8 @@
 # N-API - Abstract Operations 
 
 N-API exposes a set of APIs to apply some abstract operations on JavaScript 
-Objects. Some of these operations are documented under [Section 7](https://tc39.github.io/ecma262/#sec-abstract-operations) 
+Objects. Some of these operations are documented under 
+[Section 7](https://tc39.github.io/ecma262/#sec-abstract-operations) 
 of the [ECMAScript Language Specification](https://tc39.github.io/ecma262/).
 
 These APIs allow you to do one of the following:
