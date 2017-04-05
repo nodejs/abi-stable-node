@@ -28,7 +28,7 @@ that can be introspected only with other N-API APIs.
 ### *napi_status*
 Integral status code indicating the success or failure of a N-API API call.
 Currently, the following status codes are supported.
-```
+```C
   napi_ok,
   napi_invalid_arg,
   napi_object_expected,
@@ -45,7 +45,7 @@ it can be obtained by calling `napi_get_last_error_info`.
 
 ### *napi_extended_error_info*
 #### Definition
-```
+```C
 struct napi_extended_error_info {
   const char* error_message;
   void* engine_reserved;
@@ -84,7 +84,7 @@ This is an opaque pointer that is used to represent a JavaScript value.
 ### *napi_handle_scope*
 This is an abstraction used to control and modify the lifetime of objects 
 created within a particular scope. In general, N-API values are created within
-the context of a handle scope. WWhen a native method is called from 
+the context of a handle scope. When a native method is called from 
 JavaScript, a default handle scope will exist- if the user does not explicitly
 create a new handle scope, N-API values will be created in the default handle
 scope. For any invocations of code outside the execution of a native method 
@@ -123,7 +123,7 @@ purposes:
 ### *napi_callback*
 Function pointer type for N-API APIs that call back into user-provided native 
 code. Your callback function should satisfy the following signature:
-```
+```C
 typedef void (*napi_callback)(napi_env, napi_callback_info);
 ```
 
@@ -134,6 +134,6 @@ was associated with is garbage collected. The user must provide a function
 satisfying the following signature which would get called upon the object's
 collection. Currently, `napi_finalize` can be used to know when only objects
 with external data are collected.
-```
+```C
 typedef void (*napi_finalize)(void* finalize_data, void* finalize_hint);
 ```
