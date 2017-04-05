@@ -9,7 +9,7 @@ Fundamentally, these APIs are used to do one of the following:
 1. Create a new JavaScript object
 2. Convert from a primitive C++ type to an N-API value
 3. Convert from N-API value to a primitive C++ type
-4. Get Global Instances including Undefined and Null
+4. Get global instances including Undefined and Null
 
 N-API values are represented by the type `napi_value`.
 Any N-API call that requires a JavaScript value takes in a `napi_value`.
@@ -113,7 +113,7 @@ The Array's length property is set to the passed-in length parameter.
 However, the underlying buffer is not guaranteed to be pre-allocated by the VM
 when the array is created - that behavior is left to the underlying VM
 implementation. 
-If you need the buffer to be  a contiguous block of memory that can be 
+If you need the buffer to be a contiguous block of memory that can be 
 directly read and/or written via C++, consider using 
 `napi_create_external_arraybuffer`.
 
@@ -176,7 +176,7 @@ napi_status napi_create_buffer(napi_env env,
 
 #### Description
 This API allocates a `node::Buffer` object. While this is still a 
-fully-supported data structure, in most cases, using a TypedArray will suffice.
+fully-supported data structure, in most cases using a TypedArray will suffice.
 
 ### *napi_create_buffer_copy*
 
@@ -203,7 +203,7 @@ napi_status napi_create_buffer_copy(napi_env env,
 #### Description
 This API allocates a `node::Buffer` object and initializes it with data copied
 from the passed-in buffer. While this is still a fully-supported data 
-structure, in most cases, using a TypedArray will suffice.
+structure, in most cases using a TypedArray will suffice.
 
 ### *napi_create_external*
 
@@ -300,8 +300,8 @@ during collection
 
 #### Description
 This API allocates a `node::Buffer` object and initializes it with data
-backed by the passed in buffer. It exists for compat with older Node versions.
-Consider using typed arrays instead.
+backed by the passed in buffer. While this is still a fully-supported data
+structure, in most cases using a TypedArray will suffice.
 
 ### *napi_create_function*
 
@@ -378,7 +378,7 @@ UTF8-encoded string to describe the symbol
 #### Description
 This API creates a JavaScript Symbol object from a UTF8-encoded C++ string
 
-JavaScript Symbol type is described in 
+The JavaScript Symbol type is described in 
 [Section 19.4](https://tc39.github.io/ecma262/#sec-symbol-objects) 
 of the ECMAScript Language Specification.
 
@@ -456,7 +456,7 @@ napi_status napi_create_string_utf16(napi_env env,
 
 #### Parameters
 - `[in]  env`: The environment that the API is invoked under
-- `[in]  str`: Character buffer representing a UTF16-LE encoded string
+- `[in]  str`: Character buffer representing a UTF16-LE-encoded string
 - `[in]  length`: The length of the string in characters, or -1 if it is
 null-terminated.
 - `[out] result`: A `napi_value` representing a JavaScript String
@@ -465,9 +465,9 @@ null-terminated.
 - `napi_ok` if the API succeeded.
 
 #### Description
-This API creates a JavaScript String object from a UTF16-LE encoded C++ string
+This API creates a JavaScript String object from a UTF16-LE-encoded C++ string
 
-JavaScript String type is described in
+The JavaScript String type is described in
 [Section 6.1.4](https://tc39.github.io/ecma262/#sec-ecmascript-language-types-string-type) 
 of the ECMAScript Language Specification.
 
@@ -494,7 +494,7 @@ null-terminated.
 #### Description
 This API creates a JavaScript String object from a UTF8-encoded C++ string
 
-JavaScript String type is described in
+The JavaScript String type is described in
 [Section 6.1.4](https://tc39.github.io/ecma262/#sec-ecmascript-language-types-string-type)
 of the ECMAScript Language Specification.
 
@@ -511,9 +511,9 @@ napi_status napi_get_array_length(napi_env env,
 
 #### Parameters
 - `[in]  env`: The environment that the API is invoked under
-- `[in]  value`: napi_value representing the JavaScript Array whose length is
+- `[in]  value`: `napi_value` representing the JavaScript Array whose length is
 being queried
-- `[out] result`: uint32 representing length of the array
+- `[out] result`: `uint32` representing length of the array
 
 #### Return value
 - `napi_ok` if the API succeeded.
@@ -537,7 +537,7 @@ napi_status napi_get_arraybuffer_info(napi_env env,
 
 #### Parameters
 - `[in]  env`: The environment that the API is invoked under
-- `[in]  arraybuffer`: napi_value representing the ArrayBuffer being queried
+- `[in]  arraybuffer`: `napi_value` representing the ArrayBuffer being queried
 - `[out] data`: The underlying data buffer of the ArrayBuffer
 - `[out] byte_length`: Length in bytes of the underlying data buffer
 
@@ -546,7 +546,7 @@ napi_status napi_get_arraybuffer_info(napi_env env,
 
 #### Description
 This API is used to retrieve the underlying data buffer of an ArrayBuffer and
-it's length.
+its length.
 WARNING: Use caution while using this API. The lifetime of the underlying data
 buffer is managed by the ArrayBuffer even after it's returned to you. A
 possible safe way to use this API is in conjunction with napi_create_reference,
@@ -568,7 +568,7 @@ napi_status napi_get_buffer_info(napi_env env,
 
 #### Parameters
 - `[in]  env`: The environment that the API is invoked under
-- `[in]  value`: napi_value representing the `node::Buffer` being queried
+- `[in]  value`: `napi_value` representing the `node::Buffer` being queried
 - `[out] data`: The underlying data buffer of the `node::Buffer`
 - `[out] length`: Length in bytes of the underlying data buffer
 
@@ -757,7 +757,7 @@ napi_status napi_get_value_string_utf8(napi_env env,
  in, the length of the string (in bytes) is returned
 - `[in]  bufsize`: Size of the destination buffer. 
 - `[out] result`: Number of bytes copied into the buffer including the null
-terminateor. If the buffer size is insufficient, the string will be truncated
+terminator. If the buffer size is insufficient, the string will be truncated
 including a null terminator.
 
 #### Return value
@@ -778,7 +778,7 @@ napi_status napi_get_value_string_utf16(napi_env env,
 #### Parameters
 - `[in]  env`: The environment that the API is invoked under
 - `[in]  value`: `napi_value` representing JavaScript string
-- `[in]  buf`: Buffer to write the UTF16-LE encoded string into. If NULL is 
+- `[in]  buf`: Buffer to write the UTF16-LE-encoded string into. If NULL is 
 passed in, the length of the string (in 2-byte code units) is returned
 - `[in]  bufsize`: Size of the destination buffer. 
 - `[out] result`: Number of 2-byte code units copied into the buffer including
@@ -801,14 +801,14 @@ napi_status napi_get_value_uint32(napi_env env,
 #### Parameters
 - `[in]  env`: The environment that the API is invoked under
 - `[in]  value`: `napi_value` representing JavaScript Number
-- `[out] result`: C++ uint32 primitive equivalent of the given 
-JavaScript Number
+- `[out] result`: C++ primitive equivalent of the given `napi_value` as a 
+`uint32_t`
 
 #### Return value
 - `napi_ok` if the API succeeded.
 - `napi_number_expected` if a non-number `napi_value` is passed in
 
-## Functions to get Global Instances
+## Functions to get global instances
 
 ### *napi_get_boolean*
 
