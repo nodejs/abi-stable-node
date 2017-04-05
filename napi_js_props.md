@@ -1,7 +1,7 @@
 # N-API - JavaScript Data Types and Values 
 
 N-API exposes a set of APIs to get and set properties on JavaScript 
-values. Some of these types are documented under 
+objects. Some of these types are documented under 
 [Section 7](https://tc39.github.io/ecma262/#sec-operations-on-objects) of the 
 [ECMAScript Language Specification](https://tc39.github.io/ecma262/).
 
@@ -45,7 +45,7 @@ status = napi_set_named_property(env, obj, "myProp", value);
 if (status != napi_ok) return status;
 ```
 
-You can also set index-properties in a similar manner. Consider the following
+You can also set indexed properties in a similar manner. Consider the following
 JavaScript snippet:
 ```js
 var arr = [];
@@ -73,6 +73,7 @@ You can also get properties using the APIs described in this section.
 Consider the following JavaScript snippet:
 ```js
 var arr = [];
+var value = arr[123];
 return arr[123];
 ```
 
@@ -85,7 +86,7 @@ napi_value arr, value;
 status = napi_create_array(env, &arr);
 if (status != napi_ok) return status;
 
-// get arr[123]
+// value = arr[123]
 status = napi_get_element(env, arr, 123, &value);
 if (status != napi_ok) return status;
 ```
@@ -145,7 +146,7 @@ typedef enum {
 
 ### Description
 `napi_property_attributes` are flags used to control the behavior of properties 
-set on a JavaScript value. They roughly correspond to the attributes listed in
+set on a JavaScript object. They roughly correspond to the attributes listed in
 [Section 6.1.7.1](https://tc39.github.io/ecma262/#table-2) of the
 [ECMAScript Language Specification](https://tc39.github.io/ecma262/). They can
 be one or more of the following bitflags:
@@ -186,8 +187,8 @@ typedef struct {
 #### Members
 - `utf8name`: String describing the key for the property, encoded as UTF8
 - `value`: The value that's retrieved by a get access of the property if the
- property is a data. If this is passed in, set `getter`, `setter`, `method` 
- and `data` to `NULL` (since these members won't be used)
+ property is a data property. If this is passed in, set `getter`, `setter`,
+ `method` and `data` to `NULL` (since these members won't be used)
 - `getter`: A function to call when a get access of the property is performed.
 If this is passed in, set `value` and `method` to `NULL` (since these members
 won't be used). The given function is called implicitly by the runtime when the
@@ -205,7 +206,7 @@ won't be used)
 - `data`: The callback data passed into `method`, `getter` and `setter` if 
 this function is invoked
 - `attributes`: The attributes associated with the particular property. 
-See `napi_property_attributes`
+See [`napi_property_attributes`](#napi_property_attributes)
 
 ## Functions
 
