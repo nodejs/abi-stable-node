@@ -128,9 +128,6 @@ status = napi_define_properties(env,
 if (status != napi_ok) return status;
 ```
 
-
-
-
 ## Structures
 
 ### *napi_property_attributes*
