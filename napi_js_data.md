@@ -1,7 +1,8 @@
 # N-API - JavaScript Data Types and Values 
 
 N-API exposes a set of APIs to create all types of JavaScript values. 
-Some of these types are documented under [Section 6](https://tc39.github.io/ecma262/#sec-ecmascript-data-types-and-values) 
+Some of these types are documented under 
+[Section 6](https://tc39.github.io/ecma262/#sec-ecmascript-data-types-and-values) 
 of the [ECMAScript Language Specification](https://tc39.github.io/ecma262/).
 
 Fundamentally, these APIs are used to do one of the following:
@@ -38,7 +39,9 @@ typedef enum {
 
 #### Description
 Describes the type of a `napi_value`. This generally corresponds to the types 
-described in [Section 6.1 of the ECMAScript Language Specification](https://tc39.github.io/ecma262/#sec-ecmascript-language-types).
+described in 
+[Section 6.1](https://tc39.github.io/ecma262/#sec-ecmascript-language-types) of
+the ECMAScript Language Specification.
 In addition to types in that section, `napi_valuetype` can also represent 
 Functions and Objects with external data.
 
@@ -61,7 +64,8 @@ typedef enum {
 
 #### Description
 This represents the underlying binary scalar datatype of the TypedArray.
-Elements of this enum correspond to [Section 22.2] (https://tc39.github.io/ecma262/#sec-typedarray-objects)
+Elements of this enum correspond to 
+[Section 22.2] (https://tc39.github.io/ecma262/#sec-typedarray-objects)
 of the [ECMAScript Language Specification](https://tc39.github.io/ecma262/).
 
 ## Object Creation Functions
@@ -82,7 +86,8 @@ napi_status napi_create_array(napi_env env, napi_value* result)
 
 #### Description
 This API returns an N-API value corresponding to a JavaScript Array type. 
-JavaScript arrays are described in [Section 22.1](https://tc39.github.io/ecma262/#sec-array-objects) of the 
+JavaScript arrays are described in 
+[Section 22.1](https://tc39.github.io/ecma262/#sec-array-objects) of the 
 ECMAScript Language Specification.
 
 ### *napi_create_array_with_length*
@@ -112,8 +117,9 @@ If you need the buffer to be  a contiguous block of memory that can be
 directly read and/or written via C++, consider using 
 `napi_create_external_arraybuffer`.
 
-JavaScript arrays are described in [Section 22.1](https://tc39.github.io/ecma262/#sec-array-objects) of the ECMAScript Language 
-Specification.
+JavaScript arrays are described in 
+[Section 22.1](https://tc39.github.io/ecma262/#sec-array-objects) of the 
+ECMAScript Language Specification.
 
 ### *napi_create_arraybuffer*
 
@@ -145,7 +151,8 @@ caller wants to directly manipulate the buffer. This buffer can only be
 written to directly from native code. To write to this buffer from JavaScript,
 a typed array or DataView object would need to be created.
 
-JavaScript ArrayBuffer objects are described in [Section 24.1](https://tc39.github.io/ecma262/#sec-arraybuffer-objects) 
+JavaScript ArrayBuffer objects are described in 
+[Section 24.1](https://tc39.github.io/ecma262/#sec-arraybuffer-objects) 
 of the ECMAScript Language Specification.
 
 ### *napi_create_buffer*
@@ -261,7 +268,8 @@ The underlying byte buffer of the ArrayBuffer is externally allocated and
 managed. The caller must ensure that the byte buffer remains valid until the
 finalize callback is called.
 
-JavaScript ArrayBuffers are described in [Section 24.1](https://tc39.github.io/ecma262/#sec-arraybuffer-objects) 
+JavaScript ArrayBuffers are described in 
+[Section 24.1](https://tc39.github.io/ecma262/#sec-arraybuffer-objects) 
 of the ECMAScript Language Specification.
 
 ### *napi_create_external_buffer*
@@ -323,7 +331,8 @@ function when it is invoked
 This API returns an N-API value corresponding to a JavaScript Function object.
 It's used to wrap native functions so that they can be invoked from JavaScript.
 
-JavaScript Functions are described in [Section 19.2](https://tc39.github.io/ecma262/#sec-function-objects) 
+JavaScript Functions are described in 
+[Section 19.2](https://tc39.github.io/ecma262/#sec-function-objects) 
 of the ECMAScript Language Specification.
 
 ### *napi_create_object*
@@ -344,8 +353,9 @@ napi_status napi_create_object(napi_env env, napi_value* result)
 This API allocates a default JavaScript Object. 
 It is the equivalent of doing `new Object()` in JavaScript.
 
-The JavaScript Object type is described in [Section 6.1.7](https://tc39.github.io/ecma262/#sec-object-type) of the ECMAScript Language
-Specification.
+The JavaScript Object type is described in 
+[Section 6.1.7](https://tc39.github.io/ecma262/#sec-object-type) of the 
+ECMAScript Language Specification.
 
 ### *napi_create_symbol*
 
@@ -368,7 +378,8 @@ UTF8-encoded string to describe the symbol
 #### Description
 This API creates a JavaScript Symbol object from a UTF8-encoded C++ string
 
-JavaScript Symbol type is described in [Section 19.4](https://tc39.github.io/ecma262/#sec-symbol-objects) 
+JavaScript Symbol type is described in 
+[Section 19.4](https://tc39.github.io/ecma262/#sec-symbol-objects) 
 of the ECMAScript Language Specification.
 
 ### *napi_create_typedarray*
@@ -400,10 +411,12 @@ This API creates a JavaScript TypedArray object over an existing ArrayBuffer.
 TypedArray objects provide an array-like view over an underlying data buffer 
 where each element has the same underlying binary scalar datatype.
 
-It's required that (length * size_of_element) + byte_offset should be <= ArrayBuffer.ArrayBufferByteLength. 
-If not, a RangeError exception is raised.
+It's required that (length * size_of_element) + byte_offset should 
+be <= ArrayBuffer.ArrayBufferByteLength. If not, a RangeError exception is 
+raised.
 
-JavaScript TypedArray Objects are described in [Section 22.2](https://tc39.github.io/ecma262/#sec-typedarray-objects) 
+JavaScript TypedArray Objects are described in
+[Section 22.2](https://tc39.github.io/ecma262/#sec-typedarray-objects) 
 of the ECMAScript Language Specification.
 
 ## Functions to convert from C++ types to N-API
@@ -427,7 +440,8 @@ napi_status napi_create_number(napi_env env, double value, napi_value* result)
 This API is used to convert from the C++ double type to the JavaScript 
 Number type.
 
-The JavaScript Number type is described in [Section 6.1.6](https://tc39.github.io/ecma262/#sec-ecmascript-language-types-number-type) 
+The JavaScript Number type is described in
+[Section 6.1.6](https://tc39.github.io/ecma262/#sec-ecmascript-language-types-number-type) 
 of the ECMAScript Language Specification.
 
 ### *napi_create_string_utf16*
@@ -453,8 +467,9 @@ null-terminated.
 #### Description
 This API creates a JavaScript String object from a UTF16-LE encoded C++ string
 
-JavaScript String type is described in [Section 6.1.4](https://tc39.github.io/ecma262/#sec-ecmascript-language-types-string-type) of
-the ECMAScript Language Specification.
+JavaScript String type is described in
+[Section 6.1.4](https://tc39.github.io/ecma262/#sec-ecmascript-language-types-string-type) 
+of the ECMAScript Language Specification.
 
 ### *napi_create_string_utf8*
 
@@ -479,7 +494,8 @@ null-terminated.
 #### Description
 This API creates a JavaScript String object from a UTF8-encoded C++ string
 
-JavaScript String type is described in [Section 6.1.4](https://tc39.github.io/ecma262/#sec-ecmascript-language-types-string-type)
+JavaScript String type is described in
+[Section 6.1.4](https://tc39.github.io/ecma262/#sec-ecmascript-language-types-string-type)
 of the ECMAScript Language Specification.
 
 ## Functions to convert from N-API to C++ types
@@ -505,7 +521,8 @@ being queried
 #### Description
 This API returns the length of an array.
 
-Array length is described in [Section 22.1.4.1](https://tc39.github.io/ecma262/#sec-properties-of-array-instances-length) 
+Array length is described in
+[Section 22.1.4.1](https://tc39.github.io/ecma262/#sec-properties-of-array-instances-length) 
 of the ECMAScript Language Specification.
 
 ### *napi_get_arraybuffer_info*
