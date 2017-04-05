@@ -22,7 +22,7 @@ the `napi_value` in question is of the JavaScript type expected by the API.
 ### *napi_valuetype*
 
 #### Definition
-```
+```C
 typedef enum {
   // ES6 types (corresponds to typeof)
   napi_undefined,
@@ -48,7 +48,7 @@ Functions and Objects with external data.
 ### *napi_typedarray_type*
 
 #### Definition
-```
+```C
 typedef enum {
   napi_int8_array,
   napi_uint8_array,
@@ -73,7 +73,7 @@ of the [ECMAScript Language Specification](https://tc39.github.io/ecma262/).
 ### *napi_create_array*
 
 #### Signature
-```
+```C
 napi_status napi_create_array(napi_env env, napi_value* result)
 ```
 
@@ -93,7 +93,7 @@ ECMAScript Language Specification.
 ### *napi_create_array_with_length*
 
 #### Signature
-```
+```C
 napi_status napi_create_array_with_length(napi_env env,
                                           size_t length,
                                           napi_value* result)
@@ -124,7 +124,7 @@ ECMAScript Language Specification.
 ### *napi_create_arraybuffer*
 
 #### Signature
-```
+```C
 napi_status napi_create_arraybuffer(napi_env env,
                                     size_t byte_length,
                                     void** data,
@@ -158,7 +158,7 @@ of the ECMAScript Language Specification.
 ### *napi_create_buffer*
 
 #### Signature
-```
+```C
 napi_status napi_create_buffer(napi_env env,
                                size_t size,
                                void** data,
@@ -181,7 +181,7 @@ fully-supported data structure, in most cases, using a TypedArray will suffice.
 ### *napi_create_buffer_copy*
 
 #### Signature
-```
+```C
 napi_status napi_create_buffer_copy(napi_env env,
                                     size_t length,
                                     const void* data,
@@ -208,7 +208,7 @@ structure, in most cases, using a TypedArray will suffice.
 ### *napi_create_external*
 
 #### Signature
-```
+```C
 napi_status napi_create_external(napi_env env,
                                  void* data,
                                  napi_finalize finalize_cb,
@@ -238,7 +238,7 @@ JavaScript object gets collected.
 ### *napi_create_external_arraybuffer*
 
 #### Signature
-```
+```C
 napi_status
 napi_create_external_arraybuffer(napi_env env,
                                  void* external_data,
@@ -275,7 +275,7 @@ of the ECMAScript Language Specification.
 ### *napi_create_external_buffer*
 
 #### Signature
-```
+```C
 napi_status napi_create_external_buffer(napi_env env,
                                         size_t length,
                                         void* data,
@@ -306,7 +306,7 @@ Consider using typed arrays instead.
 ### *napi_create_function*
 
 #### Signature
-```
+```C
 napi_status napi_create_function(napi_env env,
                                  const char* utf8name,
                                  napi_callback cb,
@@ -338,7 +338,7 @@ of the ECMAScript Language Specification.
 ### *napi_create_object*
 
 #### Signature
-```
+```C
 napi_status napi_create_object(napi_env env, napi_value* result)
 ```
 
@@ -360,7 +360,7 @@ ECMAScript Language Specification.
 ### *napi_create_symbol*
 
 #### Signature
-```
+```C
 napi_status napi_create_symbol(napi_env env,
                                const char* description,
                                napi_value* result)
@@ -385,7 +385,7 @@ of the ECMAScript Language Specification.
 ### *napi_create_typedarray*
 
 #### Signature
-```
+```C
 napi_status napi_create_typedarray(napi_env env,
                                    napi_typedarray_type type,
                                    size_t length,
@@ -424,7 +424,7 @@ of the ECMAScript Language Specification.
 ### *napi_create_number*
 
 #### Signature
-```
+```C
 napi_status napi_create_number(napi_env env, double value, napi_value* result)
 ```
 
@@ -447,7 +447,7 @@ of the ECMAScript Language Specification.
 ### *napi_create_string_utf16*
 
 #### Signature
-```
+```C
 napi_status napi_create_string_utf16(napi_env env,
                                      const char16_t* str,
                                      size_t length,
@@ -474,7 +474,7 @@ of the ECMAScript Language Specification.
 ### *napi_create_string_utf8*
 
 #### Signature
-```
+```C
 napi_status napi_create_string_utf8(napi_env env,
                                     const char* str,
                                     size_t length,
@@ -503,7 +503,7 @@ of the ECMAScript Language Specification.
 ### *napi_get_array_length*
 
 #### Signature
-```
+```C
 napi_status napi_get_array_length(napi_env env,
                                   napi_value value,
                                   uint32_t* result)
@@ -528,7 +528,7 @@ of the ECMAScript Language Specification.
 ### *napi_get_arraybuffer_info*
 
 #### Signature
-```
+```C
 napi_status napi_get_arraybuffer_info(napi_env env,
                                       napi_value arraybuffer,
                                       void** data,
@@ -559,7 +559,7 @@ callback as long as you don't call any other APIs that might trigger a GC.
 ### *napi_get_buffer_info*
 
 #### Signature
-```
+```C
 napi_status napi_get_buffer_info(napi_env env,
                                  napi_value value,
                                  void** data,
@@ -584,7 +584,7 @@ lifetime is not guaranteed if it's managed by the VM.
 ### *napi_get_prototype*
 
 #### Signature
-```
+```C
 napi_status napi_get_prototype(napi_env env,
                                napi_value object,
                                napi_value* result)
@@ -603,7 +603,7 @@ not the same as the function's `prototype` property)
 ### *napi_get_typedarray_info*
 
 #### Signature
-```
+```C
 napi_status napi_get_typedarray_info(napi_env env,
                                      napi_value typedarray,
                                      napi_typedarray_type* type,
@@ -634,7 +634,7 @@ is managed by the VM
 ### *napi_get_value_bool*
 
 #### Signature
-```
+```C
 napi_status napi_get_value_bool(napi_env env, napi_value value, bool* result)
 ```
 
@@ -651,7 +651,7 @@ Boolean
 ### *napi_get_value_double*
 
 #### Signature
-```
+```C
 napi_status napi_get_value_double(napi_env env,
                                   napi_value value,
                                   double* result)
@@ -670,7 +670,7 @@ Number
 ### *napi_get_value_external*
 
 #### Signature
-```
+```C
 napi_status napi_get_value_external(napi_env env,
                                     napi_value value,
                                     void** result)
@@ -688,7 +688,7 @@ napi_status napi_get_value_external(napi_env env,
 ### *napi_get_value_int32*
 
 #### Signature
-```
+```C
 napi_status napi_get_value_int32(napi_env env,
                                  napi_value value,
                                  int32_t* result)
@@ -706,7 +706,7 @@ napi_status napi_get_value_int32(napi_env env,
 ### *napi_get_value_int64*
 
 #### Signature
-```
+```C
 napi_status napi_get_value_int64(napi_env env,
                                  napi_value value,
                                  int64_t* result)
@@ -724,7 +724,7 @@ napi_status napi_get_value_int64(napi_env env,
 ### *napi_get_value_string_length*
 
 #### Signature
-```
+```C
 napi_status napi_get_value_string_length(napi_env env,
                                          napi_value value,
                                          int* result)
@@ -737,12 +737,12 @@ napi_status napi_get_value_string_length(napi_env env,
 
 #### Return value
 - `napi_ok` if the API succeeded.
-- `napi_string_expected` if a non-string `napi_value` is passed in
+- `napi_string_expected` if a non-String `napi_value` is passed in
 
 ### *napi_get_value_string_utf8*
 
 #### Signature
-```
+```C
 napi_status napi_get_value_string_utf8(napi_env env,
                                        napi_value value,
                                        char* buf,
@@ -762,12 +762,12 @@ including a null terminator.
 
 #### Return value
 - `napi_ok` if the API succeeded.
-- `napi_string_expected` if a non-string `napi_value` is passed in
+- `napi_string_expected` if a non-String `napi_value` is passed in
 
 ### *napi_get_value_string_utf16_length*
 
 #### Signature
-```
+```C
 napi_status napi_get_value_string_utf16(napi_env env,
                                         napi_value value,
                                         char16_t* buf,
@@ -787,12 +787,12 @@ truncated including a null terminator.
 
 #### Return value
 - `napi_ok` if the API succeeded.
-- `napi_string_expected` if a non-string `napi_value` is passed in
+- `napi_string_expected` if a non-String `napi_value` is passed in
 
 ### *napi_get_value_uint32*
 
 #### Signature
-```
+```C
 napi_status napi_get_value_uint32(napi_env env,
                                   napi_value value,
                                   uint32_t* result)
@@ -813,7 +813,7 @@ JavaScript Number
 ### *napi_get_boolean*
 
 #### Signature
-```
+```C
 napi_status napi_get_boolean(napi_env env, bool value, napi_value* result)
 ```
 
@@ -833,7 +833,7 @@ represent the given boolean value
 ### *napi_get_global*
 
 #### Signature
-```
+```C
 napi_status napi_get_global(napi_env env, napi_value* result)
 ```
 
@@ -847,7 +847,7 @@ napi_status napi_get_global(napi_env env, napi_value* result)
 ### *napi_get_null*
 
 #### Signature
-```
+```C
 napi_status napi_get_null(napi_env env, napi_value* result)
 ```
 
@@ -861,7 +861,7 @@ napi_status napi_get_null(napi_env env, napi_value* result)
 ### *napi_get_undefined*
 
 #### Signature
-```
+```C
 napi_status napi_get_undefined(napi_env env, napi_value* result)
 ```
 
