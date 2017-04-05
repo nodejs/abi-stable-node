@@ -34,7 +34,7 @@ napi_status napi_coerce_to_bool(napi_env env,
 This API implements the abstract operation ToBoolean as defined in 
 [Section 7.1.2](https://tc39.github.io/ecma262/#sec-toboolean)
 of the ECMAScript Language Specification. 
-This API can be re-entrant if getters are defined on the passed in Object.
+This API can be re-entrant if getters are defined on the passed-in Object.
 
 ### *napi_coerce_to_number*
 
@@ -57,7 +57,7 @@ napi_status napi_coerce_to_number(napi_env env,
 This N-API API implements the abstract operation ToNumber as defined in 
 [Section 7.1.3](https://tc39.github.io/ecma262/#sec-tonumber)
 of the ECMAScript Language Specification.
-This API can be re-entrant if getters are defined on the passed in Object.
+This API can be re-entrant if getters are defined on the passed-in Object.
 
 ### *napi_coerce_to_object*
 
@@ -80,7 +80,7 @@ napi_status napi_coerce_to_object(napi_env env,
 This N-API API implements the abstract operation ToObject as defined in 
 [Section 7.1.13](https://tc39.github.io/ecma262/#sec-toobject)
 of the ECMAScript Language Specification.
-This API can be re-entrant if getters are defined on the passed in Object.
+This API can be re-entrant if getters are defined on the passed-in Object.
 
 ### *napi_coerce_to_string*
 
@@ -123,7 +123,7 @@ napi_status napi_typeof(napi_env env, napi_value value, napi_valuetype* result)
  `value` is not an External value.
 
 #### Description
-This N-API API represents behavior similar to invoking `typeof` Operator on 
+This N-API API represents behavior similar to invoking the `typeof` Operator on 
 the object as defined in 
 [Section 12.5.5](https://tc39.github.io/ecma262/#sec-typeof-operator)
 of the ECMAScript Language Specification. However, it has support for 
@@ -151,7 +151,7 @@ function to check against
 - `napi_ok` if the API succeeded.
 
 #### Description
-This N-API API represents invoking `instanceof` Operator on the object as 
+This N-API API represents invoking the `instanceof` Operator on the object as 
 defined in 
 [Section 12.10.4](https://tc39.github.io/ecma262/#sec-instanceofoperator)
 of the ECMAScript Language Specification.
@@ -172,7 +172,7 @@ napi_status napi_is_array(napi_env env, napi_value value, bool* result)
 - `napi_ok` if the API succeeded.
 
 #### Description
-This N-API API represents invoking `IsArray` operation on the object 
+This N-API API represents invoking the `IsArray` operation on the object 
 as defined in [Section 7.2.2](https://tc39.github.io/ecma262/#sec-isarray)
 of the ECMAScript Language Specification.
 
@@ -202,7 +202,7 @@ napi_status napi_is_buffer(napi_env env, napi_value value, bool* result)
 - `[in]  env`: The environment that the API is invoked under
 - `[in]  value`: The JavaScript value to check
 - `[out] result`: Whether the given object is an N-API representation of 
-node-Buffer
+node::Buffer
 
 #### Return value
 - `napi_ok` if the API succeeded.
@@ -232,7 +232,7 @@ napi_status napi_is_typedarray(napi_env env, napi_value value, bool* result)
 #### Parameters
 - `[in]  env`: The environment that the API is invoked under
 - `[in]  value`: The JavaScript value to check
-- `[out] result`: Whether the given `napi_value` represents an TypedArray
+- `[out] result`: Whether the given `napi_value` represents a TypedArray
 
 #### Return value
 - `napi_ok` if the API succeeded.
