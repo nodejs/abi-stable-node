@@ -1,7 +1,7 @@
 # Async Helpers
 
 Addon modules often need to leverage async helpers from libuv as part of their
-implementation.  This allows them to schedule work to be execute asynchronously
+implementation.  This allows them to schedule work to be executed asynchronously
 so that their methods can return in advance of the work being completed.  This
 is important in order to allow them to avoid blocking overall execution
 of the Node.js application.
@@ -10,35 +10,59 @@ N-API provides an ABI-stable interface for these
 supporting functions which covers the most common asynchronous use cases.
 
 N-API defines the `napi_work` structure which is used to manage
-asynchronous wokers. Instances are created/deleted with the following methods:
+asynchronous workers. Instances are created/deleted with the following methods:
 
 ```C
-NAPI_EXTERN napi_work napi_create_async_work();
-NAPI_EXTERN void napi_delete_async_work(napi_work w);
+NAPI_EXTERN
+napi_status napi_create_async_work(napi_env env,
+                                   napi_async_execute_callback execute,
+                                   napi_async_complete_callback complete,
+                                   void* data,
+                                   napi_async_work* result);
+NAPI_EXTERN napi_status napi_delete_async_work(napi_env env,
+                                               napi_async_work work);
 ```
 
-Once a `napi_work` is created, functions must be provided by the addon
-that will be executed when the worker executes, completes its work, or
-is destroyed.  These functions are as follows:
-
-```
-NAPI_EXTERN void napi_async_set_execute(napi_work w, void (*execute)(void*));
-NAPI_EXTERN void napi_async_set_complete(napi_work w, void (*complete)(void*));
-NAPI_EXTERN void napi_async_set_destroy(napi_work w, void (*destroy)(void*));
-```
-
-When these methods are invoked, the `void*` parameter passed will be the
-addon-provided data that can be set using the `napi_async_set_data`
-function:
+The `execute` and `complete` callbacks are functions that will be
+invoked when the executor is ready to execute and when it completes its
+task respectively.  These functions implement the following interfaces:
 
 ```C
-NAPI_EXTERN void napi_async_set_data(napi_work w, void* data);
+typedef void (*napi_async_execute_callback)(napi_env env,
+                                            void* data);
+typedef void (*napi_async_complete_callback)(napi_env env,
+                                             napi_status status,
+                                             void* data);
 ```
 
-Once created and one or more of the `execute`, `complete` or
-`destroy` functions have been set, the async worker can be queued
+
+When these methods are invoked, the `data` parameter passed will be the
+addon-provided void* data that was passed into the 
+`napi_create_async_work` call.
+
+Once created the async worker can be queued
 for execution using the `napi_async_queue_worker` function:
 
 ```C
-NAPI_EXTERN void napi_async_queue_worker(napi_work w);
+NAPI_EXTERN napi_status napi_queue_async_work(napi_env env,
+                                              napi_async_work work);
 ```
+
+If the work needs to be cancelled before the work is complete, the
+following function can be called:
+
+```
+NAPI_EXTERN napi_status napi_cancel_async_work(napi_env env,
+                                               napi_async_work work);
+```
+
+Once the work has `completed` through the execution of the
+`complete` callback, or the work has been cancelled with the
+`napi_cancel_async_work` function, the `napi_async_work` instance
+should be deleted using `napi_delete_async_work`.
+
+Note that as mentioned in the section on memory management, if
+the code to be run in the callbacks will create objects, thea
+napi handle scope methods must be used to create/destroy a
+`napi_handle_scope` such that the scope is active when
+objects can be created.
