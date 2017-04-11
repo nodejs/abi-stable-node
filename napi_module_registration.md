@@ -43,7 +43,7 @@ void Init(napi_env env, napi_value exports, napi_value module, void* priv) {
 For example, to define your own class so that new instances can be created
 (often used with [object wrap]()):
 
-```
+```C
   // NOTE: partial example, not all referenced code is included
 
   napi_status status;
