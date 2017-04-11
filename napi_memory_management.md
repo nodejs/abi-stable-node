@@ -19,7 +19,7 @@ to change the handle lifespan from the default.
 
 ## Making handle lifespan shorter than that of the native method
 
-It is often necessary to make the lifespan for handles shorter than
+It is often necessary to make the lifespan of handles shorter than
 the lifespan of a native method. For example, consider a native method
 that has a loop which iterates through the elements in a large array:
 
@@ -40,7 +40,7 @@ use the most recent handle, all of the associated objects would also be
 kept alive since they all share the same scope.
 
 To handle this case, N-API provides the ability to establish a new 'scope' to
-which newly created handle will be associated.  Once those handles
+which newly created handles will be associated.  Once those handles
 are no longer required, the scope can be 'closed' and any handles associated
 with the scope are invalidated.  The methods available to open/close scopes are:
 
@@ -61,7 +61,7 @@ Taking the earlier example, adding calls to `napi_open_handle_scope()` and
 `napi_close_handle_scope()`  would ensure that at most a single handle
 is valid throughout the execution of the loop:
 
-```
+```C
 for (int i = 0; i < 1000000; i++) {napi_
   napi_handle_scope scope;
   napi_status status = napi_open_handle_scope(env, &scope);
@@ -84,7 +84,7 @@ for (int i = 0; i < 1000000; i++) {napi_
 When nesting scopes, there are cases where you want a handle from an
 inner scope to live beyond the lifespan of that scope.  N-API supports an
 'escapable scope' in order to support this case.  An escapable scope
-allows one or more handles to be 'promoted' so that they  'escape' the
+allows one or more handles to be 'promoted' so that they 'escape' the
 current scope and the lifespan of the handle(s) changes from the current
 scope to that of the outer scope.
 
@@ -102,7 +102,7 @@ napi_close_escapable_handle_scope(napi_env env,
 The request to promote a handle is made through the `napi_escape_handle`
 function:
 
-```
+```C
 NAPI_EXTERN napi_status napi_escape_handle(napi_env env,
                                            napi_escapable_handle_scope scope,
                                            napi_value escapee,
@@ -171,5 +171,5 @@ NODE_EXTERN napi_status napi_get_reference_value(napi_env e,
                                                  napi_value* result);
 ```
 
-the napi_value passed in or out of these methods is a handle to the
+the `napi_value passed` in or out of these methods is a handle to the
 object to which the reference is related.
