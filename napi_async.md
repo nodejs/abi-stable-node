@@ -48,21 +48,21 @@ NAPI_EXTERN napi_status napi_queue_async_work(napi_env env,
                                               napi_async_work work);
 ```
 
-If the work needs to be cancelled before the work is complete, the
-following function can be called:
+If the work needs to be cancelled before the work has
+started execution, the following function can be called:
 
 ```
 NAPI_EXTERN napi_status napi_cancel_async_work(napi_env env,
                                                napi_async_work work);
 ```
 
-Once the work has `completed` through the execution of the
-`complete` callback, or the work has been cancelled with the
-`napi_cancel_async_work` function, the `napi_async_work` instance
-should be deleted using `napi_delete_async_work`.
+After calling `napi_cancel_async_work()`, the `complete` callback
+will be invoked with a status value of `napi_cancelled`.
+The work should not be deleted before the `complete`
+callback invocation, even when it was cancelled.
 
 Note that as mentioned in the section on memory management, if
-the code to be run in the callbacks will create objects, thea
-napi handle scope methods must be used to create/destroy a
+the code to be run in the callbacks will create N-API values, then
+N-API handle scope functions must be used to create/destroy a
 `napi_handle_scope` such that the scope is active when
 objects can be created.
