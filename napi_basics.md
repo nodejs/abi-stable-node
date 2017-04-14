@@ -22,8 +22,8 @@ properties:
 ## N-API General types
 
 N-API exposes the following fundamental datatypes as abstractions that are 
-consumed by the various APIs. These APIs should be treated as opaque types 
-that can be introspected only with other N-API calls.
+consumed by the various APIs. These APIs should be treated as opaque, 
+introspectable only with other N-API calls.
 
 ### *napi_status*
 Integral status code indicating the success or failure of a N-API call.
@@ -93,14 +93,14 @@ create a scope before invoking any functions that can result in the creation
 of JavaScript values.
 
 Handle scopes are created using `napi_open_handle_scope` and are destroyed 
-using `napi_close_handle_scope`. Calling close can indicate to the GC that all
-napi_values created during the lifetime of the handle scope are no longer 
+using `napi_close_handle_scope`. Closing the scope can indicate to the GC that 
+all `napi_value`s created during the lifetime of the handle scope are no longer 
 referenced from the current stack frame.
 
 For more details, review the [Object Lifetime Management section](TODO://path).
 
 ### *napi_escapable_handle_scope*
-Escapable handle Scopes are a special type of handle scope to return values
+Escapable handle scopes are a special type of handle scope to return values
 created within a particular handle scope to a parent scope.
 
 ### *napi_ref*
@@ -130,10 +130,10 @@ typedef void (*napi_callback)(napi_env, napi_callback_info);
 ### *napi_finalize*
 Function pointer type for add-on provided functions that allow the user to be
 notified when externally-owned data is ready to be cleaned up because the
-object that it was associated with is garbage-collected. The user must provide
-a function satisfying the following signature which would get called upon the
-object's collection. Currently, `napi_finalize` can be used for finding out when
-objects that have external data are collected.
+object with which it was associated with, has been garbage-collected. The user
+must provide a function satisfying the following signature which would get
+called upon the object's collection. Currently, `napi_finalize` can be used for
+finding out when objects that have external data are collected.
 ```C
 typedef void (*napi_finalize)(void* finalize_data, void* finalize_hint);
 ```
