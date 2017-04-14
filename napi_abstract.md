@@ -1,7 +1,7 @@
 # N-API - Abstract Operations 
 
-N-API exposes a set of APIs to apply some abstract operations on JavaScript 
-Objects. Some of these operations are documented under 
+N-API exposes a set of APIs to perform some abstract operations on JavaScript 
+values. Some of these operations are documented under 
 [Section 7](https://tc39.github.io/ecma262/#sec-abstract-operations) 
 of the [ECMAScript Language Specification](https://tc39.github.io/ecma262/).
 
@@ -9,7 +9,7 @@ These APIs allow you to do one of the following:
 1. Coerce JavaScript values to specific JavaScript types (such as Number or
    String)
 2. Check the type of a JavaScript value
-3. Check for equality between two JavaScript Objects
+3. Check for equality between two JavaScript values
 
 ## Functions
 
@@ -54,7 +54,7 @@ napi_status napi_coerce_to_number(napi_env env,
 - `napi_ok` if the API succeeded.
 
 #### Description
-This N-API API implements the abstract operation ToNumber as defined in 
+This API implements the abstract operation ToNumber as defined in 
 [Section 7.1.3](https://tc39.github.io/ecma262/#sec-tonumber)
 of the ECMAScript Language Specification.
 This API can be re-entrant if getters are defined on the passed-in Object.
@@ -77,7 +77,7 @@ napi_status napi_coerce_to_object(napi_env env,
 - `napi_ok` if the API succeeded.
 
 #### Description
-This N-API API implements the abstract operation ToObject as defined in 
+This API implements the abstract operation ToObject as defined in 
 [Section 7.1.13](https://tc39.github.io/ecma262/#sec-toobject)
 of the ECMAScript Language Specification.
 This API can be re-entrant if getters are defined on the passed-in Object.
@@ -100,7 +100,7 @@ napi_status napi_coerce_to_string(napi_env env,
 - `napi_ok` if the API succeeded.
 
 #### Description
-This N-API API implements the abstract operation ToString as defined in 
+This API implements the abstract operation ToString as defined in 
 [Section 7.1.13](https://tc39.github.io/ecma262/#sec-tostring)
 of the ECMAScript Language Specification.
 This API can be re-entrant if getters are defined on the passed-in Object.
@@ -123,11 +123,11 @@ napi_status napi_typeof(napi_env env, napi_value value, napi_valuetype* result)
  `value` is not an External value.
 
 #### Description
-This N-API API represents behavior similar to invoking the `typeof` Operator on 
+This API represents behavior similar to invoking the `typeof` Operator on 
 the object as defined in 
 [Section 12.5.5](https://tc39.github.io/ecma262/#sec-typeof-operator)
 of the ECMAScript Language Specification. However, it has support for 
-detecting External value. If `value` has a type that is invalid, an error is
+detecting an External value. If `value` has a type that is invalid, an error is
 returned.
 
 ### *napi_instanceof*
@@ -151,7 +151,7 @@ function to check against
 - `napi_ok` if the API succeeded.
 
 #### Description
-This N-API API represents invoking the `instanceof` Operator on the object as 
+This API represents invoking the `instanceof` Operator on the object as 
 defined in 
 [Section 12.10.4](https://tc39.github.io/ecma262/#sec-instanceofoperator)
 of the ECMAScript Language Specification.
@@ -172,7 +172,7 @@ napi_status napi_is_array(napi_env env, napi_value value, bool* result)
 - `napi_ok` if the API succeeded.
 
 #### Description
-This N-API API represents invoking the `IsArray` operation on the object 
+This API represents invoking the `IsArray` operation on the object 
 as defined in [Section 7.2.2](https://tc39.github.io/ecma262/#sec-isarray)
 of the ECMAScript Language Specification.
 
@@ -201,8 +201,8 @@ napi_status napi_is_buffer(napi_env env, napi_value value, bool* result)
 #### Parameters
 - `[in]  env`: The environment that the API is invoked under
 - `[in]  value`: The JavaScript value to check
-- `[out] result`: Whether the given object is an N-API representation of 
-node::Buffer
+- `[out] result`: Whether the given `napi_value` represents a `node::Buffer`
+object
 
 #### Return value
 - `napi_ok` if the API succeeded.
@@ -257,7 +257,7 @@ napi_status napi_strict_equals(napi_env env,
 - `napi_ok` if the API succeeded.
 
 #### Description
-This N-API API represents the invocation of the Strict Equality algorithm as 
+This API represents the invocation of the Strict Equality algorithm as 
 defined in 
 [Section 7.2.14](https://tc39.github.io/ecma262/#sec-strict-equality-comparison) 
 of the ECMAScript Language Specification.
