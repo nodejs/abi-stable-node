@@ -37,10 +37,7 @@ napi_status napi_call_function(napi_env env,
 to be invoked
 - `[in]  argc`: The count of elements in the `argv` array
 - `[in]  argv`: Array of `napi_values` representing JavaScript values passed 
-in as arguments to the function. If there are more arguments than the provided
-count, only the requested number of arguments are copied. If there are fewer
-arguments provided than claimed, the rest of `argv` is filled with `napi_value`
-values that represent `undefined`
+in as arguments to the function.
 - `[out] result`: `napi_value` representing the JavaScript object returned
 
 #### Return value
@@ -48,9 +45,9 @@ values that represent `undefined`
 
 #### Description
 This method allows you to call a JavaScript function object from your native 
-add-on. This is an alternate mechanism of calling back *from* the add-on's
-native code *into* JavaScript. See [`napi_make_callback`](#napi_make_callback) 
-for additional details.
+add-on. This is an primary mechanism of calling back *from* the add-on's
+native code *into* JavaScript. For special cases like calling into JavaScript
+after an async operation, see [`napi_make_callback`](#napi_make_callback).
 
 A sample use case might look as follows. Consider the following JavaScript
 snippet:
@@ -170,16 +167,19 @@ napi_status napi_get_cb_info(napi_env env,
 - `[in-out] argc`: Specifies the size of the provided `argv` array
 and receives the actual count of arguments.
 - `[out] argv`: Buffer to which the `napi_value` representing the
-arguments are copied
-- `[out] this`: Receives the JS `this` argument for the call
+arguments are copied. If there are more arguments than the provided
+count, only the requested number of arguments are copied. If there are fewer
+arguments provided than claimed, the rest of `argv` is filled with `napi_value`
+values that represent `undefined`.
+- `[out] this`: Receives the JavaScript `this` argument for the call
 - `[out] data`: Receives the data pointer for the callback.
 
 #### Return value
 - `napi_ok` if the API succeeded.
 
 #### Description
-This is a convenience method that retrieves all relevant information from a 
-`napi_callback_info` in a single call.
+This method is used within a callback function to retrieve details about the
+call like the arguments and the `this` pointer from a given callback info.
 
 ### *napi_is_construct_call*
 
@@ -216,7 +216,7 @@ napi_status napi_new_instance(napi_env env,
 to be invoked as a constructor
 - `[in]  argc`: The count of elements in the `argv` array
 - `[in]  argv`: Array of JavaScript values as `napi_value` 
-representing the arguments to the function
+representing the arguments to the constructor
 - `[out] result`: `napi_value` representing the JavaScript object returned, 
 which in this case is the constructed object
 
@@ -277,11 +277,7 @@ napi_status napi_make_callback(napi_env env,
 to be invoked
 - `[in]  argc`: The count of elements in the `argv` array
 - `[in]  argv`: Array of JavaScript values as `napi_value` 
-representing the arguments to the function. If there are more arguments
-than the provided argument count, then only the requested number of 
-arguments are copied. If there are fewer arguments provided than 
-claimed, the rest of `argv` is filled with `napi_value` values that 
-represent `undefined`
+representing the arguments to the function.
 - `[out] result`: `napi_value` representing the JavaScript object returned
 
 #### Return value
@@ -289,45 +285,10 @@ represent `undefined`
 
 #### Description
 This method allows you to call a JavaScript function object from your native 
-add-on. This is the primary mechanism of calling back *from* the add-on's
-native code *into* JavaScript. It is a fairly simple wrapper around
-`node::MakeCallback`. This API is very similar to `napi_call_function`. However,
-it has additional enhancements, like being aware of domains and AsyncHooks.
+add-on. This API is similar to `napi_call_function`. However, it is used to call
+*from* native code back *into* JavaScript *after* returning from an async 
+operation (when there is no other script on the stack). It is a fairly simple
+wrapper around `node::MakeCallback`.
 
-A sample use case might look as follows. Consider the following JavaScript
-snippet:
-```js
-function AddTwo(num)
-{
-    return num + 2;
-}
-```
-
-Then, the above function can be invoked from your native add-on using the
-following code:
-```C
-// Get the function named "AddTwo" on the global object
-napi_value global, add_two, arg;
-napi_status status = napi_get_global(env, &global);
-if (status != napi_ok) return;
-
-status = napi_get_named_property(env, global, "AddTwo", &add_two);
-if (status != napi_ok) return;
-
-// var arg = 1337
-status = napi_create_number(env, 1337, &arg);
-if (status != napi_ok) return;
-
-napi_value* argv = &arg;
-size_t argc = 1;
-
-// AddTwo(arg);
-napi_value return_val;
-status = napi_make_callback(env, global, add_two, argc, argv, &return_val);
-if (status != napi_ok) return;
-
-// Convert the result back to a native type
-int32_t result;
-status = napi_get_value_int32(env, return_val, &result);
-if (status != napi_ok) return;
-```
+For an example on how to use `napi_make_callback`, see the 
+[Async Helpers](/napi_async.md) documentation.
