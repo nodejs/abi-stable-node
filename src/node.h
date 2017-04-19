@@ -42,7 +42,6 @@
 #include "v8.h"  // NOLINT(build/include_order)
 #include "node_version.h"  // NODE_MODULE_VERSION
 #include "tracing/trace_event.h"
-#include "node_jsvmapi.h"
 
 #define NODE_MAKE_VERSION(major, minor, patch)                                \
   ((major) * 0x1000 + (minor) * 0x100 + (patch))
@@ -391,12 +390,6 @@ typedef void (*addon_context_register_func)(
     v8::Local<v8::Object> exports,
     v8::Local<v8::Value> module,
     v8::Local<v8::Context> context,
-    void* priv);
-
-typedef void (*addon_abi_register_func)(
-    napi_env env,
-    napi_value exports,
-    napi_value module,
     void* priv);
 
 #define NM_F_BUILTIN 0x01
