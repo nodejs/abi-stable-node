@@ -122,10 +122,10 @@ v8:
 
 test: all
 	$(MAKE) build-addons
-	$(MAKE) build-addons-abi
+	$(MAKE) build-addons-napi
 	$(MAKE) cctest
 	$(PYTHON) tools/test.py --mode=release -J \
-		addons addons-abi doctool inspector known_issues message pseudo-tty parallel sequential
+		addons addons-napi doctool inspector known_issues message pseudo-tty parallel sequential
 	$(MAKE) lint
 
 test-parallel: all
@@ -190,16 +190,16 @@ test/addons/.buildstamp: config.gypi \
 build-addons: $(NODE_EXE) test/addons/.buildstamp
 
 ADDONS_ABI_BINDING_GYPS := \
-	$(filter-out test/addons-abi/??_*/binding.gyp, \
-		$(wildcard test/addons-abi/*/binding.gyp))
+	$(filter-out test/addons-napi/??_*/binding.gyp, \
+		$(wildcard test/addons-napi/*/binding.gyp))
 
-# Implicitly depends on $(NODE_EXE), see the build-addons-abi rule for rationale.
-test/addons-abi/.buildstamp: $(ADDONS_ABI_BINDING_GYPS) \
+# Implicitly depends on $(NODE_EXE), see the build-addons-napi rule for rationale.
+test/addons-napi/.buildstamp: $(ADDONS_ABI_BINDING_GYPS) \
 	deps/uv/include/*.h deps/v8/include/*.h \
 	src/node.h src/node_buffer.h src/node_object_wrap.h
-	# Cannot use $(wildcard test/addons-abi/*/) here, it's evaluated before
+	# Cannot use $(wildcard test/addons-napi/*/) here, it's evaluated before
 	# embedded addons have been generated from the documentation.
-	for dirname in test/addons-abi/*/; do \
+	for dirname in test/addons-napi/*/; do \
 		$(NODE) deps/npm/node_modules/node-gyp/bin/node-gyp rebuild \
 			--python="$(PYTHON)" \
 			--directory="$$PWD/$$dirname" \
@@ -213,13 +213,13 @@ test/addons-abi/.buildstamp: $(ADDONS_ABI_BINDING_GYPS) \
 # .buildstamp and .docbuildstamp are out of date and need a rebuild.
 # Just goes to show that recursive make really is harmful...
 # TODO(bnoordhuis) Force rebuild after gyp or node-gyp update.
-build-addons-abi: $(NODE_EXE) test/addons-abi/.buildstamp
+build-addons-napi: $(NODE_EXE) test/addons-napi/.buildstamp
 
 
 test-gc: all test/gc/node_modules/weak/build/Release/weakref.node
 	$(PYTHON) tools/test.py --mode=release gc
 
-test-build: | all build-addons build-addons-abi
+test-build: | all build-addons build-addons-napi
 
 test-all: test-build test/gc/node_modules/weak/build/Release/weakref.node
 	$(PYTHON) tools/test.py --mode=debug,release
@@ -244,11 +244,11 @@ test-ci-js:
 		$(TEST_CI_ARGS) $(CI_JS_SUITES)
 
 test-ci: LOGLEVEL := info
-test-ci: | build-addons build-addons-abi
+test-ci: | build-addons build-addons-napi
 	out/Release/cctest --gtest_output=tap:cctest.tap
 	$(PYTHON) tools/test.py $(PARALLEL_ARGS) -p tap --logfile test.tap \
 		--mode=release --flaky-tests=$(FLAKY_TESTS) \
-		$(TEST_CI_ARGS) addons-abi $(CI_NATIVE_SUITES) $(CI_JS_SUITES)
+		$(TEST_CI_ARGS) addons-napi $(CI_NATIVE_SUITES) $(CI_JS_SUITES)
 
 test-release: test-build
 	$(PYTHON) tools/test.py --mode=release
@@ -289,8 +289,8 @@ test-npm-publish: $(NODE_EXE)
 test-addons: test-build
 	$(PYTHON) tools/test.py --mode=release addons
 
-test-addons-abi: test-build
-	$(PYTHON) tools/test.py --mode=release addons-abi
+test-addons-napi: test-build
+	$(PYTHON) tools/test.py --mode=release addons-napi
 
 test-timers:
 	$(MAKE) --directory=tools faketime
@@ -744,7 +744,7 @@ CPPLINT_EXCLUDE += src/node_root_certs.h
 CPPLINT_EXCLUDE += src/queue.h
 CPPLINT_EXCLUDE += src/tree.h
 CPPLINT_EXCLUDE += $(wildcard test/addons/??_*/*.cc test/addons/??_*/*.h)
-CPPLINT_EXCLUDE += $(wildcard test/addons-abi/??_*/*.cc test/addons-abi/??_*/*.h)
+CPPLINT_EXCLUDE += $(wildcard test/addons-napi/??_*/*.cc test/addons-napi/??_*/*.h)
 
 CPPLINT_FILES = $(filter-out $(CPPLINT_EXCLUDE), $(wildcard \
 	src/*.c \
@@ -754,8 +754,8 @@ CPPLINT_FILES = $(filter-out $(CPPLINT_EXCLUDE), $(wildcard \
 	test/addons/*/*.h \
 	test/cctest/*.cc \
 	test/cctest/*.h \
-	test/addons-abi/*/*.cc \
-	test/addons-abi/*/*.h \
+	test/addons-napi/*/*.cc \
+	test/addons-napi/*/*.h \
 	tools/icu/*.cc \
 	tools/icu/*.h \
 	))
@@ -788,8 +788,8 @@ endif
 .PHONY: lint cpplint jslint bench clean docopen docclean doc dist distclean \
 	check uninstall install install-includes install-bin all staticlib \
 	dynamiclib test test-all \
-	test-addons build-addons test-addons-abi build-addons-abi \
-	test-addons-abi	build-addons-abi website-upload pkg \
+	test-addons build-addons test-addons-napi build-addons-napi \
+	test-addons-napi	build-addons-napi website-upload pkg \
 	blog blogclean tar binary release-only bench-http-simple bench-idle \
 	bench-all bench bench-misc bench-array bench-buffer bench-net \
 	bench-http bench-fs bench-tls cctest run-ci test-v8 test-v8-intl \

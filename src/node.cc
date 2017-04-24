@@ -29,8 +29,6 @@
 #include "node_lttng.h"
 #endif
 
-#include "node_jsvmapi_internal.h"
-
 #include "ares.h"
 #include "async-wrap.h"
 #include "async-wrap-inl.h"
@@ -2502,19 +2500,27 @@ void DLOpen(const FunctionCallbackInfo<Value>& args) {
     return;
   }
 
-  bool isNapiModule = mp->nm_version == -1;
-
-  if (mp->nm_version != NODE_MODULE_VERSION && !isNapiModule) {
+  if (mp->nm_version != NODE_MODULE_VERSION) {
     char errmsg[1024];
-    snprintf(errmsg,
-             sizeof(errmsg),
-             "The module '%s'"
-             "\nwas compiled against a different Node.js version using"
-             "\nNODE_MODULE_VERSION %d. This version of Node.js requires"
-             "\nNODE_MODULE_VERSION %d. Please try re-compiling or "
-             "re-installing\nthe module (for instance, using `npm rebuild` or"
-             "`npm install`).",
-             *filename, mp->nm_version, NODE_MODULE_VERSION);
+    if (mp->nm_version == -1) {
+      snprintf(errmsg,
+               sizeof(errmsg),
+               "The module '%s'"
+               "\nwas compiled against the ABI-stable Node.js API (N-API)."
+               "\nThis feature is experimental and must be enabled on the "
+               "\ncommand-line by adding --napi-modules.",
+               *filename);
+    } else {
+      snprintf(errmsg,
+               sizeof(errmsg),
+               "The module '%s'"
+               "\nwas compiled against a different Node.js version using"
+               "\nNODE_MODULE_VERSION %d. This version of Node.js requires"
+               "\nNODE_MODULE_VERSION %d. Please try re-compiling or "
+               "re-installing\nthe module (for instance, using `npm rebuild` "
+               "or `npm install`).",
+               *filename, mp->nm_version, NODE_MODULE_VERSION);
+    }
 
     // NOTE: `mp` is allocated inside of the shared library's memory, calling
     // `uv_dlclose` will deallocate it
@@ -2535,28 +2541,14 @@ void DLOpen(const FunctionCallbackInfo<Value>& args) {
   Local<String> exports_string = env->exports_string();
   Local<Object> exports = module->Get(exports_string)->ToObject(env->isolate());
 
-  if (isNapiModule) {
-    if (mp->nm_register_func != nullptr) {
-      reinterpret_cast<node::addon_abi_register_func>(mp->nm_register_func)(
-        v8impl::JsEnvFromV8Isolate(v8::Isolate::GetCurrent()),
-        v8impl::JsValueFromV8LocalValue(exports),
-        v8impl::JsValueFromV8LocalValue(module),
-        mp->nm_priv);
-    } else {
-      uv_dlclose(&lib);
-      env->ThrowError("Module has no declared entry point.");
-      return;
-    }
+  if (mp->nm_context_register_func != nullptr) {
+    mp->nm_context_register_func(exports, module, env->context(), mp->nm_priv);
+  } else if (mp->nm_register_func != nullptr) {
+    mp->nm_register_func(exports, module, mp->nm_priv);
   } else {
-    if (mp->nm_context_register_func != nullptr) {
-      mp->nm_context_register_func(exports, module, env->context(), mp->nm_priv);
-    } else if (mp->nm_register_func != nullptr) {
-      mp->nm_register_func(exports, module, mp->nm_priv);
-    } else {
-      uv_dlclose(&lib);
-      env->ThrowError("Module has no declared entry point.");
-      return;
-    }
+    uv_dlclose(&lib);
+    env->ThrowError("Module has no declared entry point.");
+    return;
   }
 
   // Tell coverity that 'handle' should not be freed when we return.
@@ -2784,15 +2776,7 @@ static void LinkedBinding(const FunctionCallbackInfo<Value>& args) {
                                   env->context(),
                                   mod->nm_priv);
   } else if (mod->nm_register_func != nullptr) {
-    if (mod->nm_version != -1) {
-      mod->nm_register_func(exports, module, mod->nm_priv);
-    } else {
-      reinterpret_cast<node::addon_abi_register_func>(mod->nm_register_func)(
-        v8impl::JsEnvFromV8Isolate(v8::Isolate::GetCurrent()),
-        v8impl::JsValueFromV8LocalValue(exports),
-        v8impl::JsValueFromV8LocalValue(module),
-        mod->nm_priv);
-    }
+    mod->nm_register_func(exports, module, mod->nm_priv);
   } else {
     return env->ThrowError("Linked module has no declared entry point.");
   }
