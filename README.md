@@ -1,26 +1,24 @@
 # Node.js API (N-API)
-This repository is the home for ABI Stable Node API project (N-API). The goal of this
-project is to provide a stable Node API for native module developers. N-API aims
-to provide ABI compatibility guarantees across different Node versions and also
-across different Node VMs – allowing N-API enabled native modules to just work
+This repository is the home for ABI Stable Node API project (N-API).
+The goal of this project is to provide a stable Node API for native
+module developers. N-API aims to provide ABI compatibility guarantees
+across different Node versions and also across different Node
+VMs - allowing N-API enabled native modules to just work
 across different versions and flavors of Node.js without recompilations.
 
 It is introduced by this Node enhancemnet proposal:
 [005-ABI-Stable-Module-API.md](https://github.com/nodejs/node-eps/blob/master/005-ABI-Stable-Module-API.md).
 
-This is project is in experimental stage at the moment. During the latest [VM Summit](https://github.com/nodejs/vm/issues/4), we [discussed the progress](https://github.com/nodejs/abi-stable-node/blob/doc/VM%20Summit.pdf) of this project. The summit participants agreed to consider a PR for this feature as experimental in the upcoming Node.js version 8.0. You can checkout the [Notes from Node.js VM Summit](https://blogs.windows.com/msedgedev/2017/03/13/notes-from-nodejs-vm-summit/) for more details.
+N-API is now part of core as an experimental feature. Documentation is available here:
+[https://nodejs.org/docs/latest/api/n-api.html]().
 
 **Branches**
 
-This repository contains node sources from Node versions 0.10, 0.12, 6.2, 8.x and
-Node-ChakraCore version 7.x and 8.x with addition of ABI stable Node APIs. The branches
-are named according to the node versions that have been enabled with N-API support. 
-Recently updated branches are the following:
-* [api-prototype-6.2.0](https://github.com/nodejs/abi-stable-node/tree/api-prototype-6.2.0)
-* [api-prototype-8.x](https://github.com/nodejs/abi-stable-node/tree/api-prototype-8.x)
-* [api-prototype-chakracore-8.x](https://github.com/nodejs/abi-stable-node/tree/api-prototype-chakracore-8.x)
-
-Branches for older Node versions were to test the resiliency of N-APIs across different Node versions. The PR will be submitted using the [api-prototype-8.x](https://github.com/nodejs/abi-stable-node/tree/api-prototype-8.x) branch which is tracking the latest Node.js master.
+Currently this repo is being used only for meta issue management and
+future planning by the [n-api](https://github.com/orgs/nodejs/teams/n-api)
+team.  All branches can be considered `stale` as they are no longer
+being maintained. Updates and changes to N-API are being done
+in the core [repo](http://github.com/nodejs/node).
 
 **API Design & Shape**
 
