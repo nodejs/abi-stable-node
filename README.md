@@ -8,7 +8,7 @@ across different versions and flavors of Node.js without recompilations.
 It is introduced by this Node enhancemnet proposal:
 [005-ABI-Stable-Module-API.md](https://github.com/nodejs/node-eps/blob/master/005-ABI-Stable-Module-API.md).
 
-This is project is in experimental stage at the moment. During the latest [VM Summit](https://github.com/nodejs/vm/issues/4), we [discussed the progress](https://github.com/nodejs/abi-stable-node/blob/doc/VM%20Summit.pdf) of this project. The summit participants agreed to consider a PR for this feature as experimental in the upcoming Node.js version 8.0. You can checkout the [Notes from Node.js VM Summit](https://blogs.windows.com/msedgedev/2017/03/13/notes-from-nodejs-vm-summit/) for more details.
+This project is in experimental stage at the moment. During the latest [VM Summit](https://github.com/nodejs/vm/issues/4), we [discussed the progress](https://github.com/nodejs/abi-stable-node/blob/doc/VM%20Summit.pdf) of this project. The summit participants agreed to consider a PR for this feature as experimental in the upcoming Node.js version 8.0. You can checkout the [Notes from Node.js VM Summit](https://blogs.windows.com/msedgedev/2017/03/13/notes-from-nodejs-vm-summit/) for more details.
 
 **Branches**
 
