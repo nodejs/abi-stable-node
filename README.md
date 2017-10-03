@@ -10,7 +10,14 @@ It is introduced by this Node enhancemnet proposal:
 [005-ABI-Stable-Module-API.md](https://github.com/nodejs/node-eps/blob/master/005-ABI-Stable-Module-API.md).
 
 N-API is now part of core as an experimental feature. Documentation is available here:
-[https://nodejs.org/docs/latest/api/n-api.html]().
+[https://nodejs.org/docs/latest/api/n-api.html](https://nodejs.org/docs/latest/api/n-api.html).
+
+As of Node.js version 8.6.0 N-API is enabled by default.  If you use an N-API enabled module you
+will be warned that it is experimental as follows:
+
+```
+(node:16761) Warning: N-API is an experimental feature and could change at any time.
+```
 
 **Branches**
 
@@ -23,20 +30,24 @@ in the core [repo](http://github.com/nodejs/node).
 **API Design & Shape**
 
 The current shape of the API can be found in header file
-[node_api.h](https://github.com/nodejs/abi-stable-node/blob/api-prototype-8.x/src/node_api.h)
+[node_api.h](https://github.com/nodejs/node/blob/master/src/node_api.h).
+Full documentation is available as part of the standard Node.js API docs here:
+[https://nodejs.org/docs/latest/api/n-api.html](https://nodejs.org/docs/latest/api/n-api.html).
 
-There is also a header-only [C++ API](https://github.com/nodejs/node-api/blob/master/napi.h), which simplifies development while still using the same ABI-stable Node API underneath. It will be distributed as a separate npm package.
+There is also a header-only [C++ API](https://github.com/nodejs/node-addon-api), which
+simplifies development while still using the same ABI-stable Node API underneath.
+It is distributed as a separate npm package[https://www.npmjs.com/package/node-addon-api](https://www.npmjs.com/package/node-addon-api).
 
 **N-API enabled modules**
 
 |Module|Converted By|Location|Conversion Status|Performance Assesment|
 |------|------------|--------|---|-----------|
-|leveldown|[boingoing](https://github.com/boingoing) / [ianwjhalliday](https://github.com/ianwjhalliday) / [jasongin](https://github.com/jasongin) | https://github.com/jasongin/leveldown/tree/napi | Completed | [#55](https://github.com/nodejs/abi-stable-node/issues/55) |
-|nanomsg|[sampsongao](https://github.com/sampsongao) | https://github.com/sampsongao/node-nanomsg/tree/api-opaque-prototype | Completed | [#57](https://github.com/nodejs/abi-stable-node/issues/57)|
-|canvas|[jasongin](https://github.com/jasongin) | https://github.com/jasongin/node-canvas/tree/napi | Completed | [#77](https://github.com/nodejs/abi-stable-node/issues/77)|
-|node-sass|[boingoing](https://github.com/boingoing) / [jasongin](https://github.com/jasongin) | https://github.com/boingoing/node-sass/tree/napi | Completed | [#82](https://github.com/nodejs/abi-stable-node/issues/82)|
+|leveldown| n-api team | https://github.com/sampsongao/leveldown/tree/napi | Completed | [#55](https://github.com/nodejs/abi-stable-node/issues/55) |
+|nanomsg| n-api team | https://github.com/sampsongao/node-nanomsg/tree/napi| Completed | [#57](https://github.com/nodejs/abi-stable-node/issues/57)|
+|canvas| n-api team | https://github.com/jasongin/node-canvas/tree/napi | Completed | [#77](https://github.com/nodejs/abi-stable-node/issues/77)|
+|node-sass| n-api team | https://github.com/boingoing/node-sass/tree/napi | Completed | [#82](https://github.com/nodejs/abi-stable-node/issues/82)|
 |iotivity|[gabrielschulhof](https://github.com/gabrielschulhof) | https://github.com/gabrielschulhof/iotivity-node/tree/abi-stable | Completed |N/A|
-|node-sqlite3 |[sampsongao](https://github.com/sampsongao) / [mhdawson](https://github.com/mhdawson)|https://github.com/mhdawson/node-sqlite3/tree/v3.1.4-abi | Started | |
+|node-sqlite3 |n-api team | https://github.com/mhdawson/node-sqlite3/tree/node-addon-api | Completed | |
 
 **Testing**
 
