@@ -69,10 +69,13 @@ https://plus.google.com/u/0/events/c0eevtrlajniu7h8cjrdk0f56c8?authkey=COH04YCal
 # Project Participants
 * [aruneshchandra](https://github.com/aruneshchandra) - Arunesh Chandra
 * [boingoing](https://github.com/boingoing) - Taylor Woll
+* [corymickelson](https://github.com/corymickelson) - Cory Mickelson
 * [digitalinfinity](https://github.com/digitalinfinity) - Hitesh Kanwathirtha
 * [gabrielschulhof](https://github.com/gabrielschulhof) - Gabriel Schulhof
 * [ianwjhalliday](https://github.com/ianwjhalliday) - Ian Halliday
 * [jasongin](https://github.com/jasongin) - Jason Ginchereau
+* [jschlight](https://github.com/jschlight) - Jim Schlight
 * [mhdawson](https://github.com/mhdawson) - Michael Dawson
+* [NickNaso](https://github.com/NickNaso) - Nicola Del Gobbo
 * [sampsongao](https://github.com/sampsongao) - Sampson Gao
 * [anisha-rohra](https://github.com/anisha-rohra) - Anisha Rohra
