@@ -64,7 +64,7 @@ In addition to running the tests in the converted modules.  We have also
 can help accelerate this project.
 
 Hangout link for weekly standup
-https://zoom.us/webinar/363665824   (PRIMARY)
+https://zoom.us/j/363665824   (PRIMARY)
 https://plus.google.com/u/0/events/c0eevtrlajniu7h8cjrdk0f56c8?authkey=COH04YCalJS8Ug (backup)
 
 # Project Participants
