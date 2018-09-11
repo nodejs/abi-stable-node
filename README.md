@@ -65,6 +65,17 @@ In addition to running the tests in the converted modules we also have
 * Review the [roadmap](https://github.com/nodejs/abi-stable-node/milestones) and see how you
 can help accelerate this project.
 
+**Badges**
+
+The use of badges is recommended to indicate the minimum version of N-API
+required for the module. This helps to determine which Node.js major versions
+are supported. The following badges are available:
+
+![N-API v1 Badge](assets/N-API%20v1%20Badge.svg)
+![N-API v2 Badge](assets/N-API%20v2%20Badge.svg)
+![N-API v3 Badge](assets/N-API%20v3%20Badge.svg)
+![N-API Experimental Version Badge](assets/N-API%20Experimental%20Version%20Badge.svg)
+
 Hangout link for weekly standup
 https://zoom.us/j/363665824   (PRIMARY)
 https://plus.google.com/u/0/events/c0eevtrlajniu7h8cjrdk0f56c8?authkey=COH04YCalJS8Ug (backup)
