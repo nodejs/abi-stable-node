@@ -9,7 +9,7 @@ across different versions and flavors of Node.js without recompilations.
 It is introduced by this Node enhancement proposal:
 [005-ABI-Stable-Module-API.md](https://github.com/nodejs/node-eps/blob/master/005-ABI-Stable-Module-API.md).
 
-N-API is now part of core as an experimental feature. Documentation is available here:
+N-API is now part of core. Documentation is available here:
 [https://nodejs.org/docs/latest/api/n-api.html](https://nodejs.org/docs/latest/api/n-api.html).
 
 As of Node.js version 8.6.0 N-API is enabled by default. If you use an N-API enabled module you
@@ -18,6 +18,8 @@ will be warned that it is experimental as follows:
 ```
 (node:16761) Warning: N-API is an experimental feature and could change at any time.
 ```
+
+Node.js versions 8.12.0 and above provide N-API as a stable feature.
 
 **Branches**
 
@@ -50,17 +52,17 @@ It is distributed as a separate npm package: [https://www.npmjs.com/package/node
 
 **Testing**
 
-In addition to running the tests in the converted modules.  We have also
+In addition to running the tests in the converted modules we also have
 
-* Converted version of the NAN examples
-  [abi-stable-node-addon-examples](https://github.com/nodejs/abi-stable-node-addon-examples)
+* a converted version of the NAN examples
+  [node-addon-examples](https://github.com/nodejs/node-addon-examples)
 
-* Converted version of the [core addons tests](https://github.com/nodejs/abi-stable-node/tree/api-prototype-8.x/test/addons-napi) which can be run with `make test addons-napi`
+* a converted version of the [core addons tests](https://github.com/nodejs/node/tree/master/test/addons-napi) which can be run with `make test addons-napi`
 
 **How to get involved**
 * Convert a native module to use [N-API](https://github.com/nodejs/abi-stable-node/blob/api-prototype-8.x/src/node_api.h) and report issues on conversion and performance;
 * Port ABI stable APIs to your fork of Node and let us know if there are gaps;
-* Review the [roadmap](https://github.com/nodejs/abi-stable-node/issues/18) and see how can you
+* Review the [roadmap](https://github.com/nodejs/abi-stable-node/milestones) and see how you
 can help accelerate this project.
 
 Hangout link for weekly standup
