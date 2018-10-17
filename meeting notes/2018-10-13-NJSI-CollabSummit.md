@@ -148,7 +148,7 @@ Feedback:
 - Canonical example: node-sass- every time new node version comes out, need to ship new binaries. It's pure computation that can have it ship as a native module
 - Would be good to have a team to work through the challenges
     - Don’t have a good toolchain - emscripten is from a web perspective. If you want to use malloc, where would it come from? Emscripten- ship something like musl-c - this is not great, especially if you have multiple WASM modules
-    - Would be cool if node provided an LLCM wrapper out of the box, variant of Emscripten for Node
+    - Would be cool if node provided an LLVM wrapper out of the box, variant of Emscripten for Node
     - Would be good to have a wasm version of musl-c that we can ship once
 
 Questions:
