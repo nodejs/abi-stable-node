@@ -69,7 +69,9 @@ can help accelerate this project.
 
 The use of badges is recommended to indicate the minimum version of N-API
 required for the module. This helps to determine which Node.js major versions
-are supported. The following badges are available:
+are supported. Addon maintainers can consult the [N-API support matrix][] to
+determine which Node.js versions provide a given N-API version. The following
+badges are available:
 
 ![N-API v1 Badge](assets/N-API%20v1%20Badge.svg)
 ![N-API v2 Badge](assets/N-API%20v2%20Badge.svg)
@@ -94,3 +96,5 @@ https://plus.google.com/u/0/events/c0eevtrlajniu7h8cjrdk0f56c8?authkey=COH04YCal
 * [sampsongao](https://github.com/sampsongao) - Sampson Gao
 * [anisha-rohra](https://github.com/anisha-rohra) - Anisha Rohra
 * [kfarnung](https://github.com/kfarnung) - Kyle Farnung
+
+[N-API support matrix]: https://nodejs.org/dist/latest/docs/api/n-api.html#n_api_n_api_version_matrix
