@@ -82,19 +82,28 @@ Hangout link for weekly standup
 https://zoom.us/j/363665824   (PRIMARY)
 https://plus.google.com/u/0/events/c0eevtrlajniu7h8cjrdk0f56c8?authkey=COH04YCalJS8Ug (backup)
 
-# Project Participants
-* [aruneshchandra](https://github.com/aruneshchandra) - Arunesh Chandra
-* [boingoing](https://github.com/boingoing) - Taylor Woll
-* [corymickelson](https://github.com/corymickelson) - Cory Mickelson
-* [digitalinfinity](https://github.com/digitalinfinity) - Hitesh Kanwathirtha
-* [gabrielschulhof](https://github.com/gabrielschulhof) - Gabriel Schulhof
-* [ianwjhalliday](https://github.com/ianwjhalliday) - Ian Halliday
-* [jasongin](https://github.com/jasongin) - Jason Ginchereau
-* [jschlight](https://github.com/jschlight) - Jim Schlight
-* [mhdawson](https://github.com/mhdawson) - Michael Dawson
-* [NickNaso](https://github.com/NickNaso) - Nicola Del Gobbo
-* [sampsongao](https://github.com/sampsongao) - Sampson Gao
-* [anisha-rohra](https://github.com/anisha-rohra) - Anisha Rohra
-* [kfarnung](https://github.com/kfarnung) - Kyle Farnung
+## Project Participants
+
+### Active
+
+| Name                | GitHub Link                                           |
+| ----                | -----------                                           |
+| Arunesh Chandra     | [aruneshchandra](https://github.com/aruneshchandra)   |
+| Taylor Woll         | [boingoing](https://github.com/boingoing)             |
+| Hitesh Kanwathirtha | [digitalinfinity](https://github.com/digitalinfinity) |
+| Gabriel Schulhof    | [gabrielschulhof](https://github.com/gabrielschulhof) |
+| Jim Schlight        | [jschlight](https://github.com/jschlight)             |
+| Michael Dawson      | [mhdawson](https://github.com/mhdawson)               |
+| Nicola Del Gobbo    | [NickNaso](https://github.com/NickNaso)               |
+| Anisha Rohra        | [anisha-rohra](https://github.com/anisha-rohra)       |
+| Kyle Farnung        | [kfarnung](https://github.com/kfarnung)               |
+
+### Emeritus
+| Name                | GitHub Link                                           |
+| ----                | -----------                                           |
+| Cory Mickelson      | [corymickelson](https://github.com/corymickelson)     |
+| Ian Halliday        | [ianwjhalliday](https://github.com/ianwjhalliday)     |
+| Jason Ginchereau    | [jasongin](https://github.com/jasongin)               |
+| Sampson Gao         | [sampsongao](https://github.com/sampsongao)           |
 
 [N-API support matrix]: https://nodejs.org/dist/latest/docs/api/n-api.html#n_api_n_api_version_matrix
