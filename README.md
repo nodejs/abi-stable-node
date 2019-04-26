@@ -76,6 +76,7 @@ badges are available:
 ![N-API v1 Badge](assets/N-API%20v1%20Badge.svg)
 ![N-API v2 Badge](assets/N-API%20v2%20Badge.svg)
 ![N-API v3 Badge](assets/N-API%20v3%20Badge.svg)
+![N-API v4 Badge](assets/N-API%20v4%20Badge.svg)
 ![N-API Experimental Version Badge](assets/N-API%20Experimental%20Version%20Badge.svg)
 
 Hangout link for weekly standup
