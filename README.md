@@ -98,6 +98,7 @@ https://plus.google.com/u/0/events/c0eevtrlajniu7h8cjrdk0f56c8?authkey=COH04YCal
 | Nicola Del Gobbo    | [NickNaso](https://github.com/NickNaso)               |
 | Anisha Rohra        | [anisha-rohra](https://github.com/anisha-rohra)       |
 | Kyle Farnung        | [kfarnung](https://github.com/kfarnung)               |
+| Kevin Eady          | [KevinEady](https://github.com/KevinEady)             |
 
 ### Emeritus
 | Name                | GitHub Link                                           |
