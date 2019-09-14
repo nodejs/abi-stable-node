@@ -79,9 +79,11 @@ badges are available:
 ![N-API v4 Badge](assets/N-API%20v4%20Badge.svg)
 ![N-API Experimental Version Badge](assets/N-API%20Experimental%20Version%20Badge.svg)
 
-Hangout link for weekly standup
-https://zoom.us/j/363665824   (PRIMARY)
-https://plus.google.com/u/0/events/c0eevtrlajniu7h8cjrdk0f56c8?authkey=COH04YCalJS8Ug (backup)
+### **Meeting**
+
+Every week the team has a scheduled meeting that usually happen on Monday at 
+10:00 AM of the Pacific Time (PT). For more informations about it see at **[Node.js Calendar](https://calendar.google.com/calendar/embed?src=nodejs.org_nr77ama8p7d7f9ajrpnu506c98%40group.calendar.google.com)**. 
+The link to partecipate to the meeting is:  https://zoom.us/j/363665824 .
 
 ## Project Participants
 
