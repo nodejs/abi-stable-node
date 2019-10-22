@@ -80,7 +80,7 @@ badges are available:
 ![N-API v5 Badge](assets/N-API%20v5%20Badge.svg)
 ![N-API Experimental Version Badge](assets/N-API%20Experimental%20Version%20Badge.svg)
 
-### **Meeting**
+## **Meeting**
 
 Every week the team has a scheduled meeting that usually happen on Monday at 
 10:00 AM of the Pacific Time (PT). For more informations about it see at **[Node.js Calendar](https://calendar.google.com/calendar/embed?src=nodejs.org_nr77ama8p7d7f9ajrpnu506c98%40group.calendar.google.com)**. 
