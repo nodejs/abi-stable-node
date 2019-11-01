@@ -21,14 +21,14 @@ will be warned that it is experimental as follows:
 
 Node.js versions 8.12.0 and above provide N-API as a stable feature.
 
-**Branches**
+## Branches
 
 Currently this repo is being used only for meta issue management and
 future planning by the [N-API team](https://github.com/orgs/nodejs/teams/n-api). All branches can be considered `stale` as they are no longer
 being maintained. Updates and changes to N-API are being done
 in the core [repo](http://github.com/nodejs/node).
 
-**API Design & Shape**
+## API Design & Shape
 
 The current shape of the API can be found in header file
 [node_api.h](https://github.com/nodejs/node/blob/master/src/node_api.h).
@@ -39,7 +39,7 @@ There is also a header-only [C++ API](https://github.com/nodejs/node-addon-api),
 simplifies development while still using the same ABI-stable Node API underneath.
 It is distributed as a separate npm package: [https://www.npmjs.com/package/node-addon-api](https://www.npmjs.com/package/node-addon-api).
 
-**N-API enabled modules**
+## N-API enabled modules
 
 |Module|Converted By|Location|Conversion Status|Performance Assessment|
 |------|------------|--------|---|-----------|
@@ -50,7 +50,7 @@ It is distributed as a separate npm package: [https://www.npmjs.com/package/node
 |iotivity|[gabrielschulhof](https://github.com/gabrielschulhof) | https://github.com/gabrielschulhof/iotivity-node/tree/abi-stable | Completed |N/A|
 |node-sqlite3 |n-api team | https://github.com/mhdawson/node-sqlite3/tree/node-addon-api | Completed | |
 
-**Testing**
+## Testing
 
 In addition to running the tests in the converted modules we also have
 
@@ -59,13 +59,13 @@ In addition to running the tests in the converted modules we also have
 
 * a converted version of the [core addons tests](https://github.com/nodejs/node/tree/master/test/addons-napi) which can be run with `make test addons-napi`
 
-**How to get involved**
+## How to get involved
 * Convert a native module to use [N-API](https://github.com/nodejs/abi-stable-node/blob/api-prototype-8.x/src/node_api.h) and report issues on conversion and performance;
 * Port ABI stable APIs to your fork of Node and let us know if there are gaps;
 * Review the [roadmap](https://github.com/nodejs/abi-stable-node/milestones) and see how you
 can help accelerate this project.
 
-**Badges**
+## Badges
 
 The use of badges is recommended to indicate the minimum version of N-API
 required for the module. This helps to determine which Node.js major versions
@@ -80,7 +80,7 @@ badges are available:
 ![N-API v5 Badge](assets/N-API%20v5%20Badge.svg)
 ![N-API Experimental Version Badge](assets/N-API%20Experimental%20Version%20Badge.svg)
 
-### **Meeting**
+## Meeting
 
 Every week the team has a scheduled meeting that usually happen on Monday at 
 10:00 AM of the Pacific Time (PT). For more informations about it see at **[Node.js Calendar](https://calendar.google.com/calendar/embed?src=nodejs.org_nr77ama8p7d7f9ajrpnu506c98%40group.calendar.google.com)**. 
