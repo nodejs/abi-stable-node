@@ -79,6 +79,7 @@ badges are available:
 ![N-API v4 Badge](assets/N-API%20v4%20Badge.svg)
 ![N-API v5 Badge](assets/N-API%20v5%20Badge.svg)
 ![N-API v6 Badge](assets/N-API%20v6%20Badge.svg)
+![N-API v7 Badge](assets/N-API%20v7%20Badge.svg)
 ![N-API Experimental Version Badge](assets/N-API%20Experimental%20Version%20Badge.svg)
 
 ## Meeting
