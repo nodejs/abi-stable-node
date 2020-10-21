@@ -84,8 +84,7 @@ badges are available:
 
 ## Meeting
 
-Every week the team has a scheduled meeting that usually happen on Monday at 
-08:00 AM of the Pacific Time (PT). For more informations about it see at **[Node.js Calendar](https://calendar.google.com/calendar/embed?src=nodejs.org_nr77ama8p7d7f9ajrpnu506c98%40group.calendar.google.com)**. 
+The team meets once a week on zoom.See the **[Node.js Calendar](https://calendar.google.com/calendar/embed?src=nodejs.org_nr77ama8p7d7f9ajrpnu506c98%40group.calendar.google.com)** for the current time/day of the week.
 The link to participate to the meeting is:  https://zoom.us/j/363665824 .
 
 ## Project Participants
