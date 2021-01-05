@@ -93,23 +93,24 @@ The link to participate to the meeting is:  https://zoom.us/j/363665824 .
 
 | Name                | GitHub Link                                           |
 | ----                | -----------                                           |
-| Arunesh Chandra     | [aruneshchandra](https://github.com/aruneshchandra)   |
-| Taylor Woll         | [boingoing](https://github.com/boingoing)             |
-| Hitesh Kanwathirtha | [digitalinfinity](https://github.com/digitalinfinity) |
+| Chengzhong Wu       | [legendecas](https://github.com/legendecas)           |
 | Gabriel Schulhof    | [gabrielschulhof](https://github.com/gabrielschulhof) |
 | Jim Schlight        | [jschlight](https://github.com/jschlight)             |
+| Kevin Eady          | [KevinEady](https://github.com/KevinEady)             |
 | Michael Dawson      | [mhdawson](https://github.com/mhdawson)               |
 | Nicola Del Gobbo    | [NickNaso](https://github.com/NickNaso)               |
-| Anisha Rohra        | [anisha-rohra](https://github.com/anisha-rohra)       |
-| Kyle Farnung        | [kfarnung](https://github.com/kfarnung)               |
-| Kevin Eady          | [KevinEady](https://github.com/KevinEady)             |
 
 ### Emeritus
 | Name                | GitHub Link                                           |
 | ----                | -----------                                           |
+| Anisha Rohra        | [anisha-rohra](https://github.com/anisha-rohra)       |
+| Arunesh Chandra     | [aruneshchandra](https://github.com/aruneshchandra)   |
 | Cory Mickelson      | [corymickelson](https://github.com/corymickelson)     |
+| Hitesh Kanwathirtha | [digitalinfinity](https://github.com/digitalinfinity) |
 | Ian Halliday        | [ianwjhalliday](https://github.com/ianwjhalliday)     |
 | Jason Ginchereau    | [jasongin](https://github.com/jasongin)               |
+| Kyle Farnung        | [kfarnung](https://github.com/kfarnung)               |
 | Sampson Gao         | [sampsongao](https://github.com/sampsongao)           |
+| Taylor Woll         | [boingoing](https://github.com/boingoing)             |
 
 [N-API support matrix]: https://nodejs.org/dist/latest/docs/api/n-api.html#n_api_n_api_version_matrix
