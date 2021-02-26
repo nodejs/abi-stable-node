@@ -61,14 +61,14 @@ are supported. Addon maintainers can consult the [Node-API support matrix][] to
 determine which Node.js versions provide a given Node-API version. The following
 badges are available:
 
-![Node-API v1 Badge](assets/N-API%20v1%20Badge.svg)
-![Node-API v2 Badge](assets/N-API%20v2%20Badge.svg)
-![Node-API v3 Badge](assets/N-API%20v3%20Badge.svg)
-![Node-API v4 Badge](assets/N-API%20v4%20Badge.svg)
-![Node-API v5 Badge](assets/N-API%20v5%20Badge.svg)
-![Node-API v6 Badge](assets/N-API%20v6%20Badge.svg)
-![Node-API v7 Badge](assets/N-API%20v7%20Badge.svg)
-![Node-API Experimental Version Badge](assets/N-API%20Experimental%20Version%20Badge.svg)
+![Node-API v1 Badge](assets/Node-API%20v1%20Badge.svg)
+![Node-API v2 Badge](assets/Node-API%20v2%20Badge.svg)
+![Node-API v3 Badge](assets/Node-API%20v3%20Badge.svg)
+![Node-API v4 Badge](assets/Node-API%20v4%20Badge.svg)
+![Node-API v5 Badge](assets/Node-API%20v5%20Badge.svg)
+![Node-API v6 Badge](assets/Node-API%20v6%20Badge.svg)
+![Node-API v7 Badge](assets/Node-API%20v7%20Badge.svg)
+![Node-API Experimental Version Badge](assets/Node-API%20Experimental%20Version%20Badge.svg)
 
 ## Meeting
 
