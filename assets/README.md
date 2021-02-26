@@ -7,5 +7,5 @@ these files, the badge files using the old file naming convention have been
 retained. Moving forward, the “Node-API“ naming convention should be used
 for new badge image files.
 
-[renaming n-api to something more appropriate and
+[Renaming n-api to something more appropriate and
 descriptive](https://github.com/nodejs/abi-stable-node/issues/420)
