@@ -1,32 +1,24 @@
-# Node.js API (N-API)
-This repository is the home for ABI Stable Node API project (N-API).
+# Node.js API (Node-API)
+This repository is the home for ABI Stable Node API project Node-API which was previously known as N-API.
+
 The goal of this project is to provide a stable Node API for native
-module developers. N-API aims to provide ABI compatibility guarantees
+module developers. Node-API aims to provide ABI compatibility guarantees
 across different Node versions and also across different Node
-VMs - allowing N-API enabled native modules to just work
+VMs - allowing Node-API enabled native modules to just work
 across different versions and flavors of Node.js without recompilations.
 
 It is introduced by this Node enhancement proposal:
 [005-ABI-Stable-Module-API.md](https://github.com/nodejs/node-eps/blob/master/005-ABI-Stable-Module-API.md).
 
-N-API is now part of core. Documentation is available here:
+Node-API is part of [Node.js core](http://github.com/nodejs/node). Documentation is available here:
 [https://nodejs.org/docs/latest/api/n-api.html](https://nodejs.org/docs/latest/api/n-api.html).
 
-As of Node.js version 8.6.0 N-API is enabled by default. If you use an N-API enabled module you
-will be warned that it is experimental as follows:
-
-```
-(node:16761) Warning: N-API is an experimental feature and could change at any time.
-```
-
-Node.js versions 8.12.0 and above provide N-API as a stable feature.
+Node.js versions 8.12.0 and above provide Node-API as a stable feature.
 
 ## Branches
 
 Currently this repo is being used only for meta issue management and
-future planning by the [N-API team](https://github.com/orgs/nodejs/teams/n-api). All branches can be considered `stale` as they are no longer
-being maintained. Updates and changes to N-API are being done
-in the core [repo](http://github.com/nodejs/node).
+future planning by the [Node-API team](https://github.com/orgs/nodejs/teams/node-api). 
 
 ## API Design & Shape
 
@@ -39,7 +31,7 @@ There is also a header-only [C++ API](https://github.com/nodejs/node-addon-api),
 simplifies development while still using the same ABI-stable Node API underneath.
 It is distributed as a separate npm package: [https://www.npmjs.com/package/node-addon-api](https://www.npmjs.com/package/node-addon-api).
 
-## N-API enabled modules
+## Node-API enabled modules
 
 |Module|Converted By|Location|Conversion Status|Performance Assessment|
 |------|------------|--------|---|-----------|
@@ -52,35 +44,31 @@ It is distributed as a separate npm package: [https://www.npmjs.com/package/node
 
 ## Testing
 
-In addition to running the tests in the converted modules we also have
-
-* a converted version of the NAN examples
+In addition to running the tests in the converted modules we also have a converted version of the NAN examples
   [node-addon-examples](https://github.com/nodejs/node-addon-examples)
 
-* a converted version of the [core addons tests](https://github.com/nodejs/node/tree/master/test/addons-napi) which can be run with `make test addons-napi`
-
 ## How to get involved
-* Convert a native module to use [N-API](https://github.com/nodejs/abi-stable-node/blob/api-prototype-8.x/src/node_api.h) and report issues on conversion and performance;
+* Convert a native module to use [Node-API](https://github.com/nodejs/abi-stable-node/blob/api-prototype-8.x/src/node_api.h) and report issues on conversion and performance;
 * Port ABI stable APIs to your fork of Node and let us know if there are gaps;
 * Review the [roadmap](https://github.com/nodejs/abi-stable-node/milestones) and see how you
 can help accelerate this project.
 
 ## Badges
 
-The use of badges is recommended to indicate the minimum version of N-API
+The use of badges is recommended to indicate the minimum version of Node-API
 required for the module. This helps to determine which Node.js major versions
-are supported. Addon maintainers can consult the [N-API support matrix][] to
-determine which Node.js versions provide a given N-API version. The following
+are supported. Addon maintainers can consult the [Node-API support matrix][] to
+determine which Node.js versions provide a given Node-API version. The following
 badges are available:
 
-![N-API v1 Badge](assets/N-API%20v1%20Badge.svg)
-![N-API v2 Badge](assets/N-API%20v2%20Badge.svg)
-![N-API v3 Badge](assets/N-API%20v3%20Badge.svg)
-![N-API v4 Badge](assets/N-API%20v4%20Badge.svg)
-![N-API v5 Badge](assets/N-API%20v5%20Badge.svg)
-![N-API v6 Badge](assets/N-API%20v6%20Badge.svg)
-![N-API v7 Badge](assets/N-API%20v7%20Badge.svg)
-![N-API Experimental Version Badge](assets/N-API%20Experimental%20Version%20Badge.svg)
+![Node-API v1 Badge](assets/Node-API%20v1%20Badge.svg)
+![Node-API v2 Badge](assets/Node-API%20v2%20Badge.svg)
+![Node-API v3 Badge](assets/Node-API%20v3%20Badge.svg)
+![Node-API v4 Badge](assets/Node-API%20v4%20Badge.svg)
+![Node-API v5 Badge](assets/Node-API%20v5%20Badge.svg)
+![Node-API v6 Badge](assets/Node-API%20v6%20Badge.svg)
+![Node-API v7 Badge](assets/Node-API%20v7%20Badge.svg)
+![Node-API Experimental Version Badge](assets/Node-API%20Experimental%20Version%20Badge.svg)
 
 ## Meeting
 
@@ -113,4 +101,4 @@ The link to participate to the meeting is:  https://zoom.us/j/363665824 .
 | Sampson Gao         | [sampsongao](https://github.com/sampsongao)           |
 | Taylor Woll         | [boingoing](https://github.com/boingoing)             |
 
-[N-API support matrix]: https://nodejs.org/dist/latest/docs/api/n-api.html#n_api_n_api_version_matrix
+[Node-API support matrix]: https://nodejs.org/dist/latest/docs/api/n-api.html#n_api_node_api_version_matrix
