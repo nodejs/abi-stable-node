@@ -26,6 +26,10 @@ some of them.
 - [Node-API bindings for other runtimes](#runtimes)
 
 <a name="#languages"></a>
+**NOTE** The Node-api team has not tried out or validated the projects listed
+below and does not endorse them in any way. Similarly, being listed below does
+not indicate that those projects endorse Node.js or Node-api.
+The lists are simply provided as a starting point for you to do your own evaluation.
 
 ## Node-API bindings for other languages
 
