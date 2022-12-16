@@ -25,9 +25,9 @@ some of them.
 - [Node-API bindings for other languages](#languages)
 - [Node-API bindings for other runtimes](#runtimes)
 
-**NOTE** The Node-api team has not tried out or validated the projects listed
+**NOTE** The Node-API team has not tried out or validated the projects listed
 below and does not endorse them in any way. Similarly, being listed below does
-not indicate that those projects endorse Node.js or Node-api.
+not indicate that those projects endorse Node.js or Node-API.
 The lists are simply provided as a starting point for you to do your own evaluation.
 
 <a name="#languages"></a>
@@ -49,7 +49,7 @@ language to implement native addons for Node.js through Node-API:
 |--------|---------------------|
 |[napi-cs](https://github.com/EYHN/napi-cs)| C#|
 |[napi-dotnet](https://github.com/jasongin/napi-dotnet)| C#|
-|[swift-napi-bindings](https://github.com/LinusU/swift-napi-bindings)| Switf|
+|[swift-napi-bindings](https://github.com/LinusU/swift-napi-bindings)| Swift|
 |[swift-node-addon-examples](https://github.com/LinusU/swift-node-addon-examples)| Swift|
 |[napi-nim](https://github.com/andi23rosca/napi-nim)| Nim|
 |[zig-napigen](https://github.com/cztomsik/zig-napigen)|Zig|
@@ -65,6 +65,7 @@ language to implement native addons for Node.js through Node-API:
 |[bun](https://github.com/oven-sh/bun)| Zig|
 |[deno](https://github.com/denoland/deno)| Rust|
 |[electron](https://github.com/electron/electron)| C++|
+|[iotjs](https://github.com/jerryscript-project/iotjs)| C|
 |[veil](https://github.com/lightsourceengine/veil)| C|
 
 [ABI stability guide]: https://nodejs.org/en/docs/guides/abi-stability/
