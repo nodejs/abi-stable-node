@@ -65,9 +65,9 @@ language to implement native addons for Node.js through Node-API:
 |[bun](https://github.com/oven-sh/bun)| Zig|
 |[deno](https://github.com/denoland/deno)| Rust|
 |[electron](https://github.com/electron/electron)| C++|
+|[emnapi](https://github.com/toyobayashi/emnapi)| C / JavaScript|
 |[iotjs](https://github.com/jerryscript-project/iotjs)| C|
 |[veil](https://github.com/lightsourceengine/veil)| C|
-|[emnapi](https://github.com/toyobayashi/emnapi)| C / JavaScript|
 
 [ABI stability guide]: https://nodejs.org/en/docs/guides/abi-stability/
 [ECMA262 Language Specification]: https://tc39.es/ecma262/
