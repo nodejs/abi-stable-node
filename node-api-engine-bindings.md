@@ -48,7 +48,7 @@ language to implement native addons for Node.js through Node-API:
 |Project | Programming language|
 |--------|---------------------|
 |[napi-cs](https://github.com/EYHN/napi-cs)| C#|
-|[napi-dotnet](https://github.com/jasongin/napi-dotnet)| C#|
+|[node-api-dotnet](https://github.com/microsoft/node-api-dotnet)| C#|
 |[swift-napi-bindings](https://github.com/LinusU/swift-napi-bindings)| Swift|
 |[swift-node-addon-examples](https://github.com/LinusU/swift-node-addon-examples)| Swift|
 |[napi-nim](https://github.com/andi23rosca/napi-nim)| Nim|
