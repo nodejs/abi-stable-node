@@ -1,9 +1,14 @@
 # Maintaining @nodejs/node-api-implementer
 
+The [@nodejs/node-api-implementer][] team is used a method for the Node-api
+team to community and share information with implementations of Node-api
+outside of Node.js itself. It will be used to gather feedback on major changes
+that may affect those implementations.
+
 This document is a checklist of things to add a new person to the
 [@nodejs/node-api-implementer][] team.
 
-While introducing new Node-API implementer to the team is encouraged
+While adding new Node-API implementer to the team is encouraged
 and welcomed, the following are a set of principles of the team:
 
 1. The person must be a maintainer of a Node-API runtime implementation.
