@@ -17,8 +17,3 @@ principles for creating native Node.js modules using Node-API.
 |**N-API: The Next Generation Node.js API is Ready!**<br/>Michael Dawson, IBM & Arunesh Chandra, Microsoft<br/>Oct 17, 2018|[![N-API: The Next Generation Node.js API is Ready video](https://img.youtube.com/vi/BrJcsYjp8Nw/0.jpg)](https://www.youtube.com/watch?v=BrJcsYjp8Nw)|
 |**N-API - next generation Node API for native modules**<br/>Michael Dawson, IBM & Arunesh Chandra, Microsoft<br/>Nov 6, 2017|[![N-API - next generation Node API for native modules video](https://img.youtube.com/vi/E848bgHfoxE/0.jpg)](https://www.youtube.com/watch?v=E848bgHfoxE)|
 |**N-API - Next Generation Node API for Native Modules**<br/>Michael Dawson, IBM & Arunesh Chandra, Microsoft<br/>Oct 15, 2017|[![N-API - Next Generation Node API for Native Modules video](https://img.youtube.com/vi/-Oniup60Afs/0.jpg)](https://www.youtube.com/watch?v=-Oniup60Afs)|
-
-<style>
-/* To align text in table cells */
-td { vertical-align: top; }
-</style>
