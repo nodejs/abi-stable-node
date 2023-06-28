@@ -84,10 +84,12 @@ The link to participate to the meeting is:  https://zoom.us/j/363665824 .
 | ----                | -----------                                           |
 | Chengzhong Wu       | [legendecas](https://github.com/legendecas)           |
 | Gabriel Schulhof    | [gabrielschulhof](https://github.com/gabrielschulhof) |
-| Jim Schlight        | [jschlight](https://github.com/jschlight)             |
+| Jack Xia            | [JckXia](https://github.com/JckXia)                   |
 | Kevin Eady          | [KevinEady](https://github.com/KevinEady)             |
 | Michael Dawson      | [mhdawson](https://github.com/mhdawson)               |
 | Nicola Del Gobbo    | [NickNaso](https://github.com/NickNaso)               |
+| Vladimir Morozov    | [vmoroz](https://github.com/vmoroz)                   |
+
 
 ### Emeritus
 | Name                | GitHub Link                                           |
@@ -98,6 +100,7 @@ The link to participate to the meeting is:  https://zoom.us/j/363665824 .
 | Hitesh Kanwathirtha | [digitalinfinity](https://github.com/digitalinfinity) |
 | Ian Halliday        | [ianwjhalliday](https://github.com/ianwjhalliday)     |
 | Jason Ginchereau    | [jasongin](https://github.com/jasongin)               |
+| Jim Schlight        | [jschlight](https://github.com/jschlight)             |
 | Kyle Farnung        | [kfarnung](https://github.com/kfarnung)               |
 | Sampson Gao         | [sampsongao](https://github.com/sampsongao)           |
 | Taylor Woll         | [boingoing](https://github.com/boingoing)             |
