@@ -69,6 +69,7 @@ badges are available:
 ![Node-API v6 Badge](assets/Node-API%20v6%20Badge.svg)
 ![Node-API v7 Badge](assets/Node-API%20v7%20Badge.svg)
 ![Node-API v8 Badge](assets/Node-API%20v8%20Badge.svg)
+![Node-API v9 Badge](assets/Node-API%20v9%20Badge.svg)
 ![Node-API Experimental Version Badge](assets/Node-API%20Experimental%20Version%20Badge.svg)
 
 ## Meeting
