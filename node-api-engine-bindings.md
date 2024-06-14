@@ -40,6 +40,7 @@ The lists are simply provided as a starting point for you to do your own evaluat
 |[napi-sys](https://github.com/napi-rs/napi-sys)| Rust|
 |[nodejs-sys](https://github.com/elmarx/nodejs-sys)| Rust|
 |[neon](https://github.com/neon-bindings/neon)| Rust|
+|[NodeSwift](https://github.com/kabiroberai/node-swift)| Swift|
 
 There are other projects that are in early stage, in development or that
 it's possible to use as example to understand how to use a programming
