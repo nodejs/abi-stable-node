@@ -41,6 +41,7 @@ The lists are simply provided as a starting point for you to do your own evaluat
 |[nodejs-sys](https://github.com/elmarx/nodejs-sys)| Rust|
 |[neon](https://github.com/neon-bindings/neon)| Rust|
 |[NodeSwift](https://github.com/kabiroberai/node-swift)| Swift|
+|[node-api-jsi](https://github.com/microsoft/node-api-jsi)| C++|
 
 There are other projects that are in early stage, in development or that
 it's possible to use as example to understand how to use a programming
@@ -67,7 +68,9 @@ language to implement native addons for Node.js through Node-API:
 |[deno](https://github.com/denoland/deno)| Rust|
 |[electron](https://github.com/electron/electron)| C++|
 |[emnapi](https://github.com/toyobayashi/emnapi)| C / JavaScript|
+|[hermes-windows](https://github.com/microsoft/hermes-windows)| C++|
 |[iotjs](https://github.com/jerryscript-project/iotjs)| C|
+|[react-native](https://github.com/callstackincubator/react-native-node-api)| C++|
 |[veil](https://github.com/lightsourceengine/veil)| C|
 
 [ABI stability guide]: https://nodejs.org/en/docs/guides/abi-stability/
