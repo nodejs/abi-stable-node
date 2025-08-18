@@ -38,10 +38,11 @@ The lists are simply provided as a starting point for you to do your own evaluat
 |--------|---------------------|
 |[napi-rs](https://github.com/napi-rs/napi-rs)| Rust|
 |[napi-sys](https://github.com/napi-rs/napi-sys)| Rust|
-|[nodejs-sys](https://github.com/elmarx/nodejs-sys)| Rust|
 |[neon](https://github.com/neon-bindings/neon)| Rust|
+|[node-api-dotnet](https://github.com/microsoft/node-api-dotnet)| C#|
+|[node-api-jsi](https://github.com/microsoft/node-api-jsi)| C++ / React Native|
+|[nodejs-sys](https://github.com/elmarx/nodejs-sys)| Rust|
 |[NodeSwift](https://github.com/kabiroberai/node-swift)| Swift|
-|[node-api-jsi](https://github.com/microsoft/node-api-jsi)| C++|
 
 There are other projects that are in early stage, in development or that
 it's possible to use as example to understand how to use a programming
@@ -50,17 +51,16 @@ language to implement native addons for Node.js through Node-API:
 |Project | Programming language|
 |--------|---------------------|
 |[napi-cs](https://github.com/EYHN/napi-cs)| C#|
-|[node-api-dotnet](https://github.com/microsoft/node-api-dotnet)| C#|
-|[swift-napi-bindings](https://github.com/LinusU/swift-napi-bindings)| Swift|
-|[swift-node-addon-examples](https://github.com/LinusU/swift-node-addon-examples)| Swift|
 |[napi-nim](https://github.com/andi23rosca/napi-nim)| Nim|
 |[zig-napigen](https://github.com/cztomsik/zig-napigen)|Zig|
-|[zig-nodejs-example](zig-nodejs-example)| Zig|
+|[zig-nodejs-example](https://github.com/staltz/zig-nodejs-example)| Zig|
 |[go-node-api](https://github.com/napi-bindings/go-node-api)| Go|
 
 <a name="#runtimes"></a>
 
-## Node-API bindings for other runtimes
+## Node-API bindings in other runtimes
+
+The following is a list of runtimes that implements Node-API:
 
 |Project | Programming language|
 |--------|---------------------|
