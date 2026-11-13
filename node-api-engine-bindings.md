@@ -54,7 +54,7 @@ language to implement native addons for Node.js through Node-API:
 |[napi-nim](https://github.com/andi23rosca/napi-nim)| Nim|
 |[zig-napigen](https://github.com/cztomsik/zig-napigen)|Zig|
 |[zig-nodejs-example](https://github.com/staltz/zig-nodejs-example)| Zig|
-|[go-node-api](https://github.com/napi-bindings/go-node-api)| Go|
+|[napi-go](https://github.com/napi-bindings/napi-go)| Go|
 
 <a name="#runtimes"></a>
 
