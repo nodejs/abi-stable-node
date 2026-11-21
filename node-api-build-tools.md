@@ -16,21 +16,29 @@ documentation and toolchain requirements.
 
 ## Build tools
 
-Both the tools listed here require that _users_ of the native
-addon have a C/C++ toolchain installed in order to successfully install
-the native addon.
+node-gyp and CMake.js require that _users_ of the native addon have a
+C/C++ toolchain installed in order to successfully install the native
+addon. marmotta instead downloads its own Zig-based toolchain.
 
 ### node-gyp
 
 [node-gyp][] is a build tool based on the [gyp-next][] tool and comes
 bundled with npm.
 
-#### CMake.js
+### CMake.js
 
 [CMake.js][] is an alternative build system based on [CMake][].
 
 CMake.js is a good choice for projects that already use CMake.
 [`build_with_cmake`][] is an example of a CMake-based native addon project.
+
+### marmotta
+
+[marmotta][] is a build tool for Node-API addons written in C or C++ that
+uses [Zig][] as its compiler toolchain. It downloads and manages Zig on
+first use and ships its own Node-API headers, so developers don't need to
+set up node-gyp, CMake, or a separate C/C++ compiler. Projects are
+configured with a `marmotta.config.json` (or `.js`) file.
 
 ### Uploading precompiled binaries
 
@@ -61,6 +69,7 @@ that the built binaries are bundled with the native addon when it's
 uploaded to npm. The binaries are downloaded from npm and are immediately
 available to the module user when the native addon is installed.
 
+
 [`build_with_cmake`]: https://github.com/nodejs/node-addon-examples/tree/main/src/8-tooling/build_with_cmake
 [CMake]: https://cmake.org
 [CMake.js]: https://github.com/cmake-js/cmake-js
@@ -70,3 +79,5 @@ available to the module user when the native addon is installed.
 [node-pre-gyp]: https://github.com/mapbox/node-pre-gyp
 [prebuild]: https://github.com/prebuild/prebuild
 [prebuildify]: https://github.com/prebuild/prebuildify
+[Zig]: https://ziglang.org
+[marmotta]: https://github.com/napi-bindings/marmotta
