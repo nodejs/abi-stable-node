@@ -71,6 +71,7 @@ The following is a list of runtimes that implements Node-API:
 |[hermes-windows](https://github.com/microsoft/hermes-windows)| C++|
 |[iotjs](https://github.com/jerryscript-project/iotjs)| C|
 |[lynx/primjs](https://github.com/lynx-family/primjs)| C++|
+|[quickjs](https://github.com/napi-bindings/quickjs-napi)| C / C++|
 |[react-native](https://github.com/callstackincubator/react-native-node-api)| C++|
 |[veil](https://github.com/lightsourceengine/veil)| C|
 
